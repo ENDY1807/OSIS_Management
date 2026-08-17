@@ -1,0 +1,983 @@
+import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+import '../models/models.dart';
+import '../services/data_service.dart';
+import '../services/auth_service.dart';
+import '../services/notification_service.dart';
+import '../app_theme.dart';
+
+class ManajemenScreen extends StatefulWidget {
+  const ManajemenScreen({super.key});
+  @override
+  State<ManajemenScreen> createState() => _ManajemenScreenState();
+}
+
+class _ManajemenScreenState extends State<ManajemenScreen> with SingleTickerProviderStateMixin {
+  TabController? _tab;
+  List<Siswa> _siswa = [];
+  List<JenisPelanggaran> _jenis = [];
+  String _username = '';
+  String _searchQuery = '';
+  final _searchCtrl = TextEditingController();
+
+  static const _superUsers = ['KETUA', 'WAKIL', 'SEKRETARIS', 'BENDAHARA'];
+  bool get _isPembina   => _username == 'PEMBINA';
+  bool get _isSuperUser => _superUsers.contains(_username);
+  bool get _canSeeJenis => _isSuperUser || _username == 'SEKBID2' || _isPembina;
+  bool get _canEditJenis => _isSuperUser || _username == 'SEKBID2' || _isPembina;
+  bool get _canSeeSiswa => _isSuperUser || _isPembina;
+  bool get _canEditSiswa => _isSuperUser || _isPembina;
+  // Semua role yang bisa akses manajemen bisa lihat Status Cloud
+  bool get _canSeeCloud => _isSuperUser || _isPembina;
+  int get _tabCount =>
+      (_canSeeSiswa ? 1 : 0) +
+      (_canSeeJenis ? 1 : 0) +
+      (_canSeeCloud ? 1 : 0) +
+      (_isPembina   ? 1 : 0);
+  int get _siswaTabIndex => 0;
+  int get _jenisTabIndex => _canSeeSiswa ? 1 : 0;
+
+  List<Siswa> get _filteredSiswa {
+    if (_searchQuery.isEmpty) return _siswa;
+    final q = _searchQuery.toLowerCase();
+    return _siswa.where((s) =>
+      s.nama.toLowerCase().contains(q) ||
+      s.nis.toLowerCase().contains(q) ||
+      s.kelas.toLowerCase().contains(q)).toList();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+    AuthService.getUserName().then((v) {
+      if (!mounted) return;
+      setState(() {
+        _username = v ?? '';
+        _tab?.dispose();
+        _tab = TabController(length: _tabCount, vsync: this)
+          ..addListener(() => setState(() {}));
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _tab?.dispose();
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    final s = await DataService.getSiswa();
+    final j = await DataService.getJenis();
+    setState(() { _siswa = s; _jenis = j; });
+  }
+
+  Future<void> _importExcelSiswa() async {
+    try {
+      final result = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['xlsx', 'xls'],
+      );
+      if (result == null) return;
+      final file = result.files.single;
+      final bytes = await file.readAsBytes();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Mengimpor ke Supabase...'), duration: Duration(seconds: 30)));
+      }
+      final count = await DataService.importStudentsFromExcel(bytes, namaFile: file.name);
+      if (count > 0) {
+        await NotificationService.notifyUpdate(
+          title: 'Import Data Siswa',
+          message: '$count data siswa dari file "${file.name}" berhasil diimpor oleh $_username',
+          category: 'manajemen',
+          actor: _username,
+        );
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(count > 0 ? '$count siswa berhasil diimpor ke Supabase' : 'Semua siswa sudah ada, tidak ada yang baru'),
+          backgroundColor: count > 0 ? Colors.green : Colors.orange,
+          duration: const Duration(seconds: 4),
+        ));
+        _load();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Gagal impor: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 6),
+        ));
+      }
+    }
+  }
+
+  Future<void> _showFileRiwayat() async {
+    var riwayat = await DataService.getFileRiwayat();
+    if (!mounted) return;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(child: Container(width: 40, height: 4,
+                  decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(2)))),
+              const SizedBox(height: 16),
+              const Text('Riwayat File', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kTextDark)),
+              const SizedBox(height: 4),
+              const Text('Pilih file untuk hapus siswa atau naik kelas',
+                  style: TextStyle(fontSize: 12, color: kTextMid)),
+              const SizedBox(height: 16),
+              if (riwayat.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(child: Text('Belum ada file yang diupload', style: TextStyle(color: kTextMid))),
+                )
+              else
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.5),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: riwayat.length,
+                    itemBuilder: (_, i) {
+                      final f = riwayat[i];
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: kPrimary.withAlpha(80)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: ListTile(
+                          leading: const Icon(Icons.insert_drive_file_outlined, color: kAccent),
+                          title: Text(f.namaFile, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kTextDark)),
+                          subtitle: Text(
+                            '${f.nisList.length} siswa • ${f.tanggalUpload.day}/${f.tanggalUpload.month}/${f.tanggalUpload.year}',
+                            style: const TextStyle(fontSize: 11, color: kTextMid),
+                          ),
+                          trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                            // Naik kelas
+                            IconButton(
+                              tooltip: 'Naik Kelas',
+                              icon: const Icon(Icons.arrow_upward, color: Colors.blue, size: 20),
+                              onPressed: () async {
+                                final ok = await showDialog<bool>(
+                                  context: ctx,
+                                  builder: (d) => AlertDialog(
+                                    title: const Text('Naik Kelas?'),
+                                    content: Text('Semua ${f.nisList.length} siswa di file "${f.namaFile}" akan dinaikkan kelasnya (X→XI, XI→XII). Lanjutkan?'),
+                                    actions: [
+                                      TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Batal')),
+                                      ElevatedButton(
+                                        onPressed: () => Navigator.pop(d, true),
+                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                                        child: const Text('Naik Kelas'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                                if (ok != true || !ctx.mounted) return;
+                                final count = await DataService.naikKelasFromFile(f);
+                                await NotificationService.notifyUpdate(
+                                  title: 'Kenaikan Kelas Siswa',
+                                  message: '$count siswa dari file "${f.namaFile}" dinaikkan kelasnya oleh $_username',
+                                  category: 'manajemen',
+                                  actor: _username,
+                                );
+                                if (ctx.mounted) {
+                                  Navigator.pop(ctx);
+                                  ScaffoldMessenger.of(context) // ignore: use_build_context_synchronously
+                                    .showSnackBar(SnackBar(
+                                    content: Text('$count siswa berhasil dinaikkan kelasnya'),
+                                    backgroundColor: Colors.blue,
+                                    duration: const Duration(seconds: 3),
+                                  ));
+                                  _load();
+                                }
+                              },
+                            ),
+                            // Turun kelas
+                            IconButton(
+                              tooltip: 'Turun Kelas',
+                              icon: const Icon(Icons.arrow_downward, color: Colors.orange, size: 20),
+                              onPressed: () async {
+                                final ok = await showDialog<bool>(
+                                  context: ctx,
+                                  builder: (d) => AlertDialog(
+                                    title: const Text('Turun Kelas?'),
+                                    content: Text('Semua ${f.nisList.length} siswa di file "${f.namaFile}" akan diturunkan kelasnya (XII→XI, XI→X). Lanjutkan?'),
+                                    actions: [
+                                      TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Batal')),
+                                      ElevatedButton(
+                                        onPressed: () => Navigator.pop(d, true),
+                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                                        child: const Text('Turun Kelas'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                                if (ok != true || !ctx.mounted) return;
+                                final count = await DataService.turunKelasFromFile(f);
+                                await NotificationService.notifyUpdate(
+                                  title: 'Penurunan Kelas Siswa',
+                                  message: '$count siswa dari file "${f.namaFile}" diturunkan kelasnya oleh $_username',
+                                  category: 'manajemen',
+                                  actor: _username,
+                                );
+                                if (ctx.mounted) {
+                                  Navigator.pop(ctx);
+                                  ScaffoldMessenger.of(context) // ignore: use_build_context_synchronously
+                                    .showSnackBar(SnackBar(
+                                    content: Text('$count siswa berhasil diturunkan kelasnya'),
+                                    backgroundColor: Colors.orange,
+                                    duration: const Duration(seconds: 3),
+                                  ));
+                                  _load();
+                                }
+                              },
+                            ),
+                            // Hapus file + siswa
+                            IconButton(
+                              tooltip: 'Hapus File & Siswa',
+                              icon: const Icon(Icons.delete_sweep_outlined, color: Colors.red, size: 20),
+                              onPressed: () async {
+                                final ok = await showDialog<bool>(
+                                  context: ctx,
+                                  builder: (d) => AlertDialog(
+                                    title: const Text('Hapus File & Siswa?'),
+                                    content: Text('File "${f.namaFile}" dan semua ${f.nisList.length} siswa di dalamnya akan dihapus permanen.'),
+                                    actions: [
+                                      TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Batal')),
+                                      ElevatedButton(
+                                        onPressed: () => Navigator.pop(d, true),
+                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                                        child: const Text('Hapus'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                                if (ok != true || !ctx.mounted) return;
+                                // Hapus semua siswa sekaligus (batch) + hapus file riwayat
+                                await Future.wait([
+                                  DataService.deleteSiswaByNisList(f.nisList),
+                                  DataService.deleteFileRiwayat(f.id),
+                                ]);
+                                await NotificationService.notifyUpdate(
+                                  title: 'Data Siswa & Riwayat Dihapus',
+                                  message: 'File "${f.namaFile}" dan ${f.nisList.length} data siswa di dalamnya telah dihapus oleh $_username',
+                                  category: 'manajemen',
+                                  actor: _username,
+                                );
+                                if (!ctx.mounted) return;
+                                // Update UI modal langsung tanpa tutup
+                                setS(() => riwayat = riwayat.where((r) => r.id != f.id).toList());
+                                ScaffoldMessenger.of(context) // ignore: use_build_context_synchronously
+                                  .showSnackBar(SnackBar(
+                                  content: Text('File dan ${f.nisList.length} siswa berhasil dihapus'),
+                                  backgroundColor: Colors.green,
+                                  duration: const Duration(seconds: 3),
+                                ));
+                                _load();
+                              },
+                            ),
+                          ]),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showSiswaForm([Siswa? existing]) {
+    final namaC = TextEditingController(text: existing?.nama);
+    final kelasC = TextEditingController(text: existing?.kelas);
+    final nisC = TextEditingController(text: existing?.nis);
+    _showBottomForm(
+      title: existing == null ? 'Tambah Siswa' : 'Edit Siswa',
+      fields: [
+        TextField(controller: namaC, decoration: const InputDecoration(labelText: 'Nama Lengkap', prefixIcon: Icon(Icons.person_outline, color: kAccent))),
+        const SizedBox(height: 12),
+        TextField(controller: kelasC, decoration: const InputDecoration(labelText: 'Kelas', prefixIcon: Icon(Icons.class_outlined, color: kAccent))),
+        const SizedBox(height: 12),
+        TextField(controller: nisC, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'NIS', prefixIcon: Icon(Icons.badge_outlined, color: kAccent))),
+      ],
+      onSave: () async {
+        if (namaC.text.isEmpty) return false;
+        if (existing != null) {
+          await DataService.updateSiswa(Siswa(id: existing.id, nama: namaC.text, kelas: kelasC.text, nis: nisC.text));
+          await NotificationService.notifyUpdate(
+            title: 'Data Siswa Diperbarui',
+            message: 'Data siswa "${namaC.text}" (${kelasC.text}) diperbarui oleh $_username',
+            category: 'manajemen',
+            actor: _username,
+          );
+        } else {
+          await DataService.addSiswa(namaC.text, kelasC.text, nisC.text);
+          await NotificationService.notifyUpdate(
+            title: 'Data Siswa Ditambahkan',
+            message: 'Siswa baru "${namaC.text}" (${kelasC.text} - NIS: ${nisC.text}) ditambahkan oleh $_username',
+            category: 'manajemen',
+            actor: _username,
+          );
+        }
+        return true;
+      },
+    );
+  }
+
+  void _showJenisForm([JenisPelanggaran? existing]) {
+    final namaC = TextEditingController(text: existing?.nama);
+    List<int> selectedHari = List.from(existing?.hariAktif ?? []);
+    const hariLabels = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModal) => Container(
+          decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+          padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(2)))),
+              const SizedBox(height: 16),
+              Text(existing == null ? 'Tambah Jenis Pelanggaran' : 'Edit Jenis',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kTextDark)),
+              const SizedBox(height: 16),
+              TextField(controller: namaC, decoration: const InputDecoration(
+                labelText: 'Nama Pelanggaran', prefixIcon: Icon(Icons.warning_amber_outlined, color: kAccent))),
+              const SizedBox(height: 16),
+              const Text('Aktif pada hari:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kTextDark)),
+              const SizedBox(height: 4),
+              const Text('Kosongkan = muncul setiap hari', style: TextStyle(fontSize: 11, color: kTextLight)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8, runSpacing: 8,
+                children: List.generate(5, (i) {
+                  final hari = i + 1;
+                  final selected = selectedHari.contains(hari);
+                  return FilterChip(
+                    label: Text(hariLabels[i]),
+                    selected: selected,
+                    onSelected: (v) => setModal(() {
+                      if (v) { selectedHari.add(hari); } else { selectedHari.remove(hari); }
+                      selectedHari.sort();
+                    }),
+                    selectedColor: kAccent,
+                    checkmarkColor: Colors.white,
+                    labelStyle: TextStyle(color: selected ? Colors.white : kTextDark,
+                        fontWeight: FontWeight.w600, fontSize: 12),
+                    backgroundColor: kPrimary.withAlpha(60),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    side: BorderSide.none,
+                  );
+                }),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () async {
+                  if (namaC.text.trim().isEmpty) return;
+                  try {
+                    if (existing != null) {
+                      await DataService.updateJenis(JenisPelanggaran(
+                          id: existing.id, nama: namaC.text.trim(), hariAktif: selectedHari));
+                      await NotificationService.notifyUpdate(
+                        title: 'Jenis Pelanggaran Diperbarui',
+                        message: 'Jenis pelanggaran "${namaC.text.trim()}" diperbarui oleh $_username',
+                        category: 'manajemen',
+                        actor: _username,
+                      );
+                    } else {
+                      await DataService.addJenis(namaC.text.trim(), hariAktif: selectedHari);
+                      await NotificationService.notifyUpdate(
+                        title: 'Jenis Pelanggaran Ditambahkan',
+                        message: 'Jenis pelanggaran baru "${namaC.text.trim()}" ditambahkan oleh $_username',
+                        category: 'manajemen',
+                        actor: _username,
+                      );
+                    }
+                    if (ctx.mounted) {
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
+                        content: Text('Tersimpan ke Supabase'),
+                        backgroundColor: Colors.green,
+                        duration: Duration(seconds: 2),
+                      ));
+                      _load();
+                    }
+                  } catch (e) {
+                    if (ctx.mounted) {
+                      ScaffoldMessenger.of(ctx).showSnackBar(
+                        SnackBar(content: Text('Gagal: $e'), backgroundColor: Colors.red));
+                    }
+                  }
+                },
+                style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                child: const Text('Simpan', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showBottomForm({required String title, required List<Widget> fields, required Future<bool> Function() onSave}) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(2)))),
+            const SizedBox(height: 16),
+            Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kTextDark)),
+            const SizedBox(height: 16),
+            ...fields,
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () async {
+                try {
+                  final ok = await onSave();
+                  if (ok && ctx.mounted) {
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
+                      content: Text('Tersimpan ke Supabase'),
+                      backgroundColor: Colors.green,
+                      duration: Duration(seconds: 2),
+                    ));
+                    _load();
+                  }
+                } catch (e) {
+                  if (ctx.mounted) {
+                    ScaffoldMessenger.of(ctx).showSnackBar(
+                      SnackBar(content: Text('Gagal: $e'), backgroundColor: Colors.red));
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+              child: const Text('Simpan', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: kBg,
+      appBar: AppBar(
+        title: const Text('Manajemen'),
+        bottom: _tab == null ? null : TabBar(
+          controller: _tab!,
+          tabs: [
+            if (_canSeeSiswa) const Tab(text: 'Siswa'),
+            if (_canSeeJenis) const Tab(text: 'Jenis Pelanggaran'),
+            if (_canSeeCloud) const Tab(text: 'Status Cloud'),
+            if (_isPembina)   const Tab(text: 'Konfigurasi Akun'),
+          ],
+        ),
+      ),
+      body: _tab == null
+          ? const Center(child: CircularProgressIndicator())
+          : TabBarView(
+        controller: _tab!,
+        children: [
+          if (_canSeeSiswa) Column(children: [
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(children: [
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      const Text('Data Siswa', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kTextDark)),
+                      Text('${_filteredSiswa.length}${_searchQuery.isNotEmpty ? ' dari ${_siswa.length}' : ''} siswa', style: const TextStyle(fontSize: 12, color: kTextMid)),
+                    ])),
+                  ]),
+                  const SizedBox(height: 10),
+                  // ── Search bar ──
+                  TextField(
+                    controller: _searchCtrl,
+                    onChanged: (v) => setState(() => _searchQuery = v),
+                    decoration: InputDecoration(
+                      hintText: 'Cari nama, NIS, atau kelas...',
+                      prefixIcon: const Icon(Icons.search, color: kAccent, size: 20),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 18),
+                              onPressed: () {
+                                _searchCtrl.clear();
+                                setState(() => _searchQuery = '');
+                              },
+                            )
+                          : null,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                  ),
+                  if (_canEditSiswa) ...[
+                    const SizedBox(height: 10),
+                    Row(children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _importExcelSiswa,
+                          icon: const Icon(Icons.upload_file, size: 16),
+                          label: const Text('Impor Excel', style: TextStyle(fontSize: 13)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green, foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _showFileRiwayat,
+                          icon: const Icon(Icons.folder_open_outlined, size: 16),
+                          label: const Text('Kelola File', style: TextStyle(fontSize: 13)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: kAccent, foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ),
+                    ]),
+                    const SizedBox(height: 4),
+                    const Text('Format: kolom Nama, Kelas, NIS (baris pertama = header)',
+                        style: TextStyle(fontSize: 10, color: kTextLight)),
+                  ],
+                ],
+              ),
+            ),
+            const Divider(height: 1, color: kPrimary),
+            Expanded(
+              child: _siswa.isEmpty
+                  ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      const Icon(Icons.people_outline, size: 64, color: kTextLight),
+                      const SizedBox(height: 12),
+                      const Text('Belum ada data siswa', style: TextStyle(color: kTextMid, fontSize: 15)),
+                      const SizedBox(height: 4),
+                      const Text('Impor dari Excel atau tap + untuk tambah manual', style: TextStyle(color: kTextLight, fontSize: 12)),
+                    ]))
+                  : _filteredSiswa.isEmpty
+                      ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                          const Icon(Icons.search_off, size: 48, color: kTextLight),
+                          const SizedBox(height: 12),
+                          Text('Tidak ada siswa "$_searchQuery"', style: const TextStyle(color: kTextMid)),
+                        ]))
+                      : ListView.builder(
+                          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                          itemCount: _filteredSiswa.length,
+                          itemBuilder: (_, i) {
+                            final s = _filteredSiswa[i];
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12),
+                                  boxShadow: [BoxShadow(color: kPrimary.withAlpha(60), blurRadius: 4)]),
+                              child: ListTile(
+                                leading: CircleAvatar(backgroundColor: kPrimary,
+                                    child: Text(s.nama.substring(0, 1).toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, color: kTextDark))),
+                                title: Text(s.nama, style: const TextStyle(fontWeight: FontWeight.bold, color: kTextDark)),
+                                subtitle: Text('Kelas ${s.kelas} • NIS: ${s.nis}', style: const TextStyle(color: kTextMid, fontSize: 12)),
+                                trailing: _canEditSiswa ? Row(mainAxisSize: MainAxisSize.min, children: [
+                                  IconButton(icon: const Icon(Icons.edit_outlined, color: kAccent, size: 20), onPressed: () => _showSiswaForm(s)),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                                    onPressed: () async {
+                                      await DataService.deleteSiswa(s.id);
+                                      await NotificationService.notifyUpdate(
+                                        title: 'Data Siswa Dihapus',
+                                        message: 'Data siswa "${s.nama}" (${s.kelas}) telah dihapus oleh $_username',
+                                        category: 'manajemen',
+                                        actor: _username,
+                                      );
+                                      _load();
+                                    },
+                                  ),
+                                ]) : null,
+                              ),
+                            );
+                          },
+                        ),
+            ),
+          ]),
+
+          // ── Jenis Pelanggaran ──
+          if (_canSeeJenis)
+          _jenis.isEmpty
+              ? const Center(child: Text('Belum ada jenis pelanggaran', style: TextStyle(color: kTextMid)))
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                  itemCount: _jenis.length,
+                  itemBuilder: (_, i) {
+                    final j = _jenis[i];
+                    const hariLabels = ['', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum'];
+                    final hariText = j.hariAktif.isEmpty
+                        ? 'Semua hari'
+                        : j.hariAktif.map((h) => hariLabels[h]).join(', ');
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12),
+                          boxShadow: [BoxShadow(color: kPrimary.withAlpha(60), blurRadius: 4)]),
+                      child: ListTile(
+                        leading: const Icon(Icons.warning_amber_outlined, color: kAccent, size: 22),
+                        title: Text(j.nama, style: const TextStyle(fontWeight: FontWeight.bold, color: kTextDark)),
+                        subtitle: Text(hariText, style: const TextStyle(fontSize: 11, color: kTextMid)),
+                        trailing: _canEditJenis ? Row(mainAxisSize: MainAxisSize.min, children: [
+                          IconButton(icon: const Icon(Icons.edit_outlined, color: kAccent, size: 20), onPressed: () => _showJenisForm(j)),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                            onPressed: () async {
+                              await DataService.deleteJenis(j.id);
+                              await NotificationService.notifyUpdate(
+                                title: 'Jenis Pelanggaran Dihapus',
+                                message: 'Jenis pelanggaran "${j.nama}" telah dihapus oleh $_username',
+                                category: 'manajemen',
+                                actor: _username,
+                              );
+                              _load();
+                            },
+                          ),
+                        ]) : null,
+                      ),
+                    );
+                  },
+                ),
+
+          // ── Status Koneksi ──
+          if (_canSeeCloud) const _CloudStatusTab(),
+          // ── Konfigurasi Akun (Pembina only) ──
+          if (_isPembina) const _KonfigurasiAkunTab(),
+        ],
+      ),
+      floatingActionButton: (_canEditSiswa && _canSeeSiswa && (_tab?.index ?? 0) == _siswaTabIndex)
+          ? FloatingActionButton(onPressed: _showSiswaForm, child: const Icon(Icons.add))
+          : (_canEditJenis && _canSeeJenis && (_tab?.index ?? 0) == _jenisTabIndex)
+              ? FloatingActionButton(onPressed: _showJenisForm, child: const Icon(Icons.add))
+              : null,
+    );
+  }
+}
+
+class _CloudStatusTab extends StatefulWidget {
+  const _CloudStatusTab();
+  @override
+  State<_CloudStatusTab> createState() => _CloudStatusTabState();
+}
+
+class _CloudStatusTabState extends State<_CloudStatusTab> {
+  bool _isConnected = false;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _check();
+  }
+
+  Future<void> _check() async {
+    setState(() => _isLoading = true);
+    try {
+      final connected = await DataService.checkConnection();
+      setState(() { _isConnected = connected; _isLoading = false; });
+    } catch (_) {
+      setState(() { _isConnected = false; _isLoading = false; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: _isLoading
+                  ? [const Color(0xFF90A4AE), const Color(0xFFB0BEC5)]
+                  : _isConnected
+                      ? [const Color(0xFF00B09B), const Color(0xFF96C93D)]
+                      : [const Color(0xFFF7971E), const Color(0xFFFFD200)],
+              begin: Alignment.topLeft, end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(children: [
+            if (_isLoading)
+              const SizedBox(width: 40, height: 40,
+                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
+            else
+              Icon(_isConnected ? Icons.cloud_done_rounded : Icons.cloud_off_rounded,
+                  color: Colors.white, size: 40),
+            const SizedBox(width: 16),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(
+                _isLoading ? 'MENGHUBUNGKAN...' : _isConnected ? 'TERHUBUNG KE SUPABASE' : 'KONEKSI BERMASALAH',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _isLoading
+                    ? 'Sedang memeriksa koneksi...'
+                    : _isConnected
+                        ? 'Semua data otomatis tersimpan ke cloud'
+                        : 'Periksa koneksi internet Anda',
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+            ])),
+          ]),
+        ),
+        const SizedBox(height: 20),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: kPrimary),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Row(children: [
+              Icon(Icons.dns_outlined, size: 16, color: kAccent),
+              SizedBox(width: 8),
+              Text('Supabase Project', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kTextDark)),
+            ]),
+            const SizedBox(height: 10),
+            const Text('vvvrzxaxnumtstlgovqw.supabase.co',
+                style: TextStyle(fontSize: 12, color: kTextMid, fontFamily: 'monospace')),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: _isConnected ? Colors.green.shade50 : Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                _isConnected ? '● Auto-sync aktif — data langsung masuk cloud' : '● Offline — data tersimpan lokal sementara',
+                style: TextStyle(
+                  fontSize: 11, fontWeight: FontWeight.bold,
+                  color: _isConnected ? Colors.green.shade700 : Colors.orange.shade700,
+                ),
+              ),
+            ),
+          ]),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: kPrimary),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Row(children: [
+              Icon(Icons.info_outline, size: 16, color: kAccent),
+              SizedBox(width: 8),
+              Text('Cara Kerja', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kTextDark)),
+            ]),
+            const SizedBox(height: 10),
+            ..._infoItems([
+              'Tambah / edit / hapus data → langsung tersimpan ke Supabase',
+              'Tidak perlu pencet tombol sinkronisasi',
+              'Jika offline, data tersimpan lokal dan akan sync otomatis saat online',
+            ]),
+          ]),
+        ),
+        const SizedBox(height: 20),
+        OutlinedButton.icon(
+          onPressed: _check,
+          icon: const Icon(Icons.refresh, size: 18),
+          label: const Text('Cek Koneksi Ulang'),
+          style: OutlinedButton.styleFrom(
+              foregroundColor: kAccent,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+        ),
+      ]),
+    );
+  }
+
+  List<Widget> _infoItems(List<String> items) => items.map((t) => Padding(
+    padding: const EdgeInsets.only(bottom: 6),
+    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Icon(Icons.check_circle_outline, size: 14, color: kAccent),
+      const SizedBox(width: 8),
+      Expanded(child: Text(t, style: const TextStyle(fontSize: 12, color: kTextMid))),
+    ]),
+  )).toList();
+}
+
+class _KonfigurasiAkunTab extends StatefulWidget {
+  const _KonfigurasiAkunTab();
+  @override
+  State<_KonfigurasiAkunTab> createState() => _KonfigurasiAkunTabState();
+}
+
+class _KonfigurasiAkunTabState extends State<_KonfigurasiAkunTab> {
+  Map<String, String> _accounts = {};
+
+  @override
+  void initState() {
+    super.initState();
+    setState(() => _accounts = Map.from(AuthService.accounts));
+  }
+
+  void _showEditDialog(String username) {
+    final passC = TextEditingController();
+    bool obscure = true;
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setD) => AlertDialog(
+          title: Text('Ubah Password: $username'),
+          content: TextField(
+            controller: passC,
+            obscureText: obscure,
+            decoration: InputDecoration(
+              labelText: 'Password Baru',
+              prefixIcon: const Icon(Icons.lock_outline),
+              suffixIcon: IconButton(
+                icon: Icon(obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 20),
+                onPressed: () => setD(() => obscure = !obscure),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+            ElevatedButton(
+              onPressed: () async {
+                if (passC.text.trim().isEmpty) return;
+                await AuthService.changePassword(username, passC.text.trim());
+                if (!ctx.mounted) return;
+                Navigator.pop(ctx);
+                setState(() => _accounts = Map.from(AuthService.accounts));
+                ScaffoldMessenger.of(context).showSnackBar(// ignore: use_build_context_synchronously
+                  SnackBar(content: Text('Password $username diperbarui'), backgroundColor: Colors.green));
+              },
+              child: const Text('Simpan'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showResetDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Reset Semua Password?'),
+        content: const Text('Semua password akan dikembalikan ke default. Lanjutkan?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+          ElevatedButton(
+            onPressed: () async {
+              await AuthService.resetAccounts();
+              if (!ctx.mounted) return;
+              Navigator.pop(ctx);
+              setState(() => _accounts = Map.from(AuthService.accounts));
+              ScaffoldMessenger.of(context).showSnackBar(// ignore: use_build_context_synchronously
+                const SnackBar(content: Text('Semua password direset ke default'), backgroundColor: Colors.orange));
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Reset'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final entries = _accounts.entries.toList();
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.blue.shade50,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.blue.shade200),
+          ),
+          child: Row(children: [
+            Icon(Icons.info_outline, color: Colors.blue.shade700, size: 18),
+            const SizedBox(width: 10),
+            Expanded(child: Text(
+              'Tap akun untuk mengubah password. Hanya Pembina yang dapat mengakses halaman ini.',
+              style: TextStyle(fontSize: 12, color: Colors.blue.shade700),
+            )),
+          ]),
+        ),
+        const SizedBox(height: 16),
+        ...entries.map((e) => Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [BoxShadow(color: kPrimary.withAlpha(60), blurRadius: 4)],
+          ),
+          child: ListTile(
+            leading: CircleAvatar(
+              backgroundColor: kPrimary,
+              child: Text(e.key.substring(0, 1), style: const TextStyle(fontWeight: FontWeight.bold, color: kTextDark, fontSize: 13)),
+            ),
+            title: Text(e.key, style: const TextStyle(fontWeight: FontWeight.bold, color: kTextDark, fontSize: 14)),
+            subtitle: Text('●' * e.value.length.clamp(0, 12), style: const TextStyle(fontSize: 12, color: kTextLight, letterSpacing: 2)),
+            trailing: IconButton(
+              icon: const Icon(Icons.edit_outlined, color: kAccent, size: 20),
+              onPressed: () => _showEditDialog(e.key),
+            ),
+          ),
+        )),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: _showResetDialog,
+          icon: const Icon(Icons.restore, size: 18),
+          label: const Text('Reset Semua ke Default'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.red,
+            side: const BorderSide(color: Colors.red),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+      ]),
+    );
+  }
+}
