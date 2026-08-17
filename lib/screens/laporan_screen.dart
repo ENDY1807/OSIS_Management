@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:open_filex/open_filex.dart';
@@ -21,17 +22,29 @@ class LaporanScreen extends StatefulWidget {
 class _LaporanScreenState extends State<LaporanScreen> {
   List<LaporanKegiatan> _laporan = [];
   String _filterStatus = 'Semua';
+  StreamSubscription<String>? _dataSub;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _dataSub = DataService.onDataChanged.listen((table) {
+      if (table == 'laporan_kegiatan' || table == 'laporan' || table == 'all') {
+        if (mounted) _load(showLoading: false);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _dataSub?.cancel();
+    super.dispose();
   }
 
   bool _loading = false;
 
-  Future<void> _load() async {
-    setState(() => _loading = true);
+  Future<void> _load({bool showLoading = true}) async {
+    if (showLoading && _laporan.isEmpty) setState(() => _loading = true);
     final l = await DataService.getLaporan();
     if (!mounted) return;
     setState(() {

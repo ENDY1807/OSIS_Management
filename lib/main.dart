@@ -76,7 +76,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   int _idx = 0;
   String _username = '';
   List<Widget>? _cachedScreens;
@@ -112,6 +112,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     AuthService.getUserName().then((v) => setState(() {
       _username = v ?? '';
       _cachedScreens = [
@@ -122,6 +123,19 @@ class _HomeScreenState extends State<HomeScreen> {
         const RekapScreen(),
       ];
     }));
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      DataService.notifyDataChanged('all');
+    }
   }
 
   List<Widget> get _screens => _cachedScreens ?? [
@@ -259,7 +273,10 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         child: NavigationBar(
           selectedIndex: _idx,
-          onDestinationSelected: (i) => setState(() => _idx = i),
+          onDestinationSelected: (i) {
+            setState(() => _idx = i);
+            DataService.notifyDataChanged('all');
+          },
           backgroundColor: Colors.transparent,
           indicatorColor: Theme.of(context).colorScheme.primary.withAlpha(35),
           elevation: 0,

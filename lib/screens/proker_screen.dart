@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/models.dart';
@@ -16,6 +17,7 @@ class ProkerScreen extends StatefulWidget {
 
 class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderStateMixin {
   late TabController _tab;
+  StreamSubscription<String>? _dataSub;
   List<Proker> _proker = [];
   String _currentUser = '';
   String _filterSekbid = 'Semua';
@@ -32,6 +34,11 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
     super.initState();
     _tab = TabController(length: 3, vsync: this);
     _tab.addListener(() => setState(() {}));
+    _dataSub = DataService.onDataChanged.listen((table) {
+      if (table == 'proker' || table == 'all') {
+        if (mounted) _load();
+      }
+    });
     AuthService.getUserName().then((v) {
       setState(() {
         _currentUser = widget.username.isNotEmpty ? widget.username : (v ?? '');
@@ -42,8 +49,16 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
     });
   }
 
+  @override
+  void dispose() {
+    _dataSub?.cancel();
+    _tab.dispose();
+    super.dispose();
+  }
+
   Future<void> _load() async {
     final data = await DataService.getProker();
+    if (!mounted) return;
     setState(() => _proker = data..sort((a, b) => a.tanggalRencana.compareTo(b.tanggalRencana)));
   }
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -24,18 +25,31 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
   String _searchKelas = '';
   String _filterPeriod = 'semua'; // semua, hari_ini, minggu, bulan, tahun, custom
   DateTimeRange? _customDateRange;
+  StreamSubscription<String>? _dataSub;
 
   @override
   void initState() {
     super.initState();
     _tab = TabController(length: 3, vsync: this);
     _load();
+    _dataSub = DataService.onDataChanged.listen((table) {
+      if (table == 'pelanggaran' || table == 'siswa' || table == 'jenis_pelanggaran' || table == 'all') {
+        if (mounted) _load(showLoading: false);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _dataSub?.cancel();
+    _tab.dispose();
+    super.dispose();
   }
 
   bool _loading = false;
 
-  Future<void> _load() async {
-    setState(() => _loading = true);
+  Future<void> _load({bool showLoading = true}) async {
+    if (showLoading && _pelanggaran.isEmpty && _siswa.isEmpty) setState(() => _loading = true);
     final s = await DataService.getSiswa();
     final j = await DataService.getJenis();
     final p = await DataService.getPelanggaran();

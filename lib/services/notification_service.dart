@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../models/models.dart';
 import 'auth_service.dart';
+import 'data_service.dart';
 
 const _uuid = Uuid();
 
@@ -116,6 +117,10 @@ class NotificationService {
 
   static Future<void> _handleIncomingBroadcast(Map<String, dynamic> payload) async {
     try {
+      final category = payload['category']?.toString() ?? 'system';
+      // Pastikan data service menerima notifikasi update
+      DataService.notifyDataChanged(category);
+
       final rawUser = await AuthService.getUserName() ?? '';
       final currentUser = rawUser.trim().toUpperCase();
 
@@ -131,7 +136,6 @@ class NotificationService {
 
       final title = payload['title']?.toString() ?? 'Pemberitahuan OSIS';
       final message = payload['message']?.toString() ?? '';
-      final category = payload['category']?.toString() ?? 'system';
 
       final item = AppNotification(
         id: _uuid.v4(),
@@ -172,6 +176,9 @@ class NotificationService {
     required PostgresChangePayload payload,
   }) async {
     try {
+      // Segera notify UI data service terlepas dari role
+      DataService.notifyDataChanged(table);
+
       final rawUser = await AuthService.getUserName() ?? '';
       final currentUser = rawUser.trim().toUpperCase();
       // Hanya 6 role pimpinan/stakeholder yang menerima notif

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/models.dart';
@@ -23,6 +24,7 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
   String? _filterSiswaId;
   bool _loading = true;
   DateTime _selectedDate = _today();
+  StreamSubscription<String>? _dataSub;
 
   static DateTime _today() {
     final n = DateTime.now();
@@ -42,17 +44,23 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
   void initState() {
     super.initState();
     _load();
+    _dataSub = DataService.onDataChanged.listen((table) {
+      if (table == 'pelanggaran' || table == 'siswa' || table == 'jenis_pelanggaran' || table == 'all') {
+        if (mounted) _load(showLoading: false);
+      }
+    });
   }
 
   @override
   void dispose() {
+    _dataSub?.cancel();
     _filterCtrl.dispose();
     _filterFocus.dispose();
     super.dispose();
   }
 
-  Future<void> _load() async {
-    setState(() => _loading = true);
+  Future<void> _load({bool showLoading = true}) async {
+    if (showLoading && _pelanggaran.isEmpty) setState(() => _loading = true);
     try {
       final s = await DataService.getSiswa();
       final j = await DataService.getJenis();
@@ -67,8 +75,10 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal load data: $e'), backgroundColor: Colors.red));
+      if (showLoading) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal load data: $e'), backgroundColor: Colors.red));
+      }
     }
   }
 

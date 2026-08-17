@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
@@ -25,6 +26,75 @@ class DataService {
   static const _keyLaporan      = 'laporan_kegiatan_v2';
   static const _keyPendingPelanggaran = 'pending_pelanggaran';
 
+  static final StreamController<String> _dataChangeController = StreamController<String>.broadcast();
+  static Stream<String> get onDataChanged => _dataChangeController.stream;
+  static RealtimeChannel? _realtimeChannel;
+
+  static void notifyDataChanged(String table) {
+    if (!_dataChangeController.isClosed) {
+      _dataChangeController.add(table);
+    }
+  }
+
+  static void initRealtime() {
+    if (!_initialized || _realtimeChannel != null) return;
+    try {
+      _realtimeChannel = _db.channel('osis_data_sync_channel');
+
+      // 1. Listen to broadcast data change messages across all devices
+      _realtimeChannel?.onBroadcast(
+        event: 'data_changed',
+        callback: (payload) {
+          final table = payload['table']?.toString() ?? 'all';
+          debugPrint('Realtime broadcast data changed: $table');
+          notifyDataChanged(table);
+        },
+      );
+
+      // 2. Listen to Database Postgres Changes for all data tables
+      const monitoredTables = [
+        'siswa',
+        'jenis_pelanggaran',
+        'pelanggaran',
+        'proker',
+        'arsip',
+        'laporan_kegiatan',
+        'file_riwayat',
+      ];
+      for (final table in monitoredTables) {
+        _realtimeChannel?.onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: table,
+          callback: (payload) {
+            debugPrint('Postgres change on $table: ${payload.eventType}');
+            notifyDataChanged(table);
+          },
+        );
+      }
+
+      _realtimeChannel?.subscribe();
+    } catch (e) {
+      debugPrint('DataService realtime subscription error: $e');
+    }
+  }
+
+  static Future<void> broadcastDataChange(String table) async {
+    notifyDataChanged(table);
+    try {
+      if (_realtimeChannel == null) initRealtime();
+      await _realtimeChannel?.sendBroadcastMessage(
+        event: 'data_changed',
+        payload: {
+          'table': table,
+          'timestamp': DateTime.now().toIso8601String(),
+        },
+      );
+    } catch (e) {
+      debugPrint('Error broadcasting data change for $table: $e');
+    }
+  }
+
   static SupabaseClient get _db {
     if (!_initialized) throw StateError('Supabase belum diinisialisasi');
     return Supabase.instance.client;
@@ -39,6 +109,7 @@ class DataService {
       publishableKey: _supabaseKey,
     );
     _initialized = true;
+    initRealtime();
     // Hapus cache lama yang tidak kompatibel
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('laporan_kegiatan');
@@ -84,6 +155,7 @@ class DataService {
       cache.add(s.toJson());
       await _saveCache(_keySiswa, cache);
     }
+    await broadcastDataChange('siswa');
     return s;
   }
 
@@ -99,6 +171,7 @@ class DataService {
         await _saveCache(_keySiswa, cache);
       }
     }
+    await broadcastDataChange('siswa');
   }
 
   static Future<void> deleteSiswaByNisList(List<String> nisList) async {
@@ -114,6 +187,7 @@ class DataService {
       cache.removeWhere((item) => nisList.contains(item['nis']));
       await _saveCache(_keySiswa, cache);
     }
+    await broadcastDataChange('siswa');
   }
 
   static Future<void> deleteSiswa(String id) async {
@@ -125,6 +199,7 @@ class DataService {
       cache.removeWhere((item) => item['id'] == id);
       await _saveCache(_keySiswa, cache);
     }
+    await broadcastDataChange('siswa');
   }
 
   // ── Jenis Pelanggaran ────────────────────────────────────────────────────
@@ -178,6 +253,7 @@ class DataService {
       cache.add(j.toJson());
       await _saveCache(_keyJenis, cache);
     }
+    await broadcastDataChange('jenis_pelanggaran');
     return j;
   }
 
@@ -192,6 +268,7 @@ class DataService {
         await _saveCache(_keyJenis, cache);
       }
     }
+    await broadcastDataChange('jenis_pelanggaran');
   }
 
   static Future<void> deleteJenis(String id) async {
@@ -202,6 +279,7 @@ class DataService {
       cache.removeWhere((item) => item['id'] == id);
       await _saveCache(_keyJenis, cache);
     }
+    await broadcastDataChange('jenis_pelanggaran');
   }
 
   // ── Pelanggaran ──────────────────────────────────────────────────────────
@@ -352,6 +430,7 @@ class DataService {
     final cache = await _readCache(_keyPelanggaran);
     cache.add(pelanggaran.toJson());
     await _saveCache(_keyPelanggaran, cache);
+    await broadcastDataChange('pelanggaran');
   }
 
   static Future<void> deletePelanggaran(String id) async {
@@ -362,6 +441,7 @@ class DataService {
       cache.removeWhere((item) => item['id'] == id);
       await _saveCache(_keyPelanggaran, cache);
     }
+    await broadcastDataChange('pelanggaran');
   }
 
   // ── Proker ───────────────────────────────────────────────────────────────
@@ -412,6 +492,7 @@ class DataService {
       cache.add(p.toJson());
       await _saveCache(_keyProker, cache);
     }
+    await broadcastDataChange('proker');
   }
 
   static Future<void> updateProker(Proker p) async {
@@ -436,6 +517,7 @@ class DataService {
         await _saveCache(_keyProker, cache);
       }
     }
+    await broadcastDataChange('proker');
   }
 
   static Future<void> deleteProker(String id) async {
@@ -446,6 +528,7 @@ class DataService {
       cache.removeWhere((item) => item['id'] == id);
       await _saveCache(_keyProker, cache);
     }
+    await broadcastDataChange('proker');
   }
 
   // ── Arsip ────────────────────────────────────────────────────────────────
@@ -496,6 +579,7 @@ class DataService {
       cache.add(a.toJson());
       await _saveCache(_keyArsip, cache);
     }
+    await broadcastDataChange('arsip');
   }
 
   static Future<void> updateArsip(Arsip a) async {
@@ -520,6 +604,7 @@ class DataService {
         await _saveCache(_keyArsip, cache);
       }
     }
+    await broadcastDataChange('arsip');
   }
 
   // ── Arsip Folder ─────────────────────────────────────────────────────────
@@ -584,6 +669,8 @@ class DataService {
         keterangan: '__folder__',
       );
       await addArsip(folderMarker);
+    } else {
+      await broadcastDataChange('arsip');
     }
   }
 
@@ -593,6 +680,7 @@ class DataService {
     for (final f in folders) {
       await addArsipFolder(f);
     }
+    await broadcastDataChange('arsip');
   }
 
   static Future<void> deleteArsipFolder(String nama) async {
@@ -614,6 +702,7 @@ class DataService {
       return kat == clean || kat.toString().startsWith('$clean/');
     });
     await _saveCache(_keyArsip, cache);
+    await broadcastDataChange('arsip');
   }
 
   static Future<void> renameArsipFolder(String oldPath, String newPath) async {
@@ -645,6 +734,7 @@ class DataService {
         await updateArsip(a);
       }
     }
+    await broadcastDataChange('arsip');
   }
 
   static Future<void> moveArsipToFolder(List<String> ids, String targetFolder) async {
@@ -655,6 +745,7 @@ class DataService {
         await updateArsip(a);
       }
     }
+    await broadcastDataChange('arsip');
   }
 
   static Future<void> copyArsipToFolder(List<Arsip> list, String targetFolder) async {
@@ -672,6 +763,7 @@ class DataService {
       );
       await addArsip(copy);
     }
+    await broadcastDataChange('arsip');
   }
 
   static Future<void> deleteArsip(String id) async {
@@ -682,6 +774,7 @@ class DataService {
       cache.removeWhere((item) => item['id'] == id);
       await _saveCache(_keyArsip, cache);
     }
+    await broadcastDataChange('arsip');
   }
 
   static const _mimeTypes = {
@@ -765,6 +858,7 @@ class DataService {
       cache.add(l.toJson());
       await _saveCache(_keyLaporan, cache);
     }
+    await broadcastDataChange('laporan_kegiatan');
   }
 
   static Future<void> updateLaporan(LaporanKegiatan l) async {
@@ -793,6 +887,7 @@ class DataService {
         await _saveCache(_keyLaporan, cache);
       }
     }
+    await broadcastDataChange('laporan_kegiatan');
   }
 
   static Future<void> deleteLaporan(String id) async {
@@ -803,6 +898,7 @@ class DataService {
       cache.removeWhere((item) => item['id'] == id);
       await _saveCache(_keyLaporan, cache);
     }
+    await broadcastDataChange('laporan_kegiatan');
   }
 
   // ── File Riwayat ─────────────────────────────────────────────────────────
@@ -846,6 +942,7 @@ class DataService {
         .toList()
       ..insert(0, f);
     await prefs.setStringList(_keyFileRiwayat, cached.map((e) => jsonEncode(e.toJson())).toList());
+    await broadcastDataChange('file_riwayat');
   }
 
   static Future<void> deleteFileRiwayat(String id) async {
@@ -859,6 +956,7 @@ class DataService {
         .where((f) => f.id != id)
         .toList();
     await prefs.setStringList(_keyFileRiwayat, list.map((e) => jsonEncode(e.toJson())).toList());
+    await broadcastDataChange('file_riwayat');
   }
 
   static String _naikKelas(String kelas) {
@@ -882,6 +980,7 @@ class DataService {
     for (final s in targets) {
       await updateSiswa(Siswa(id: s.id, nama: s.nama, kelas: _naikKelas(s.kelas), nis: s.nis));
     }
+    await broadcastDataChange('siswa');
     return targets.length;
   }
 
@@ -891,6 +990,7 @@ class DataService {
     for (final s in targets) {
       await updateSiswa(Siswa(id: s.id, nama: s.nama, kelas: _turunKelas(s.kelas), nis: s.nis));
     }
+    await broadcastDataChange('siswa');
     return targets.length;
   }
 
@@ -1309,6 +1409,7 @@ class DataService {
       nisList: nisList,
     );
     await _saveFileRiwayat(newRiwayat);
+    await broadcastDataChange('siswa');
 
     return toUpsert.length;
   }
@@ -1329,6 +1430,7 @@ class DataService {
     for (final s in toDelete) {
       await _db.from('siswa').delete().eq('id', s.id);
     }
+    await broadcastDataChange('siswa');
     return toDelete.length;
   }
 

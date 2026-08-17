@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'dart:typed_data';
@@ -38,6 +39,7 @@ class _ArsipScreenState extends State<ArsipScreen> {
   bool _loading = true;
   ViewMode _viewMode = ViewMode.list;
   SortMode _sortMode = SortMode.dateNewest;
+  StreamSubscription<String>? _dataSub;
 
   // Multi-select state
   bool _isSelectionMode = false;
@@ -55,10 +57,23 @@ class _ArsipScreenState extends State<ArsipScreen> {
   void initState() {
     super.initState();
     _load();
+    _dataSub = DataService.onDataChanged.listen((table) {
+      if (table == 'arsip' || table == 'arsip_folder' || table == 'all') {
+        if (mounted) _load(silent: true);
+      }
+    });
   }
 
-  Future<void> _load() async {
-    setState(() => _loading = true);
+  @override
+  void dispose() {
+    _dataSub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _load({bool silent = false}) async {
+    if (!silent && _allArsip.isEmpty && _allFolders.isEmpty) {
+      setState(() => _loading = true);
+    }
     try {
       final arsip = await DataService.getArsip();
       final folders = await DataService.getArsipFolders();
@@ -71,6 +86,7 @@ class _ArsipScreenState extends State<ArsipScreen> {
           await DataService.addArsipFolder(f);
         }
         final reloadedFolders = await DataService.getArsipFolders();
+        if (!mounted) return;
         setState(() {
           _allArsip = arsip;
           _allFolders = reloadedFolders;
@@ -86,10 +102,12 @@ class _ArsipScreenState extends State<ArsipScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() => _loading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal memuat arsip: $e'), backgroundColor: Colors.red),
-      );
+      if (!silent) {
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memuat arsip: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 

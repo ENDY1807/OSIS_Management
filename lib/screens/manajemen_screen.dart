@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import '../models/models.dart';
@@ -19,6 +20,7 @@ class _ManajemenScreenState extends State<ManajemenScreen> with SingleTickerProv
   String _username = '';
   String _searchQuery = '';
   final _searchCtrl = TextEditingController();
+  StreamSubscription<String>? _dataSub;
 
   static const _superUsers = ['KETUA', 'WAKIL', 'SEKRETARIS', 'BENDAHARA'];
   bool get _isPembina   => _username == 'PEMBINA';
@@ -50,6 +52,11 @@ class _ManajemenScreenState extends State<ManajemenScreen> with SingleTickerProv
   void initState() {
     super.initState();
     _load();
+    _dataSub = DataService.onDataChanged.listen((table) {
+      if (table == 'siswa' || table == 'jenis_pelanggaran' || table == 'file_riwayat' || table == 'all') {
+        if (mounted) _load();
+      }
+    });
     AuthService.getUserName().then((v) {
       if (!mounted) return;
       setState(() {
@@ -63,6 +70,7 @@ class _ManajemenScreenState extends State<ManajemenScreen> with SingleTickerProv
 
   @override
   void dispose() {
+    _dataSub?.cancel();
     _tab?.dispose();
     _searchCtrl.dispose();
     super.dispose();
@@ -71,6 +79,7 @@ class _ManajemenScreenState extends State<ManajemenScreen> with SingleTickerProv
   Future<void> _load() async {
     final s = await DataService.getSiswa();
     final j = await DataService.getJenis();
+    if (!mounted) return;
     setState(() { _siswa = s; _jenis = j; });
   }
 
