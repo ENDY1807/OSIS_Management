@@ -18,11 +18,17 @@ android {
     signingConfigs {
         create("release") {
             val keystorePath = System.getenv("KEYSTORE_PATH")
+            val defaultKeystore = file("upload-keystore.jks")
             if (keystorePath != null && file(keystorePath).exists()) {
                 storeFile = file(keystorePath)
                 storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
                 keyAlias = System.getenv("KEY_ALIAS") ?: ""
                 keyPassword = System.getenv("KEY_PASSWORD") ?: ""
+            } else if (defaultKeystore.exists()) {
+                storeFile = defaultKeystore
+                storePassword = "osismanagement2026"
+                keyAlias = "osiskey"
+                keyPassword = "osismanagement2026"
             }
         }
     }
