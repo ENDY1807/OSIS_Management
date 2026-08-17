@@ -65,15 +65,11 @@ jobs:
       - name: Build Windows Executable
         run: flutter build windows --release
 
-      - name: Create Windows ZIP Package
-        run: |
-          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath osis_jurnal_windows_x64.zip
-
       - name: Upload Windows Build Artifact
         uses: actions/upload-artifact@v4
         with:
           name: osis_jurnal_windows_x64
-          path: osis_jurnal_windows_x64.zip
+          path: build/windows/x64/runner/Release/
 
   build-ios:
     name: Build iOS Application
