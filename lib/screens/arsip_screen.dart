@@ -917,7 +917,10 @@ class _ArsipScreenState extends State<ArsipScreen> {
         ],
       ),
     );
-    if (ok != true) return;
+    if (ok != true) {
+      _clearSelection();
+      return;
+    }
 
     setState(() => _loading = true);
     final countFiles = _selectedFileIds.length;

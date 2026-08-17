@@ -610,9 +610,6 @@ class DataService {
   // ── Arsip Folder ─────────────────────────────────────────────────────────
   static Future<List<String>> getArsipFolders() async {
     final prefs = await SharedPreferences.getInstance();
-    final localFolders = prefs.getStringList(_keyArsipFolder) ?? [];
-    
-    // Extract folders from all arsip records (both folder markers and files)
     final Set<String> folderSet = {};
     try {
       final arsipList = await getArsip();
@@ -628,18 +625,20 @@ class DataService {
           folderSet.add(current);
         }
       }
-    } catch (_) {}
-
-    for (final lf in localFolders) {
-      final clean = lf.trim();
-      if (clean.isNotEmpty && clean.toLowerCase() != 'root') {
-        folderSet.add(clean);
+      final list = folderSet.toList()..sort();
+      // Overwrite local cache with fresh list from server so deleted folders are not retained
+      await prefs.setStringList(_keyArsipFolder, list);
+      return list;
+    } catch (_) {
+      final localFolders = prefs.getStringList(_keyArsipFolder) ?? [];
+      for (final lf in localFolders) {
+        final clean = lf.trim();
+        if (clean.isNotEmpty && clean.toLowerCase() != 'root') {
+          folderSet.add(clean);
+        }
       }
+      return folderSet.toList()..sort();
     }
-
-    final list = folderSet.toList()..sort();
-    await prefs.setStringList(_keyArsipFolder, list);
-    return list;
   }
 
   static Future<void> addArsipFolder(String nama) async {
@@ -685,16 +684,32 @@ class DataService {
 
   static Future<void> deleteArsipFolder(String nama) async {
     final clean = nama.trim();
+    if (clean.isEmpty || clean.toLowerCase() == 'root') return;
+
     final prefs = await SharedPreferences.getInstance();
     final folders = prefs.getStringList(_keyArsipFolder) ?? [];
     folders.removeWhere((f) => f == clean || f.startsWith('$clean/'));
     await prefs.setStringList(_keyArsipFolder, folders);
 
-    // Delete matching items (files and folder markers) from Supabase and cache
+    // Delete matching items (files and folder markers) from Supabase by ID and by kategori
     try {
-      await _db.from('arsip').delete().eq('kategori', clean);
-      await _db.from('arsip').delete().like('kategori', '$clean/%');
-    } catch (_) {}
+      final rows = await _db.from('arsip').select('id, kategori');
+      final toDeleteIds = rows
+          .where((r) {
+            final kat = (r['kategori'] ?? '').toString().trim();
+            return kat == clean || kat.startsWith('$clean/');
+          })
+          .map((r) => r['id'].toString())
+          .toList();
+      if (toDeleteIds.isNotEmpty) {
+        await _db.from('arsip').delete().inFilter('id', toDeleteIds);
+      }
+    } catch (_) {
+      try {
+        await _db.from('arsip').delete().eq('kategori', clean);
+        await _db.from('arsip').delete().like('kategori', '$clean/%');
+      } catch (_) {}
+    }
 
     final cache = await _readCache(_keyArsip);
     cache.removeWhere((item) {
