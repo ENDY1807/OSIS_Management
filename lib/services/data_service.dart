@@ -525,32 +525,100 @@ class DataService {
   // ── Arsip Folder ─────────────────────────────────────────────────────────
   static Future<List<String>> getArsipFolders() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getStringList(_keyArsipFolder) ?? [];
+    final localFolders = prefs.getStringList(_keyArsipFolder) ?? [];
+    
+    // Extract folders from all arsip records (both folder markers and files)
+    final Set<String> folderSet = {};
+    try {
+      final arsipList = await getArsip();
+      for (final a in arsipList) {
+        final clean = a.kategori.trim();
+        if (clean.isEmpty || clean.toLowerCase() == 'root') continue;
+        final parts = clean.split('/');
+        String current = '';
+        for (final p in parts) {
+          final segment = p.trim();
+          if (segment.isEmpty || segment.toLowerCase() == 'root') continue;
+          current = current.isEmpty ? segment : '$current/$segment';
+          folderSet.add(current);
+        }
+      }
+    } catch (_) {}
+
+    for (final lf in localFolders) {
+      final clean = lf.trim();
+      if (clean.isNotEmpty && clean.toLowerCase() != 'root') {
+        folderSet.add(clean);
+      }
+    }
+
+    final list = folderSet.toList()..sort();
+    await prefs.setStringList(_keyArsipFolder, list);
+    return list;
   }
 
   static Future<void> addArsipFolder(String nama) async {
-    final folders = await getArsipFolders();
-    if (!folders.contains(nama)) {
-      folders.add(nama);
-      final prefs = await SharedPreferences.getInstance();
+    final clean = nama.trim();
+    if (clean.isEmpty || clean.toLowerCase() == 'root') return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final folders = prefs.getStringList(_keyArsipFolder) ?? [];
+    if (!folders.contains(clean)) {
+      folders.add(clean);
       await prefs.setStringList(_keyArsipFolder, folders);
+    }
+
+    // Save folder marker into Supabase arsip table so all users receive the folder
+    final allArsip = await getArsip();
+    final exists = allArsip.any((a) => a.kategori == clean);
+    if (!exists) {
+      final folderMarker = Arsip(
+        id: _uuid.v4(),
+        judul: clean.split('/').last,
+        kategori: clean,
+        deskripsi: '',
+        nomorSurat: '__dir__',
+        tanggal: DateTime.now(),
+        pembuatId: '',
+        fileUrl: '',
+        keterangan: '__folder__',
+      );
+      await addArsip(folderMarker);
     }
   }
 
   static Future<void> saveArsipFolders(List<String> folders) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList(_keyArsipFolder, folders);
+    for (final f in folders) {
+      await addArsipFolder(f);
+    }
   }
 
   static Future<void> deleteArsipFolder(String nama) async {
-    final folders = await getArsipFolders();
-    folders.removeWhere((f) => f == nama || f.startsWith('$nama/'));
+    final clean = nama.trim();
     final prefs = await SharedPreferences.getInstance();
+    final folders = prefs.getStringList(_keyArsipFolder) ?? [];
+    folders.removeWhere((f) => f == clean || f.startsWith('$clean/'));
     await prefs.setStringList(_keyArsipFolder, folders);
+
+    // Delete matching items (files and folder markers) from Supabase and cache
+    try {
+      await _db.from('arsip').delete().eq('kategori', clean);
+      await _db.from('arsip').delete().like('kategori', '$clean/%');
+    } catch (_) {}
+
+    final cache = await _readCache(_keyArsip);
+    cache.removeWhere((item) {
+      final kat = item['kategori'] ?? '';
+      return kat == clean || kat.toString().startsWith('$clean/');
+    });
+    await _saveCache(_keyArsip, cache);
   }
 
   static Future<void> renameArsipFolder(String oldPath, String newPath) async {
-    final folders = await getArsipFolders();
+    final prefs = await SharedPreferences.getInstance();
+    final folders = prefs.getStringList(_keyArsipFolder) ?? [];
     final updatedFolders = <String>[];
     for (final f in folders) {
       if (f == oldPath) {
@@ -561,14 +629,16 @@ class DataService {
         updatedFolders.add(f);
       }
     }
-    final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList(_keyArsipFolder, updatedFolders);
 
-    // Update all arsip items inside that folder
+    // Update all arsip items (files and folder markers) inside that folder
     final allArsip = await getArsip();
     for (final a in allArsip) {
       if (a.kategori == oldPath) {
         a.kategori = newPath;
+        if (a.keterangan == '__folder__' || a.nomorSurat == '__dir__') {
+          a.judul = newPath.split('/').last;
+        }
         await updateArsip(a);
       } else if (a.kategori.startsWith('$oldPath/')) {
         a.kategori = a.kategori.replaceFirst(oldPath, newPath);

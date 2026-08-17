@@ -49,11 +49,7 @@ class _ArsipScreenState extends State<ArsipScreen> {
   List<Arsip> _clipboardFiles = [];
   List<String> _clipboardFolders = [];
 
-  static const _superUsers = ['KETUA', 'WAKIL', 'SEKRETARIS', 'BENDAHARA'];
-  bool get _canEdit =>
-      _superUsers.contains(widget.username) ||
-      widget.username == 'PEMBINA' ||
-      widget.username == 'KESISWAAN';
+  bool get _canEdit => true;
 
   @override
   void initState() {
@@ -181,6 +177,7 @@ class _ArsipScreenState extends State<ArsipScreen> {
   // Files inside current path
   List<Arsip> get _currentFiles {
     var files = _allArsip.where((a) {
+      if (a.keterangan == '__folder__' || a.nomorSurat == '__dir__') return false;
       if (_currentPath.isEmpty) {
         return a.kategori.isEmpty || a.kategori == 'Root';
       }
@@ -615,7 +612,9 @@ class _ArsipScreenState extends State<ArsipScreen> {
                               final subPath = validSubfolders[idx];
                               final subName = subPath.split('/').last;
                               final subCount = _allArsip
-                                  .where((a) => a.kategori == subPath || a.kategori.startsWith('$subPath/'))
+                                  .where((a) => (a.kategori == subPath || a.kategori.startsWith('$subPath/')) &&
+                                      a.keterangan != '__folder__' &&
+                                      a.nomorSurat != '__dir__')
                                   .length;
                               return ListTile(
                                 dense: true,
@@ -2040,7 +2039,11 @@ class _ArsipScreenState extends State<ArsipScreen> {
           ...subfolders.map((path) {
             final folderName = path.split('/').last;
             final isSelected = _selectedFolderPaths.contains(path);
-            final childCount = _allArsip.where((a) => a.kategori == path || a.kategori.startsWith('$path/')).length;
+            final childCount = _allArsip
+                .where((a) => (a.kategori == path || a.kategori.startsWith('$path/')) &&
+                    a.keterangan != '__folder__' &&
+                    a.nomorSurat != '__dir__')
+                .length;
             return Container(
               margin: const EdgeInsets.only(bottom: 6),
               decoration: BoxDecoration(
@@ -2205,7 +2208,11 @@ class _ArsipScreenState extends State<ArsipScreen> {
                   final path = subfolders[idx];
                   final folderName = path.split('/').last;
                   final isSelected = _selectedFolderPaths.contains(path);
-                  final childCount = _allArsip.where((a) => a.kategori == path || a.kategori.startsWith('$path/')).length;
+                  final childCount = _allArsip
+                      .where((a) => (a.kategori == path || a.kategori.startsWith('$path/')) &&
+                          a.keterangan != '__folder__' &&
+                          a.nomorSurat != '__dir__')
+                      .length;
                   return InkWell(
                     onTap: () {
                       if (_isSelectionMode) {
