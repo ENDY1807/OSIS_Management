@@ -42,31 +42,35 @@ class NotificationService {
   static Future<void> init() async {
     if (_initialized) return;
     try {
-      const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-      const darwinSettings = DarwinInitializationSettings(
-        requestAlertPermission: true,
-        requestBadgePermission: true,
-        requestSoundPermission: true,
-      );
+      if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.android ||
+                      defaultTargetPlatform == TargetPlatform.iOS ||
+                      defaultTargetPlatform == TargetPlatform.macOS)) {
+        const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+        const darwinSettings = DarwinInitializationSettings(
+          requestAlertPermission: true,
+          requestBadgePermission: true,
+          requestSoundPermission: true,
+        );
 
-      const settings = InitializationSettings(
-        android: androidSettings,
-        iOS: darwinSettings,
-        macOS: darwinSettings,
-      );
+        const settings = InitializationSettings(
+          android: androidSettings,
+          iOS: darwinSettings,
+          macOS: darwinSettings,
+        );
 
-      await _localNotifs.initialize(
-        settings: settings,
-        onDidReceiveNotificationResponse: (response) {
-          debugPrint('Notification clicked: ${response.payload}');
-        },
-      );
+        await _localNotifs.initialize(
+          settings: settings,
+          onDidReceiveNotificationResponse: (response) {
+            debugPrint('Notification clicked: ${response.payload}');
+          },
+        );
 
-      // Create Android Notification Channel with High Importance
-      final androidPlugin = _localNotifs.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
-      if (androidPlugin != null) {
-        await androidPlugin.createNotificationChannel(_channel);
-        await androidPlugin.requestNotificationsPermission();
+        // Create Android Notification Channel with High Importance
+        final androidPlugin = _localNotifs.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+        if (androidPlugin != null) {
+          await androidPlugin.createNotificationChannel(_channel);
+          await androidPlugin.requestNotificationsPermission();
+        }
       }
 
       _initialized = true;
@@ -362,19 +366,23 @@ class NotificationService {
         presentSound: true,
       );
 
-      final platformDetails = NotificationDetails(
-        android: androidDetails,
-        iOS: darwinDetails,
-        macOS: darwinDetails,
-      );
+      if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.android ||
+                      defaultTargetPlatform == TargetPlatform.iOS ||
+                      defaultTargetPlatform == TargetPlatform.macOS)) {
+        final platformDetails = NotificationDetails(
+          android: androidDetails,
+          iOS: darwinDetails,
+          macOS: darwinDetails,
+        );
 
-      await _localNotifs.show(
-        id: id,
-        title: title,
-        body: body,
-        notificationDetails: platformDetails,
-        payload: payload,
-      );
+        await _localNotifs.show(
+          id: id,
+          title: title,
+          body: body,
+          notificationDetails: platformDetails,
+          payload: payload,
+        );
+      }
     } catch (e) {
       debugPrint('Error showing system notification: $e');
     }
