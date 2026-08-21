@@ -1,7 +1,7 @@
 name: osis_jurnal
 description: "A new Flutter project."
 publish_to: 'none'
-version: 1.0.0+2
+version: 1.0.0+3
 
 environment:
   sdk: '>=3.12.0 <4.0.0'
@@ -44,7 +44,7 @@ flutter:
 msix_config:
   display_name: OSIS Management
   publisher_display_name: Baknus OSIS
-  identity_name: id.sch.baknus.osisjurnal
+  identity_name: com.endy.osis_management
   msix_version: 1.0.0.0
   logo_path: assets\logo.png
   capabilities: internetClient

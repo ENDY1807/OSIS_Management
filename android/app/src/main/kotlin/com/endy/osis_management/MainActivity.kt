@@ -1,4 +1,4 @@
-package id.sch.baknus.osisjurnal
+package com.endy.osis_management
 
 import io.flutter.embedding.android.FlutterActivity
 

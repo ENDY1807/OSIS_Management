@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "id.sch.baknus.osisjurnal"
+    namespace = "com.endy.osis_management"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -34,7 +34,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "id.sch.baknus.osisjurnal"
+        applicationId = "com.endy.osis_management"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
