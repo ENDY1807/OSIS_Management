@@ -101,15 +101,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Container(
-                            width: 80, height: 80,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withAlpha(50),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.school_rounded, size: 44, color: Colors.white),
-                          ),
-                          const SizedBox(height: 20),
+                          Image.asset('assets/logo.png', width: 80, height: 80, fit: BoxFit.contain),
+                          const SizedBox(height: 16),
                           const Text('OSIS Manager',
                             style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold,
                                 color: Colors.white, letterSpacing: 0.5)),

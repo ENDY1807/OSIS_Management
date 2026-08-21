@@ -556,12 +556,7 @@ class _SplashScreenState extends State<_SplashScreen> with SingleTickerProviderS
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    width: 90, height: 90,
-                    decoration: BoxDecoration(color: Colors.white.withAlpha(40), shape: BoxShape.circle),
-                    padding: const EdgeInsets.all(14),
-                    child: Image.asset('assets/logo.png', fit: BoxFit.contain),
-                  ),
+                  Image.asset('assets/logo.png', width: 100, height: 100, fit: BoxFit.contain),
                   const SizedBox(height: 20),
                   const Text('OSIS Manager',
                     style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.5)),
