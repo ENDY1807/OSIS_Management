@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kebijakan Privasi - OSIS Management</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --border: #e2e8f0;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 24px 16px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            border: 1px solid var(--border);
+        }
+        .header {
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: var(--primary);
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        .header p {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+        h2 {
+            color: var(--primary-dark);
+            font-size: 20px;
+            margin-top: 32px;
+            margin-bottom: 12px;
+        }
+        p, ul, ol {
+            margin-bottom: 16px;
+            color: #334155;
+        }
+        ul, ol {
+            padding-left: 24px;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        .badge {
+            display: inline-block;
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        .contact-box {
+            background: #f1f5f9;
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid var(--primary);
+            margin-top: 24px;
+        }
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <span class="badge">Dokumen Resmi</span>
+            <h1>Kebijakan Privasi (Privacy Policy)</h1>
+            <p><strong>Aplikasi:</strong> OSIS Management</p>
+            <p><strong>Terakhir Diperbarui:</strong> 21 Agustus 2026</p>
+        </div>
+
+        <h2>1. Pendahuluan</h2>
+        <p>
+            Selamat datang di <strong>OSIS Management</strong>. Kami sangat menghargai privasi Anda dan berkomitmen untuk melindungi data pribadi yang Anda bagikan saat menggunakan aplikasi kami. Kebijakan Privasi ini menjelaskan bagaimana kami mengumpulkan, menggunakan, menyimpan, dan melindungi informasi Anda.
+        </p>
+
+        <h2>2. Informasi yang Kami Kumpulkan</h2>
+        <p>Aplikasi ini dapat mengumpulkan beberapa jenis data untuk keperluan operasional manajemen organisasi:</p>
+        <ul>
+            <li><strong>Informasi Akun:</strong> Nama, alamat email, dan peran (seperti Ketua OSIS, Sekretaris, Pembina, Anggota Divisi) saat Anda mendaftar atau masuk ke sistem.</li>
+            <li><strong>Data Kegiatan & Jurnal Kerja:</strong> Catatan kegiatan organisasi, judul program kerja, deskripsi agenda rapat, notula hasil keputusan, dan absensi kehadiran.</li>
+            <li><strong>Foto & Dokumen:</strong> Foto dokumentasi kegiatan atau dokumen lampiran proposal/LPJ yang Anda pilih sendiri untuk diunggah ke dalam aplikasi.</li>
+            <li><strong>Informasi Perangkat:</strong> Model perangkat dan versi OS Android semata-mata untuk keperluan kompatibilitas dan pengiriman notifikasi pengingat agenda.</li>
+        </ul>
+
+        <h2>3. Penggunaan Informasi</h2>
+        <p>Informasi yang dikumpulkan digunakan secara eksklusif untuk tujuan:</p>
+        <ul>
+            <li>Menjalankan fungsi inti manajemen jurnal kerja dan program kerja OSIS.</li>
+            <li>Sinkronisasi data antar pengurus secara terpusat melalui layanan database aman (Supabase Cloud).</li>
+            <li>Memfasilitasi pembuatan dan ekspor laporan digital ke dalam format PDF dan Excel.</li>
+            <li>Mengirimkan notifikasi lokal/pengingat jadwal kegiatan dan rapat yang akan datang.</li>
+        </ul>
+
+        <h2>4. Izin Perangkat (Permissions)</h2>
+        <p>Aplikasi ini dapat meminta izin perangkat berikut:</p>
+        <ul>
+            <li><strong>Akses Internet (INTERNET):</strong> Diperlukan untuk sinkronisasi data cloud real-time.</li>
+            <li><strong>Notifikasi (POST_NOTIFICATIONS):</strong> Digunakan untuk memberikan pemberitahuan jadwal rapat dan pengingat deadline program kerja.</li>
+            <li><strong>Penyimpanan/File (READ/WRITE STORAGE):</strong> Digunakan ketika Anda mengekspor laporan PDF/Excel ke memori perangkat atau memilih foto lampiran.</li>
+        </ul>
+
+        <h2>5. Keamanan Data</h2>
+        <p>
+            Kami menerapkan standar keamanan terbaik untuk melindungi data Anda. Seluruh komunikasi antara aplikasi dan server database dienkripsi menggunakan protokol aman (SSL/TLS / HTTPS). Data Anda tidak diperjualbelikan kepada pihak ketiga manapun untuk tujuan periklanan atau komersial.
+        </p>
+
+        <h2>6. Penyimpanan dan Penghapusan Data</h2>
+        <p>
+            Data Anda disimpan selama akun organisasi Anda aktif. Pengguna memiliki hak penuh untuk:
+        </p>
+        <ul>
+            <li>Melihat dan memperbarui informasi profil mereka.</li>
+            <li>Menghapus entri jurnal, notula rapat, atau dokumen yang telah dibuat.</li>
+            <li>Meminta penghapusan akun secara permanen beserta seluruh data terkait dengan menghubungi tim pengembang atau administrator sekolah.</li>
+        </ul>
+
+        <h2>7. Privasi Anak dan Pelajar</h2>
+        <p>
+            Aplikasi ini ditujukan untuk digunakan oleh siswa sekolah menengah (SMP, SMA, SMK) dan pembina OSIS. Kami tidak mengumpulkan data sensitif di luar kebutuhan administrasi organisasi sekolah resmi.
+        </p>
+
+        <h2>8. Perubahan pada Kebijakan Privasi</h2>
+        <p>
+            Kami dapat memperbarui Kebijakan Privasi ini dari waktu ke waktu. Setiap perubahan akan diperbarui pada halaman ini beserta tanggal pembaruan terbaru.
+        </p>
+
+        <div class="contact-box" id="delete-data">
+            <h3>Hubungi Kami & Permintaan Penghapusan Data</h3>
+            <p>Jika Anda memiliki pertanyaan tentang Kebijakan Privasi ini atau ingin mengajukan permohonan penghapusan akun/data, silakan hubungi:</p>
+            <p><strong>Email:</strong> endymahavira@gmail.com</p>
+            <p><strong>Pengembang:</strong> Muhammad Nazril Putra Natrabu</p>
+        </div>
+
+        <footer>
+            &copy; 2026 OSIS Management. Hak Cipta Dilindungi.
+        </footer>
+    </div>
+</body>
+</html>

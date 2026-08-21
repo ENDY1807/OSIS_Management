@@ -1,0 +1,83 @@
+================================================================================
+          METADATA STORE LISTING GOOGLE PLAY CONSOLE - OSIS MANAGEMENT
+================================================================================
+
+[1] JUDUL APLIKASI (APP NAME) - Maksimal 30 Karakter:
+--------------------------------------------------------------------------------
+OSIS Management - Jurnal Kerja
+--------------------------------------------------------------------------------
+
+
+[2] DESKRIPSI SINGKAT (SHORT DESCRIPTION) - Maksimal 80 Karakter:
+--------------------------------------------------------------------------------
+Aplikasi manajemen OSIS, pencatatan jurnal kerja, rapat, proposal & laporan.
+--------------------------------------------------------------------------------
+
+
+[3] DESKRIPSI LENGKAP (FULL DESCRIPTION) - Maksimal 4000 Karakter:
+--------------------------------------------------------------------------------
+OSIS Management adalah solusi digital terpadu yang dirancang khusus untuk mempermudah pengurus Organisasi Siswa Intra Sekolah (OSIS), MPK, dan ekstrakurikuler dalam mengelola kegiatan, program kerja, dan administrasi organisasi secara profesional dan terstruktur.
+
+Tinggalkan pencatatan manual berbasis buku dan kertas yang rentan hilang. Dengan OSIS Management, seluruh dokumentasi, agenda, notula rapat, dan laporan kegiatan tersimpan rapi dan dapat diakses kapan saja.
+
+✨ FITUR-FITUR UTAMA:
+
+📝 JURNAL KERJA & PROGRAM KERJA (PROKER)
+- Catat setiap progres kegiatan dan evaluasi program kerja divisi/sekbid.
+- Status progres kegiatan yang jelas (Perencanaan, Berlangsung, Selesai, Tertunda).
+- Dokumentasi foto dan catatan evaluasi pasca-kegiatan.
+
+📅 MANAJEMEN AGENDA & NOTULA RAPAT
+- Jadwalkan rapat internal, pleno, maupun koordinasi kepanitiaan.
+- Pencatatan notula rapat, hasil keputusan, dan absensi kehadiran peserta.
+- Pengingat otomatis jadwal kegiatan dan rapat penting.
+
+📊 EKSPOR LAPORAN OTOMATIS (PDF & EXCEL)
+- Cetak Laporan Pertanggungjawaban (LPJ) dan rekapitulasi jurnal dalam format PDF siap cetak.
+- Ekspor data kegiatan ke lembar kerja Excel (.xlsx) untuk arsip pembina atau sekolah.
+- Desain template dokumen resmi dan rapi.
+
+🔒 KEAMANAN & MANAJEMEN ANGGOTA
+- Akses terintegrasi berbasis peran pengurus.
+- Penyimpanan data cloud yang aman dan sinkronisasi real-time.
+- Backup data berkala untuk mencegah kehilangan data organisasi.
+
+💡 COCOK UNTUK:
+- Pengurus OSIS & MPK (SMP, SMA, SMK, MA).
+- Pembina OSIS & Kesiswaan Sekolah.
+- Pengurus Ekstrakurikuler dan Organisasi Kepemudaan.
+
+Tingkatkan produktivitas dan transparansi organisasi sekolahmu dengan OSIS Management!
+
+📧 Kontak & Bantuan Dukungan:
+Email: support@baknus.sch.id
+Website: https://id.sch.baknus
+--------------------------------------------------------------------------------
+
+
+[4] KATEGORI APLIKASI (APP CATEGORY):
+--------------------------------------------------------------------------------
+Kategori Utama: Pendidikan (Education)
+Kategori Alternatif: Produktivitas (Productivity) / Alat (Tools)
+--------------------------------------------------------------------------------
+
+
+[5] TAG / KATA KUNCI PENELUSURAN (TAGS):
+--------------------------------------------------------------------------------
+- Pendidikan
+- Manajemen Organisasi
+- Jurnal Kegiatan
+- Siswa & Sekolah
+- Catatan Rapat
+- LPJ & Laporan
+- Produktivitas
+--------------------------------------------------------------------------------
+
+
+[6] DETAIL KONTAK PENGEMBANG (DEVELOPER CONTACT DETAILS):
+--------------------------------------------------------------------------------
+Email Kontak: your-email@gmail.com / support@baknus.sch.id
+Nomor Telepon (Opsional): +62 8xxxxxxxxxx
+Situs Web (Opsional): https://id.sch.baknus
+Kebijakan Privasi: (Masukkan URL hosting privacy_policy.html)
+--------------------------------------------------------------------------------
