@@ -40,8 +40,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   }
 
   Future<void> _login() async {
-    final username = _userC.text.trim();
-    if (username.isEmpty) {
+    final rawUsername = _userC.text.trim();
+    if (rawUsername.isEmpty) {
       setState(() => _error = 'Username tidak boleh kosong.');
       return;
     }
@@ -51,13 +51,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     }
     setState(() { _loading = true; _error = null; });
 
-    // Cek password dulu (instan, tidak perlu async)
-    final uname = username.toUpperCase();
-    final ok = AuthService.checkPassword(uname, _passC.text);
+    final uname = AuthService.normalizeUsername(rawUsername);
+    final ok = await AuthService.authenticate(uname, _passC.text);
     if (!mounted) return;
 
     if (ok) {
-      // Navigasi langsung, simpan session di background
+      // Simpan session dan arahkan ke HomeScreen
       AuthService.saveSession(uname);
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(

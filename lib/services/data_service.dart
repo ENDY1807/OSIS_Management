@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:excel/excel.dart' as exc;
 import '../models/models.dart';
+import 'auth_service.dart';
 
 const _uuid = Uuid();
 
@@ -47,6 +48,9 @@ class DataService {
         callback: (payload) {
           final table = payload['table']?.toString() ?? 'all';
           debugPrint('Realtime broadcast data changed: $table');
+          if (table == 'accounts' || table == 'all') {
+            AuthService.syncWithSupabase();
+          }
           notifyDataChanged(table);
         },
       );
@@ -60,6 +64,7 @@ class DataService {
         'arsip',
         'laporan_kegiatan',
         'file_riwayat',
+        'accounts',
       ];
       for (final table in monitoredTables) {
         _realtimeChannel?.onPostgresChanges(
@@ -68,6 +73,9 @@ class DataService {
           table: table,
           callback: (payload) {
             debugPrint('Postgres change on $table: ${payload.eventType}');
+            if (table == 'accounts') {
+              AuthService.syncWithSupabase();
+            }
             notifyDataChanged(table);
           },
         );
@@ -110,6 +118,8 @@ class DataService {
     );
     _initialized = true;
     initRealtime();
+    // Sinkronisasi akun dari Supabase secara asinkron
+    unawaited(AuthService.syncWithSupabase());
     // Hapus cache lama yang tidak kompatibel
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('laporan_kegiatan');

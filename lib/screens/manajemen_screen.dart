@@ -859,11 +859,38 @@ class _KonfigurasiAkunTab extends StatefulWidget {
 
 class _KonfigurasiAkunTabState extends State<_KonfigurasiAkunTab> {
   Map<String, String> _accounts = {};
+  bool _isSyncing = false;
+  StreamSubscription<String>? _sub;
 
   @override
   void initState() {
     super.initState();
-    setState(() => _accounts = Map.from(AuthService.accounts));
+    _accounts = Map.from(AuthService.accounts);
+    _sub = DataService.onDataChanged.listen((t) {
+      if (t == 'accounts' || t == 'all') {
+        if (mounted) {
+          setState(() => _accounts = Map.from(AuthService.accounts));
+        }
+      }
+    });
+    _syncAccounts();
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _syncAccounts() async {
+    setState(() => _isSyncing = true);
+    await AuthService.syncWithSupabase();
+    if (mounted) {
+      setState(() {
+        _accounts = Map.from(AuthService.accounts);
+        _isSyncing = false;
+      });
+    }
   }
 
   void _showEditDialog(String username) {
@@ -891,12 +918,13 @@ class _KonfigurasiAkunTabState extends State<_KonfigurasiAkunTab> {
             ElevatedButton(
               onPressed: () async {
                 if (passC.text.trim().isEmpty) return;
-                await AuthService.changePassword(username, passC.text.trim());
+                final newPass = passC.text.trim();
+                await AuthService.changePassword(username, newPass);
                 if (!ctx.mounted) return;
                 Navigator.pop(ctx);
                 setState(() => _accounts = Map.from(AuthService.accounts));
                 ScaffoldMessenger.of(context).showSnackBar(// ignore: use_build_context_synchronously
-                  SnackBar(content: Text('Password $username diperbarui'), backgroundColor: Colors.green));
+                  SnackBar(content: Text('Password $username diperbarui & tersinkron ke Supabase'), backgroundColor: Colors.green));
               },
               child: const Text('Simpan'),
             ),
@@ -911,7 +939,7 @@ class _KonfigurasiAkunTabState extends State<_KonfigurasiAkunTab> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Reset Semua Password?'),
-        content: const Text('Semua password akan dikembalikan ke default. Lanjutkan?'),
+        content: const Text('Semua password akan dikembalikan ke default dan disinkronkan ke Supabase. Lanjutkan?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
           ElevatedButton(
@@ -921,7 +949,7 @@ class _KonfigurasiAkunTabState extends State<_KonfigurasiAkunTab> {
               Navigator.pop(ctx);
               setState(() => _accounts = Map.from(AuthService.accounts));
               ScaffoldMessenger.of(context).showSnackBar(// ignore: use_build_context_synchronously
-                const SnackBar(content: Text('Semua password direset ke default'), backgroundColor: Colors.orange));
+                const SnackBar(content: Text('Semua password direset ke default dan disinkronkan ke Supabase'), backgroundColor: Colors.orange));
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Reset'),
@@ -945,12 +973,21 @@ class _KonfigurasiAkunTabState extends State<_KonfigurasiAkunTab> {
             border: Border.all(color: Colors.blue.shade200),
           ),
           child: Row(children: [
-            Icon(Icons.info_outline, color: Colors.blue.shade700, size: 18),
+            Icon(Icons.cloud_sync_rounded, color: Colors.blue.shade700, size: 22),
             const SizedBox(width: 10),
             Expanded(child: Text(
-              'Tap akun untuk mengubah password. Hanya Pembina yang dapat mengakses halaman ini.',
+              'Akun tersinkronisasi otomatis dengan Supabase Cloud. Perubahan password langsung aktif di seluruh perangkat pengguna.',
               style: TextStyle(fontSize: 12, color: Colors.blue.shade700),
             )),
+            if (_isSyncing)
+              const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+            else
+              IconButton(
+                icon: const Icon(Icons.refresh, size: 20),
+                color: Colors.blue.shade700,
+                tooltip: 'Sinkron Ulang Akun',
+                onPressed: _syncAccounts,
+              ),
           ]),
         ),
         const SizedBox(height: 16),

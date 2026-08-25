@@ -47,3 +47,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+.meta-panel-trigger
+meta.bat
+meta
+.vscode/
+*.code-workspace
