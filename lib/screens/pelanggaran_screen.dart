@@ -182,18 +182,20 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
                     optionsViewBuilder: (_, onSel, options) => Align(
                       alignment: Alignment.topLeft,
                       child: Material(
-                        elevation: 4,
+                        elevation: 6,
+                        color: isDark ? const Color(0xFF1A2333) : Colors.white,
                         borderRadius: BorderRadius.circular(12),
                         child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxHeight: 200, maxWidth: 380),
+                          constraints: const BoxConstraints(maxHeight: 220, maxWidth: 380),
                           child: ListView(
                             padding: EdgeInsets.zero,
                             shrinkWrap: true,
                             children: options.map((s) => ListTile(
                               dense: true,
-                              title: Text(s.nama, style: const TextStyle(fontSize: 13)),
+                              leading: Icon(Icons.person_rounded, size: 18, color: isDark ? const Color(0xFF38BDF8) : kAccent),
+                              title: Text(s.nama, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white : kTextDark)),
                               subtitle: Text('${s.kelas} • NIS: ${s.nis}',
-                                  style: const TextStyle(fontSize: 11)),
+                                  style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : kTextMid)),
                               onTap: () => onSel(s),
                             )).toList(),
                           ),
@@ -203,22 +205,26 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
                   ),
 
                 if (selectedSiswa != null) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
-                      color: Colors.green.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.green.shade200),
+                      color: isDark ? Colors.green.withAlpha(45) : Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: isDark ? Colors.green.withAlpha(120) : Colors.green.shade300),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.check_circle_outline, color: Colors.green.shade700, size: 16),
-                        const SizedBox(width: 8),
+                        Icon(Icons.check_circle_rounded, color: isDark ? Colors.greenAccent : Colors.green.shade700, size: 18),
+                        const SizedBox(width: 10),
                         Expanded(
                           child: Text(
                             '${selectedSiswa!.nama} — ${selectedSiswa!.kelas}',
-                            style: TextStyle(fontSize: 13, color: Colors.green.shade700, fontWeight: FontWeight.w600),
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isDark ? Colors.greenAccent : Colors.green.shade800,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ],

@@ -242,6 +242,12 @@ class AuthService {
     'SEKBID6', 'SEKBID7', 'SEKBID8', 'SEKBID9', 'SEKBID10',
   ];
 
+  static List<String> get prokerUnits => [
+    'KETUA', 'WAKIL', 'SEKRETARIS', 'BENDAHARA',
+    'SEKBID1', 'SEKBID2', 'SEKBID3', 'SEKBID4', 'SEKBID5',
+    'SEKBID6', 'SEKBID7', 'SEKBID8', 'SEKBID9', 'SEKBID10',
+  ];
+
   static Map<String, String> get accounts {
     final map = <String, String>{};
     for (final e in (_accountDetails ?? {}).entries) {

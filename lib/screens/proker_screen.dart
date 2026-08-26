@@ -26,10 +26,10 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
   bool get _isAdmin => _currentUser == 'ADMIN' || AuthService.getRole(_currentUser) == 'ADMIN';
   bool get _isSuperUser => _isAdmin || ['KETUA', 'WAKIL', 'SEKRETARIS', 'BENDAHARA'].contains(_currentUser);
   bool get _isPembina => _isAdmin || _currentUser == 'PEMBINA' || _currentUser == 'KESISWAAN' || AuthService.getRole(_currentUser) == 'PEMBINA' || AuthService.getRole(_currentUser) == 'KESISWAAN';
-  bool get _isSekbid => AuthService.sekbidList.contains(_currentUser);
-  bool get _canEdit => _isSuperUser || _isPembina;
-  // Sekbid hanya bisa CRUD proker milik sekbid-nya sendiri
-  bool _canEditProker(Proker p) => _canEdit || (_isSekbid && p.sekbid == _currentUser);
+  bool get _isProkerUnit => AuthService.prokerUnits.contains(_currentUser);
+  bool get _canEdit => _isSuperUser || _isPembina || _isProkerUnit;
+  // Unit hanya bisa CRUD proker miliknya sendiri, kecuali SuperUser/Pembina
+  bool _canEditProker(Proker p) => _isAdmin || _isPembina || p.sekbid == _currentUser || (_isSuperUser && ['KETUA', 'WAKIL', 'SEKRETARIS', 'BENDAHARA'].contains(p.sekbid));
 
   @override
   void initState() {
@@ -65,7 +65,7 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
   }
 
   List<Proker> get _filtered {
-    // Semua role lihat semua proker, tapi superUser/Pembina bisa filter per sekbid
+    // Semua role lihat semua proker, tapi superUser/Pembina bisa filter per sekbid/unit
     List<Proker> list = _proker;
     if ((_isSuperUser || _isPembina) && _filterSekbid != 'Semua') {
       list = list.where((p) => p.sekbid == _filterSekbid).toList();
@@ -97,9 +97,9 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
   void _showForm([Proker? existing]) async {
     final namaC = TextEditingController(text: existing?.nama);
     final deskC = TextEditingController(text: existing?.deskripsi);
-    final pjC = TextEditingController(text: existing?.penanggungJawab ?? _currentUser);
+    final pjC = TextEditingController(text: existing?.penanggungJawab ?? AuthService.getDisplayName(_currentUser));
     final ketC = TextEditingController(text: existing?.keterangan);
-    String selectedSekbid = existing?.sekbid ?? ((_isSuperUser || _isPembina) ? AuthService.sekbidList.first : _currentUser);
+    String selectedSekbid = existing?.sekbid ?? ((_isSuperUser || _isPembina) ? (_currentUser.isNotEmpty && AuthService.prokerUnits.contains(_currentUser) ? _currentUser : AuthService.prokerUnits.first) : _currentUser);
     String selectedStatus = existing?.status ?? StatusProker.belum;
     DateTime tanggalRencana = existing?.tanggalRencana ?? DateTime.now();
     DateTime? tanggalRealisasi = existing?.tanggalRealisasi;
@@ -162,8 +162,8 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
                       labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
                       prefixIcon: const Icon(Icons.group, color: kAccent),
                     ),
-                    items: AuthService.sekbidList
-                        .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                    items: AuthService.prokerUnits
+                        .map((s) => DropdownMenuItem(value: s, child: Text(AuthService.getDisplayName(s))))
                         .toList(),
                     onChanged: (v) => setModal(() => selectedSekbid = v ?? selectedSekbid),
                   )
@@ -174,7 +174,7 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
                       labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
                       prefixIcon: const Icon(Icons.group, color: kAccent),
                     ),
-                    child: Text(selectedSekbid, style: TextStyle(fontSize: 14, color: isDark ? Colors.white : kTextDark)),
+                    child: Text(AuthService.getDisplayName(selectedSekbid), style: TextStyle(fontSize: 14, color: isDark ? Colors.white : kTextDark)),
                   ),
                 const SizedBox(height: 12),
 
@@ -449,7 +449,7 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
     final isDark = theme.brightness == Brightness.dark;
     final primary = theme.colorScheme.primary;
 
-    final allSekbid = (_isSuperUser || _isPembina) ? [LocalizationService.tr('btn_all'), ...AuthService.sekbidList] : [_currentUser];
+    final allSekbid = (_isSuperUser || _isPembina) ? [LocalizationService.tr('btn_all'), ...AuthService.prokerUnits] : [_currentUser];
     final totalBelum    = _proker.where((p) => p.status == StatusProker.belum).length;
     final totalBerjalan = _proker.where((p) => p.status == StatusProker.berjalan).length;
     final totalSelesai  = _proker.where((p) => p.status == StatusProker.selesai).length;
@@ -484,11 +484,12 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: allSekbid.map((s) {
+                  final displayName = s == LocalizationService.tr('btn_all') ? s : AuthService.getDisplayName(s);
                   final selected = _filterSekbid == s || (_filterSekbid == 'Semua' && s == LocalizationService.tr('btn_all'));
                   return Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: FilterChip(
-                      label: Text(s),
+                      label: Text(displayName),
                       selected: selected,
                       onSelected: (_) => setState(() => _filterSekbid = (s == LocalizationService.tr('btn_all') ? 'Semua' : s)),
                       selectedColor: primary,
@@ -553,7 +554,7 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
           ),
         ],
       ),
-      floatingActionButton: (_userLoaded && (_canEdit || _isSekbid))
+      floatingActionButton: (_userLoaded && (_canEdit || _isProkerUnit))
           ? FloatingActionButton.extended(
               onPressed: () => _showForm(),
               icon: const Icon(Icons.add),

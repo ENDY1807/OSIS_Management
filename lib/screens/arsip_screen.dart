@@ -1760,45 +1760,66 @@ class ArsipScreenState extends State<ArsipScreen> {
     final files = _currentFiles;
     final bool isEmpty = subfolders.isEmpty && files.isEmpty;
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: _isSelectionMode ? _buildSelectionAppBar() : _buildNormalAppBar(),
-      body: Column(
-        children: [
-          // Breadcrumb Navigation
-          _buildBreadcrumbsBar(isDark: isDark, primary: primary),
+    return PopScope(
+      canPop: _currentPath.isEmpty && !_isSelectionMode,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        if (_isSelectionMode) {
+          setState(() => _isSelectionMode = false);
+          _clearSelection();
+          return;
+        }
+        if (_currentPath.isNotEmpty) {
+          _goUp();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        appBar: _isSelectionMode ? _buildSelectionAppBar() : _buildNormalAppBar(),
+        body: Column(
+          children: [
+            // Breadcrumb Navigation
+            _buildBreadcrumbsBar(isDark: isDark, primary: primary),
 
-          // Search and View Controls Bar
-          _buildToolbar(isDark: isDark, primary: primary),
+            // Search and View Controls Bar
+            _buildToolbar(isDark: isDark, primary: primary),
 
-          // Main Content
-          Expanded(
-            child: _loading
-                ? Center(child: CircularProgressIndicator(color: primary))
-                : isEmpty
-                    ? _buildEmptyState(isDark: isDark)
-                    : RefreshIndicator(
-                        onRefresh: _load,
-                        color: primary,
-                        child: _viewMode == ViewMode.list
-                            ? _buildListView(subfolders, files, isDark: isDark, primary: primary)
-                            : _buildGridView(subfolders, files, isDark: isDark, primary: primary),
-                      ),
-          ),
+            // Main Content
+            Expanded(
+              child: _loading
+                  ? Center(child: CircularProgressIndicator(color: primary))
+                  : isEmpty
+                      ? _buildEmptyState(isDark: isDark)
+                      : RefreshIndicator(
+                          onRefresh: _load,
+                          color: primary,
+                          child: _viewMode == ViewMode.list
+                              ? _buildListView(subfolders, files, isDark: isDark, primary: primary)
+                              : _buildGridView(subfolders, files, isDark: isDark, primary: primary),
+                        ),
+            ),
 
-          // Bottom Clipboard Bar
-          if (_clipboardMode != ClipboardMode.none) _buildClipboardBar(isDark: isDark, primary: primary),
-        ],
+            // Bottom Clipboard Bar
+            if (_clipboardMode != ClipboardMode.none) _buildClipboardBar(isDark: isDark, primary: primary),
+          ],
+        ),
+        floatingActionButton: _canEdit && !_isSelectionMode ? _buildFloatingActionButtons(isDark: isDark, primary: primary) : null,
       ),
-      floatingActionButton: _canEdit && !_isSelectionMode ? _buildFloatingActionButtons(isDark: isDark, primary: primary) : null,
     );
   }
 
   // Normal App Bar
   AppBar _buildNormalAppBar() {
     return AppBar(
-      title: const Text('File Manager Arsip'),
+      title: Text(_currentPath.isEmpty ? LocalizationService.tr('nav_arsip') : _currentPath.split('/').last),
       automaticallyImplyLeading: false,
+      leading: _currentPath.isNotEmpty
+          ? IconButton(
+              icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+              tooltip: LocalizationService.tr('btn_back'),
+              onPressed: _goUp,
+            )
+          : null,
       actions: [
         IconButton(
           icon: Icon(_viewMode == ViewMode.list ? Icons.grid_view_rounded : Icons.view_list_rounded),
