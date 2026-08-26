@@ -51,8 +51,9 @@ jobs:
       - name: Create Public GitHub Release & Link
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/heads/main') || startsWith(github.ref, 'refs/heads/master')
+        continue-on-error: true
         with:
-          tag_name: v1.0.1
+          tag_name: v1.0.1-build7
           name: OSIS Management Release v1.0.1
           body: |
             ## 📱 Unduh Aplikasi OSIS Management
@@ -60,5 +61,6 @@ jobs:
           files: dist/OSIS_Management.apk
           draft: false
           prerelease: false
+          make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
