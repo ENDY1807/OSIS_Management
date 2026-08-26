@@ -5,6 +5,7 @@ import '../models/models.dart';
 import '../services/data_service.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
+import '../services/localization_service.dart';
 import '../app_theme.dart';
 
 import 'admin_settings_screen.dart';
@@ -526,12 +527,12 @@ class _ManajemenScreenState extends State<ManajemenScreen> with SingleTickerProv
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Manajemen'),
+        title: Text(LocalizationService.tr('nav_manajemen')),
         actions: [
           if (_isAdmin)
             IconButton(
               icon: const Icon(Icons.admin_panel_settings_rounded, color: Colors.amber),
-              tooltip: 'Panel Super Admin',
+              tooltip: LocalizationService.tr('admin_config'),
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const AdminSettingsScreen()),
@@ -541,10 +542,10 @@ class _ManajemenScreenState extends State<ManajemenScreen> with SingleTickerProv
         bottom: _tab == null ? null : TabBar(
           controller: _tab!,
           tabs: [
-            if (_canSeeSiswa) const Tab(text: 'Siswa'),
-            if (_canSeeJenis) const Tab(text: 'Jenis Pelanggaran'),
-            if (_canSeeCloud) const Tab(text: 'Status Cloud'),
-            if (_isPembina)   const Tab(text: 'Konfigurasi Akun'),
+            if (_canSeeSiswa) Tab(text: LocalizationService.currentLocale.value.languageCode == 'en' ? 'Students' : 'Siswa'),
+            if (_canSeeJenis) Tab(text: LocalizationService.currentLocale.value.languageCode == 'en' ? 'Violation Types' : 'Jenis Pelanggaran'),
+            if (_canSeeCloud) Tab(text: LocalizationService.tr('cloud_status')),
+            if (_isPembina)   Tab(text: LocalizationService.currentLocale.value.languageCode == 'en' ? 'Account Config' : 'Konfigurasi Akun'),
           ],
         ),
       ),

@@ -5,6 +5,7 @@ import '../models/models.dart';
 import '../services/data_service.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
+import '../services/localization_service.dart';
 import '../app_theme.dart';
 
 List<JenisPelanggaran> _jenisUntukHari(List<JenisPelanggaran> jenis, int weekday) {
@@ -140,13 +141,13 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
                 Center(child: Container(width: 40, height: 4,
                     decoration: BoxDecoration(color: isDark ? const Color(0xFF243452) : kPrimary, borderRadius: BorderRadius.circular(2)))),
                 const SizedBox(height: 16),
-                Text('Catat Pelanggaran',
+                Text(LocalizationService.tr('pelanggaran_add'),
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
                 const SizedBox(height: 16),
 
                 // ── Pilih Siswa (Autocomplete) ──
                 if (_siswa.isEmpty)
-                  _warningBox('Belum ada data siswa. Tambahkan di menu Manajemen.')
+                  _warningBox(LocalizationService.currentLocale.value.languageCode == 'en' ? 'No student data. Add students in Management.' : 'Belum ada data siswa. Tambahkan di menu Manajemen.')
                 else
                   RawAutocomplete<Siswa>(
                     textEditingController: siswaCtrl,
@@ -168,8 +169,10 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
                       controller: ctrl,
                       focusNode: fn,
                       onTapOutside: (_) => fn.unfocus(),
+                      style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                       decoration: InputDecoration(
-                        labelText: 'Cari Siswa (nama / NIS / kelas)',
+                        labelText: LocalizationService.tr('pelanggaran_search_student'),
+                        labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
                         prefixIcon: const Icon(Icons.person_search_outlined, color: kAccent),
                         suffixIcon: selectedSiswa != null
                             ? const Icon(Icons.check_circle, color: Colors.green, size: 20)
@@ -228,23 +231,23 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
                 // ── Tanggal (dari header) ──
                 InputDecorator(
                   decoration: InputDecoration(
-                    labelText: 'Tanggal',
+                    labelText: LocalizationService.tr('pelanggaran_date'),
                     labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
                     prefixIcon: const Icon(Icons.calendar_month_outlined, color: kAccent)),
-                  child: Text(DateFormat('dd MMMM yyyy (EEEE)', 'id').format(selectedTanggal),
+                  child: Text(DateFormat('dd MMMM yyyy (EEEE)', LocalizationService.currentLocale.value.languageCode).format(selectedTanggal),
                       style: TextStyle(fontSize: 14, color: isDark ? Colors.white : kTextDark)),
                 ),
 
                 const SizedBox(height: 16),
                 Row(children: [
-                  Text('Jenis Pelanggaran:',
+                  Text(LocalizationService.tr('pelanggaran_type'),
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
                   const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(color: kAccent.withAlpha(30), borderRadius: BorderRadius.circular(10)),
                     child: Text(
-                      _namaHari(selectedTanggal.weekday),
+                      LocalizationService.formatDay(selectedTanggal.weekday),
                       style: const TextStyle(fontSize: 11, color: kAccent, fontWeight: FontWeight.w600),
                     ),
                   ),
@@ -440,7 +443,7 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      DateFormat('EEEE, dd MMMM yyyy', 'id').format(_selectedDate),
+                      DateFormat('EEEE, dd MMMM yyyy', LocalizationService.currentLocale.value.languageCode).format(_selectedDate),
                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                     ),
                   ),
@@ -472,52 +475,46 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
               ),
             ),
 
-            // ── Filter Siswa (Autocomplete, bisa ketik) ──
-            Container(
-              color: isDark ? const Color(0xFF141D2E) : Colors.white,
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-              child: _siswa.isEmpty
-                  ? TextField(
-                      readOnly: true,
-                      decoration: InputDecoration(
-                        labelText: 'Filter Siswa',
-                        prefixIcon: Icon(Icons.filter_list, color: primary),
-                        isDense: true,
-                      ),
-                    )
-                  : LayoutBuilder(
-                      builder: (_, constraints) => RawAutocomplete<Siswa>(
+            // ── Search filter siswa ──
+            if (_filteredByDate.isNotEmpty)
+              Container(
+                color: isDark ? const Color(0xFF141D2E) : Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: _siswa.isEmpty
+                    ? const SizedBox.shrink()
+                    : RawAutocomplete<Siswa>(
                         textEditingController: _filterCtrl,
                         focusNode: _filterFocus,
-                        displayStringForOption: (s) => s.nama,
+                        displayStringForOption: (s) => '${s.nama} - ${s.kelas}',
                         optionsBuilder: (v) {
-                          if (v.text.isEmpty) return _siswa;
+                          final idsWithViolations = _filteredByDate.map((p) => p.siswaId).toSet();
+                          final available = _siswa.where((s) => idsWithViolations.contains(s.id)).toList();
+                          if (v.text.isEmpty) return available;
                           final q = v.text.toLowerCase();
-                          return _siswa.where((s) =>
+                          return available.where((s) =>
                             s.nama.toLowerCase().contains(q) ||
                             s.nis.toLowerCase().contains(q) ||
                             s.kelas.toLowerCase().contains(q));
                         },
-                        onSelected: (v) => setState(() {
-                          _filterSiswaId = v.id;
-                          _filterCtrl.text = v.nama;
-                          _filterFocus.unfocus();
-                        }),
+                        onSelected: (v) => setState(() => _filterSiswaId = v.id),
                         fieldViewBuilder: (_, ctrl, fn, onSubmit) => TextField(
                           controller: ctrl,
                           focusNode: fn,
                           onTapOutside: (_) => fn.unfocus(),
+                          style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                           decoration: InputDecoration(
-                            labelText: 'Filter Siswa',
-                            prefixIcon: Icon(Icons.filter_list, color: primary),
+                            hintText: LocalizationService.tr('pelanggaran_search_student'),
+                            hintStyle: TextStyle(color: isDark ? const Color(0xFF94A3B8) : Colors.black38),
+                            prefixIcon: const Icon(Icons.search, size: 20, color: kAccent),
                             isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             suffixIcon: _filterSiswaId != null
                                 ? IconButton(
-                                    icon: const Icon(Icons.clear, size: 18),
-                                    onPressed: () {
+                                    icon: const Icon(Icons.close, size: 18),
+                                    onPressed: () => setState(() {
+                                      _filterSiswaId = null;
                                       _filterCtrl.clear();
-                                      setState(() => _filterSiswaId = null);
-                                    },
+                                    }),
                                   )
                                 : null,
                           ),
@@ -526,30 +523,25 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
                           alignment: Alignment.topLeft,
                           child: Material(
                             elevation: 4,
-                            color: isDark ? const Color(0xFF1A263D) : Colors.white,
                             borderRadius: BorderRadius.circular(12),
-                            child: SizedBox(
-                              width: constraints.maxWidth,
-                              child: ConstrainedBox(
-                                constraints: const BoxConstraints(maxHeight: 200),
-                                child: ListView(
-                                  padding: EdgeInsets.zero,
-                                  shrinkWrap: true,
-                                  children: options.map((s) => ListTile(
-                                    dense: true,
-                                    title: Text(s.nama, style: TextStyle(fontSize: 13, color: textTitle)),
-                                    subtitle: Text('${s.kelas} • NIS: ${s.nis}',
-                                        style: TextStyle(fontSize: 11, color: textMuted)),
-                                    onTap: () => onSel(s),
-                                  )).toList(),
-                                ),
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxHeight: 200, maxWidth: 380),
+                              child: ListView(
+                                padding: EdgeInsets.zero,
+                                shrinkWrap: true,
+                                children: options.map((s) => ListTile(
+                                  dense: true,
+                                  title: Text(s.nama, style: const TextStyle(fontSize: 13)),
+                                  subtitle: Text('${s.kelas} • NIS: ${s.nis}',
+                                      style: const TextStyle(fontSize: 11)),
+                                  onTap: () => onSel(s),
+                                )).toList(),
                               ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-            ),
+              ),
 
           // ── Summary bar ──
           if (_filtered.isNotEmpty)
@@ -562,8 +554,8 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
                 Expanded(
                   child: Text(
                     _filterSiswaId == null
-                        ? '${_filtered.map((p) => p.siswaId).toSet().length} siswa • ${_filtered.length} catatan'
-                        : '${_filtered.length} catatan pelanggaran',
+                        ? '${_filtered.map((p) => p.siswaId).toSet().length} ${LocalizationService.tr('students')} • ${_filtered.length} ${LocalizationService.tr('records')}'
+                        : '${_filtered.length} ${LocalizationService.tr('records')}',
                     style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -580,11 +572,8 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
                           children: [
                             Icon(Icons.check_circle_outline, size: 72, color: textMuted),
                             const SizedBox(height: 16),
-                            Text('Tidak ada pelanggaran',
-                                style: TextStyle(fontSize: 16, color: textSub)),
-                            const SizedBox(height: 8),
-                            Text('Tap + untuk mencatat pelanggaran',
-                                style: TextStyle(fontSize: 12, color: textMuted)),
+                            Text(LocalizationService.tr('pelanggaran_empty'),
+                                style: TextStyle(fontSize: 16, color: textSub), textAlign: TextAlign.center),
                           ],
                         ),
                       )
@@ -635,7 +624,7 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
                                             Text(_namaSiswa(siswaId),
                                                 style: TextStyle(fontSize: 14,
                                                     fontWeight: FontWeight.bold, color: textTitle)),
-                                            Text('Kelas ${_kelasSiswa(siswaId)} • ${pelSiswa.length} pelanggaran',
+                                            Text('Kelas ${_kelasSiswa(siswaId)} • ${pelSiswa.length} ${LocalizationService.tr('violations')}',
                                                 style: TextStyle(fontSize: 11, color: textMuted)),
                                           ],
                                         ),
@@ -644,19 +633,19 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
                                         icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
                                         padding: EdgeInsets.zero,
                                         constraints: const BoxConstraints(),
-                                        tooltip: 'Hapus semua pelanggaran siswa ini',
+                                        tooltip: LocalizationService.tr('btn_delete'),
                                         onPressed: !_canEdit ? null : () async {
                                           final ok = await showDialog<bool>(
                                             context: context,
                                             builder: (d) => AlertDialog(
-                                              title: const Text('Hapus Pelanggaran?'),
+                                              title: Text(LocalizationService.tr('pelanggaran_delete_confirm')),
                                               content: Text('Hapus semua ${pelSiswa.length} catatan pelanggaran ${_namaSiswa(siswaId)}?'),
                                               actions: [
-                                                TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Batal')),
+                                                TextButton(onPressed: () => Navigator.pop(d, false), child: Text(LocalizationService.tr('btn_cancel'))),
                                                 ElevatedButton(
                                                   onPressed: () => Navigator.pop(d, true),
                                                   style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                                                  child: const Text('Hapus'),
+                                                  child: Text(LocalizationService.tr('btn_delete')),
                                                 ),
                                               ],
                                             ),
@@ -726,8 +715,10 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
     ),
     floatingActionButton: FloatingActionButton.extended(
       onPressed: _showCeklis,
+      backgroundColor: primary,
+      foregroundColor: isDark ? Colors.black : Colors.white,
       icon: const Icon(Icons.add),
-      label: Text('Catat – ${DateFormat('dd/MM', 'id').format(_selectedDate)}'),
+      label: Text(LocalizationService.tr('pelanggaran_add'), style: const TextStyle(fontWeight: FontWeight.bold)),
     ),
   );
 }

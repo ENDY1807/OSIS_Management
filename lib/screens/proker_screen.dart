@@ -5,6 +5,7 @@ import '../models/models.dart';
 import '../services/data_service.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
+import '../services/localization_service.dart';
 import '../app_theme.dart';
 import 'package:uuid/uuid.dart';
 
@@ -127,21 +128,40 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
                 Center(child: Container(width: 40, height: 4,
                     decoration: BoxDecoration(color: isDark ? const Color(0xFF243452) : kPrimary, borderRadius: BorderRadius.circular(2)))),
                 const SizedBox(height: 16),
-                Text(existing == null ? 'Tambah Program Kerja' : 'Edit Program Kerja',
+                Text(existing == null ? LocalizationService.tr('proker_add') : LocalizationService.tr('proker_edit'),
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
                 const SizedBox(height: 16),
 
-                TextField(controller: namaC,
-                    decoration: const InputDecoration(labelText: 'Nama Program Kerja', prefixIcon: Icon(Icons.assignment, color: kAccent))),
+                TextField(
+                  controller: namaC,
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                  decoration: InputDecoration(
+                    labelText: LocalizationService.tr('proker_name'),
+                    labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                    prefixIcon: const Icon(Icons.assignment, color: kAccent),
+                  ),
+                ),
                 const SizedBox(height: 12),
-                TextField(controller: deskC, maxLines: 3,
-                    decoration: const InputDecoration(labelText: 'Deskripsi', prefixIcon: Icon(Icons.description, color: kAccent))),
+                TextField(
+                  controller: deskC,
+                  maxLines: 3,
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                  decoration: InputDecoration(
+                    labelText: LocalizationService.tr('proker_desc'),
+                    labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                    prefixIcon: const Icon(Icons.description, color: kAccent),
+                  ),
+                ),
                 const SizedBox(height: 12),
 
                 if (_isSuperUser || _isPembina)
                   DropdownButtonFormField<String>(
                     initialValue: selectedSekbid,
-                    decoration: const InputDecoration(labelText: 'Sekbid', prefixIcon: Icon(Icons.group, color: kAccent)),
+                    decoration: InputDecoration(
+                      labelText: LocalizationService.tr('proker_sekbid'),
+                      labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                      prefixIcon: const Icon(Icons.group, color: kAccent),
+                    ),
                     items: AuthService.sekbidList
                         .map((s) => DropdownMenuItem(value: s, child: Text(s)))
                         .toList(),
@@ -149,7 +169,11 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
                   )
                 else
                   InputDecorator(
-                    decoration: const InputDecoration(labelText: 'Sekbid', prefixIcon: Icon(Icons.group, color: kAccent)),
+                    decoration: InputDecoration(
+                      labelText: LocalizationService.tr('proker_sekbid'),
+                      labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                      prefixIcon: const Icon(Icons.group, color: kAccent),
+                    ),
                     child: Text(selectedSekbid, style: TextStyle(fontSize: 14, color: isDark ? Colors.white : kTextDark)),
                   ),
                 const SizedBox(height: 12),
@@ -157,7 +181,11 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
                 TextField(
                   controller: pjC,
                   style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-                  decoration: const InputDecoration(labelText: 'Penanggung Jawab', prefixIcon: Icon(Icons.person, color: kAccent)),
+                  decoration: InputDecoration(
+                    labelText: LocalizationService.tr('proker_pj'),
+                    labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                    prefixIcon: const Icon(Icons.person, color: kAccent),
+                  ),
                 ),
                 const SizedBox(height: 12),
 
@@ -171,8 +199,12 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
                     if (picked != null) setModal(() => tanggalRencana = picked);
                   },
                   child: InputDecorator(
-                    decoration: const InputDecoration(labelText: 'Tanggal Rencana', prefixIcon: Icon(Icons.event, color: kAccent)),
-                    child: Text(DateFormat('dd MMMM yyyy', 'id').format(tanggalRencana),
+                    decoration: InputDecoration(
+                      labelText: LocalizationService.tr('proker_plan_date'),
+                      labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                      prefixIcon: const Icon(Icons.event, color: kAccent),
+                    ),
+                    child: Text(DateFormat('dd MMMM yyyy', LocalizationService.currentLocale.value.languageCode).format(tanggalRencana),
                         style: TextStyle(fontSize: 14, color: isDark ? Colors.white : kTextDark)),
                   ),
                 ),
@@ -180,8 +212,12 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
 
                 DropdownButtonFormField<String>(
                   initialValue: selectedStatus,
-                  decoration: const InputDecoration(labelText: 'Status', prefixIcon: Icon(Icons.flag, color: kAccent)),
-                  items: StatusProker.all.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                  decoration: InputDecoration(
+                    labelText: 'Status',
+                    labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                    prefixIcon: const Icon(Icons.flag, color: kAccent),
+                  ),
+                  items: StatusProker.all.map((s) => DropdownMenuItem(value: s, child: Text(LocalizationService.formatStatus(s)))).toList(),
                   onChanged: (v) => setModal(() => selectedStatus = v ?? selectedStatus),
                 ),
                 const SizedBox(height: 12),
@@ -196,9 +232,15 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
                       if (picked != null) setModal(() => tanggalRealisasi = picked);
                     },
                     child: InputDecorator(
-                      decoration: const InputDecoration(labelText: 'Tanggal Realisasi', prefixIcon: Icon(Icons.event_available, color: Colors.green)),
+                      decoration: InputDecoration(
+                        labelText: LocalizationService.tr('proker_real_date'),
+                        labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                        prefixIcon: const Icon(Icons.event_available, color: Colors.green),
+                      ),
                       child: Text(
-                        tanggalRealisasi != null ? DateFormat('dd MMMM yyyy', 'id').format(tanggalRealisasi!) : 'Tap untuk pilih tanggal',
+                        tanggalRealisasi != null
+                            ? DateFormat('dd MMMM yyyy', LocalizationService.currentLocale.value.languageCode).format(tanggalRealisasi!)
+                            : LocalizationService.tr('btn_choose_file'),
                         style: TextStyle(fontSize: 14, color: tanggalRealisasi != null ? (isDark ? Colors.white : kTextDark) : (isDark ? Colors.white60 : kTextLight)),
                       ),
                     ),
@@ -206,8 +248,15 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
                   const SizedBox(height: 12),
                 ],
 
-                TextField(controller: ketC,
-                    decoration: const InputDecoration(labelText: 'Keterangan (opsional)', prefixIcon: Icon(Icons.notes, color: kAccent))),
+                TextField(
+                  controller: ketC,
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                  decoration: InputDecoration(
+                    labelText: LocalizationService.tr('proker_notes'),
+                    labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                    prefixIcon: const Icon(Icons.notes, color: kAccent),
+                  ),
+                ),
                 const SizedBox(height: 20),
 
                 ElevatedButton(
@@ -224,60 +273,35 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
                       status: selectedStatus,
                       keterangan: ketC.text,
                     );
-                    try {
-                      if (existing == null) {
-                        await DataService.addProker(p);
-                        await NotificationService.notifyUpdate(
-                          title: 'Program Kerja Baru',
-                          message: 'Proker "${p.nama}" dibuat untuk ${p.sekbid} oleh $_currentUser',
-                          category: 'proker',
-                          actor: _currentUser,
-                        );
-                        await NotificationService.scheduleProkerReminder(
-                          id: NotificationService.idFromString('proker_remind_${p.id}'),
-                          namaProker: p.nama,
-                          tanggalRencana: p.tanggalRencana,
-                          username: _currentUser,
-                        );
-                      } else {
-                        await DataService.updateProker(p);
-                        await NotificationService.notifyUpdate(
-                          title: 'Program Kerja Diperbarui',
-                          message: 'Proker "${p.nama}" (${p.sekbid} - Status: ${p.status}) diperbarui oleh $_currentUser',
-                          category: 'proker',
-                          actor: _currentUser,
-                        );
-                        // Re-schedule reminder dengan tanggal baru
-                        await NotificationService.cancelProkerReminder(
-                          NotificationService.idFromString('proker_remind_${p.id}'));
-                        await NotificationService.scheduleProkerReminder(
-                          id: NotificationService.idFromString('proker_remind_${p.id}'),
-                          namaProker: p.nama,
-                          tanggalRencana: p.tanggalRencana,
-                          username: _currentUser,
-                        );
-                      }
-                      if (ctx.mounted) {
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
-                          content: Text('Proker tersimpan ke Supabase'),
-                          backgroundColor: Colors.green,
-                          duration: Duration(seconds: 2),
-                        ));
-                      }
-                    } catch (e) {
-                      if (ctx.mounted) {
-                        ScaffoldMessenger.of(ctx).showSnackBar(
-                          SnackBar(content: Text('Gagal: $e'), backgroundColor: Colors.red));
-                      }
+                    if (existing == null) {
+                      await DataService.addProker(p);
+                      await NotificationService.notifyUpdate(
+                        title: 'Program Kerja Baru Dibuat',
+                        message: 'Proker "${p.nama}" dibuat oleh $_currentUser',
+                        category: 'proker',
+                        actor: _currentUser,
+                      );
+                    } else {
+                      await DataService.updateProker(p);
+                      await NotificationService.notifyUpdate(
+                        title: 'Program Kerja Diperbarui',
+                        message: 'Proker "${p.nama}" (${p.sekbid} - Status: ${p.status}) diperbarui oleh $_currentUser',
+                        category: 'proker',
+                        actor: _currentUser,
+                      );
                     }
-                    _load();
+                    if (ctx.mounted) Navigator.pop(ctx);
+                    await _load();
                   },
                   style: ElevatedButton.styleFrom(
+                    backgroundColor: kAccent,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
-                  child: const Text('Simpan', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  child: Text(
+                    LocalizationService.tr('btn_save'),
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
                 ),
               ],
             ),
@@ -322,7 +346,7 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
                     Icon(_statusIcon(p.status), size: 13, color: color),
                     const SizedBox(width: 4),
-                    Text(p.status, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color)),
+                    Text(LocalizationService.formatStatus(p.status), style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color)),
                   ]),
                 ),
               ],
@@ -337,9 +361,9 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
               children: [
                 _chip(Icons.group_outlined, p.sekbid, isDark: isDark),
                 _chip(Icons.person_outline, p.penanggungJawab, isDark: isDark),
-                _chip(Icons.calendar_today_outlined, DateFormat('dd MMM yyyy', 'id').format(p.tanggalRencana), isDark: isDark),
+                _chip(Icons.calendar_today_outlined, DateFormat('dd MMM yyyy', LocalizationService.currentLocale.value.languageCode).format(p.tanggalRencana), isDark: isDark),
                 if (p.tanggalRealisasi != null)
-                  _chip(Icons.event_available_outlined, DateFormat('dd MMM yyyy', 'id').format(p.tanggalRealisasi!), color: Colors.green, isDark: isDark),
+                  _chip(Icons.event_available_outlined, DateFormat('dd MMM yyyy', LocalizationService.currentLocale.value.languageCode).format(p.tanggalRealisasi!), color: Colors.green, isDark: isDark),
               ],
             ),
             if (p.keterangan.isNotEmpty) ...[
@@ -362,23 +386,23 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
                 TextButton.icon(
                   style: TextButton.styleFrom(foregroundColor: theme.colorScheme.primary, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6)),
                   icon: const Icon(Icons.edit_outlined, size: 16),
-                  label: const Text('Edit', style: TextStyle(fontSize: 13)),
+                  label: Text(LocalizationService.tr('btn_edit'), style: const TextStyle(fontSize: 13)),
                   onPressed: () => _showForm(p),
                 ),
                 const SizedBox(width: 4),
                 TextButton.icon(
                   style: TextButton.styleFrom(foregroundColor: Colors.redAccent, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6)),
                   icon: const Icon(Icons.delete_outline, size: 16),
-                  label: const Text('Hapus', style: TextStyle(fontSize: 13)),
+                  label: Text(LocalizationService.tr('btn_delete'), style: const TextStyle(fontSize: 13)),
                   onPressed: () async {
                     final ok = await showDialog<bool>(
                       context: context,
                       builder: (ctx) => AlertDialog(
-                        title: const Text('Hapus Proker?'),
-                        content: Text('Hapus "${p.nama}"?'),
+                        title: Text(LocalizationService.tr('proker_delete_confirm')),
+                        content: Text('${LocalizationService.tr('proker_delete_msg')}\n"${p.nama}"'),
                         actions: [
-                          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
-                          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Hapus', style: TextStyle(color: Colors.red))),
+                          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(LocalizationService.tr('btn_cancel'))),
+                          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(LocalizationService.tr('btn_delete'), style: const TextStyle(color: Colors.red))),
                         ],
                       ),
                     );
@@ -425,7 +449,7 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
     final isDark = theme.brightness == Brightness.dark;
     final primary = theme.colorScheme.primary;
 
-    final allSekbid = (_isSuperUser || _isPembina) ? ['Semua', ...AuthService.sekbidList] : [_currentUser];
+    final allSekbid = (_isSuperUser || _isPembina) ? [LocalizationService.tr('btn_all'), ...AuthService.sekbidList] : [_currentUser];
     final totalBelum    = _proker.where((p) => p.status == StatusProker.belum).length;
     final totalBerjalan = _proker.where((p) => p.status == StatusProker.berjalan).length;
     final totalSelesai  = _proker.where((p) => p.status == StatusProker.selesai).length;
@@ -443,11 +467,11 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
             child: Row(
               children: [
-                _statBox('Belum', totalBelum, const Color(0xFFBF8F00)),
+                _statBox(LocalizationService.tr('status_draft'), totalBelum, const Color(0xFFBF8F00)),
                 const SizedBox(width: 8),
-                _statBox('Berjalan', totalBerjalan, const Color(0xFF007A8E)),
+                _statBox(LocalizationService.tr('status_running'), totalBerjalan, const Color(0xFF007A8E)),
                 const SizedBox(width: 8),
-                _statBox('Selesai', totalSelesai, const Color(0xFF2E7D32)),
+                _statBox(LocalizationService.tr('status_done'), totalSelesai, const Color(0xFF2E7D32)),
               ],
             ),
           ),
@@ -460,13 +484,13 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: allSekbid.map((s) {
-                  final selected = _filterSekbid == s;
+                  final selected = _filterSekbid == s || (_filterSekbid == 'Semua' && s == LocalizationService.tr('btn_all'));
                   return Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: FilterChip(
                       label: Text(s),
                       selected: selected,
-                      onSelected: (_) => setState(() => _filterSekbid = s),
+                      onSelected: (_) => setState(() => _filterSekbid = (s == LocalizationService.tr('btn_all') ? 'Semua' : s)),
                       selectedColor: primary,
                       checkmarkColor: Colors.black,
                       labelStyle: TextStyle(
@@ -490,9 +514,9 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
             child: TabBar(
               controller: _tab,
               tabs: [
-                Tab(text: 'Belum ($totalBelum)'),
-                Tab(text: 'Berjalan ($totalBerjalan)'),
-                Tab(text: 'Selesai ($totalSelesai)'),
+                Tab(text: '${LocalizationService.tr('status_draft')} ($totalBelum)'),
+                Tab(text: '${LocalizationService.tr('status_running')} ($totalBerjalan)'),
+                Tab(text: '${LocalizationService.tr('status_done')} ($totalSelesai)'),
               ],
             ),
           ),
@@ -510,7 +534,7 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
                       children: [
                         Icon(Icons.assignment_outlined, size: 64, color: isDark ? const Color(0xFF64748B) : kTextLight),
                         const SizedBox(height: 12),
-                        Text('Belum ada program kerja', style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : kTextLight, fontSize: 15)),
+                        Text(LocalizationService.tr('proker_empty'), style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : kTextLight, fontSize: 15)),
                       ],
                     ),
                   );
@@ -533,7 +557,7 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
           ? FloatingActionButton.extended(
               onPressed: () => _showForm(),
               icon: const Icon(Icons.add),
-              label: const Text('Tambah Proker', style: TextStyle(fontWeight: FontWeight.bold)),
+              label: Text(LocalizationService.tr('proker_add'), style: const TextStyle(fontWeight: FontWeight.bold)),
             )
           : null,
     );

@@ -15,6 +15,7 @@ import '../models/models.dart';
 import '../services/data_service.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
+import '../services/localization_service.dart';
 import '../app_theme.dart';
 
 const _uuid = Uuid();
@@ -907,13 +908,15 @@ class ArsipScreenState extends State<ArsipScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (d) => AlertDialog(
-        title: const Text('Hapus Item Terpilih?'),
-        content: Text('Yakin ingin menghapus $count item yang dipilih secara permanen?'),
+        title: Text(LocalizationService.tr('arsip_delete_confirm')),
+        content: Text(LocalizationService.currentLocale.value.languageCode == 'en'
+            ? 'Are you sure you want to permanently delete $count selected item(s)?'
+            : 'Yakin ingin menghapus $count item yang dipilih secara permanen?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Batal')),
+          TextButton(onPressed: () => Navigator.pop(d, false), child: Text(LocalizationService.tr('btn_cancel'))),
           ElevatedButton.icon(
             icon: const Icon(Icons.delete_outline_rounded, size: 16),
-            label: const Text('Hapus'),
+            label: Text(LocalizationService.tr('btn_delete')),
             onPressed: () => Navigator.pop(d, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
           ),
@@ -969,7 +972,7 @@ class ArsipScreenState extends State<ArsipScreen> {
           children: [
             Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: isDark ? const Color(0xFF263348) : kPrimary, borderRadius: BorderRadius.circular(2)))),
             const SizedBox(height: 16),
-            Text('Buat Folder Baru', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
+            Text(LocalizationService.tr('arsip_folder_add'), style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
             const SizedBox(height: 4),
             Text(_currentPath.isEmpty ? 'Folder akan dibuat di Root (/)' : 'Folder dibuat di: $_currentPath',
                 style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : kTextMid)),
@@ -980,16 +983,16 @@ class ArsipScreenState extends State<ArsipScreen> {
               textCapitalization: TextCapitalization.words,
               style: TextStyle(color: isDark ? Colors.white : Colors.black87),
               decoration: InputDecoration(
-                labelText: 'Nama Folder *',
+                labelText: LocalizationService.tr('arsip_folder_name'),
                 labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
                 prefixIcon: const Icon(Icons.create_new_folder_outlined, color: kAccent),
-                hintText: 'Masukan Nama Folder',
+                hintText: LocalizationService.tr('arsip_folder_name'),
               ),
             ),
             const SizedBox(height: 20),
             ElevatedButton.icon(
               icon: const Icon(Icons.create_new_folder_rounded, size: 18),
-              label: const Text('Buat Folder', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              label: Text(LocalizationService.tr('btn_create_folder'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               onPressed: () async {
                 final folderName = namaC.text.trim();
                 if (folderName.isEmpty) return;
@@ -1050,7 +1053,7 @@ class ArsipScreenState extends State<ArsipScreen> {
           children: [
             Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: isDark ? const Color(0xFF263348) : kPrimary, borderRadius: BorderRadius.circular(2)))),
             const SizedBox(height: 16),
-            Text('Ganti Nama Folder', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
+            Text(LocalizationService.tr('btn_rename'), style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
             const SizedBox(height: 16),
             TextField(
               controller: nameC,
@@ -1058,7 +1061,7 @@ class ArsipScreenState extends State<ArsipScreen> {
               textCapitalization: TextCapitalization.words,
               style: TextStyle(color: isDark ? Colors.white : Colors.black87),
               decoration: InputDecoration(
-                labelText: 'Nama Baru *',
+                labelText: LocalizationService.tr('arsip_folder_name'),
                 labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
                 prefixIcon: const Icon(Icons.edit_outlined, color: kAccent),
               ),
@@ -1066,7 +1069,7 @@ class ArsipScreenState extends State<ArsipScreen> {
             const SizedBox(height: 20),
             ElevatedButton.icon(
               icon: const Icon(Icons.save_outlined, size: 18),
-              label: const Text('Simpan Perubahan', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              label: Text(LocalizationService.tr('btn_save_changes'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               onPressed: () async {
                 final newName = nameC.text.trim();
                 if (newName.isEmpty || newName == oldName) {
@@ -1136,7 +1139,7 @@ class ArsipScreenState extends State<ArsipScreen> {
               children: [
                 Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: isDark ? const Color(0xFF263348) : kPrimary, borderRadius: BorderRadius.circular(2)))),
                 const SizedBox(height: 16),
-                Text(existing == null ? 'Tambah File Baru' : 'Edit Informasi File',
+                Text(existing == null ? LocalizationService.tr('arsip_file_add') : LocalizationService.tr('arsip_file_edit'),
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
                 const SizedBox(height: 4),
                 Row(children: [
@@ -1151,7 +1154,7 @@ class ArsipScreenState extends State<ArsipScreen> {
                   autofocus: existing == null,
                   style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                   decoration: InputDecoration(
-                    labelText: 'Nama File / Judul Dokumen *',
+                    labelText: LocalizationService.tr('arsip_file_name'),
                     labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
                     prefixIcon: const Icon(Icons.insert_drive_file_outlined, color: kAccent),
                   ),
@@ -1161,7 +1164,7 @@ class ArsipScreenState extends State<ArsipScreen> {
                   controller: nomorC,
                   style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                   decoration: InputDecoration(
-                    labelText: 'Nomor Surat / Dokumen (opsional)',
+                    labelText: LocalizationService.tr('arsip_doc_number'),
                     labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
                     prefixIcon: const Icon(Icons.tag, color: kAccent),
                   ),
@@ -1177,11 +1180,11 @@ class ArsipScreenState extends State<ArsipScreen> {
                   },
                   child: InputDecorator(
                     decoration: InputDecoration(
-                      labelText: 'Tanggal Dokumen',
+                      labelText: LocalizationService.tr('arsip_date'),
                       labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
                       prefixIcon: const Icon(Icons.calendar_month_outlined, color: kAccent),
                     ),
-                    child: Text(DateFormat('dd MMMM yyyy', 'id').format(tanggal),
+                    child: Text(DateFormat('dd MMMM yyyy', LocalizationService.currentLocale.value.languageCode).format(tanggal),
                         style: TextStyle(fontSize: 14, color: isDark ? Colors.white : kTextDark)),
                   ),
                 ),
@@ -1191,7 +1194,7 @@ class ArsipScreenState extends State<ArsipScreen> {
                   maxLines: 2,
                   style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                   decoration: InputDecoration(
-                    labelText: 'Deskripsi Singkat',
+                    labelText: LocalizationService.tr('arsip_desc'),
                     labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
                     prefixIcon: const Icon(Icons.description_outlined, color: kAccent),
                   ),
@@ -1217,7 +1220,7 @@ class ArsipScreenState extends State<ArsipScreen> {
                   },
                   child: InputDecorator(
                     decoration: InputDecoration(
-                      labelText: 'Upload File dari HP / Komputer',
+                      labelText: LocalizationService.tr('btn_upload'),
                       labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
                       prefixIcon: const Icon(Icons.upload_file_outlined, color: kAccent),
                       suffixIcon: pickedFileName != null
@@ -1231,7 +1234,7 @@ class ArsipScreenState extends State<ArsipScreen> {
                           : null,
                     ),
                     child: Text(
-                      pickedFileName ?? (fileUrl.isNotEmpty ? '(File tersimpan di cloud, tap untuk ganti)' : 'Pilih file...'),
+                      pickedFileName ?? (fileUrl.isNotEmpty ? '(File tersimpan di cloud)' : LocalizationService.tr('btn_choose_file')),
                       style: TextStyle(
                         fontSize: 13,
                         color: pickedFileName != null
@@ -1247,7 +1250,7 @@ class ArsipScreenState extends State<ArsipScreen> {
                   controller: ketC,
                   style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                   decoration: InputDecoration(
-                    labelText: 'Keterangan Tambahan',
+                    labelText: LocalizationService.tr('proker_notes'),
                     labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
                     prefixIcon: const Icon(Icons.notes_outlined, color: kAccent),
                   ),
@@ -1314,7 +1317,7 @@ class ArsipScreenState extends State<ArsipScreen> {
                   ),
                   child: uploading
                       ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : Text(existing == null ? 'Simpan File' : 'Perbarui File',
+                      : Text(LocalizationService.tr('btn_save'),
                           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
                 ),
               ],

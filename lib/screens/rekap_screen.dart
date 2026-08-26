@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import '../models/models.dart';
 import '../services/data_service.dart';
 import '../services/pdf_service.dart';
+import '../services/localization_service.dart';
 import 'package:collection/collection.dart';
 import '../app_theme.dart';
 
@@ -102,16 +103,17 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
   }
 
   String get _periodeLabel {
-    if (_filterPeriod == 'hari_ini') return 'Hari Ini (${DateFormat('dd MMM yyyy', 'id').format(DateTime.now())})';
-    if (_filterPeriod == 'minggu') return 'Rekap 7 Hari Terakhir';
-    if (_filterPeriod == 'bulan') return 'Rekap Bulan ${DateFormat('MMMM yyyy', 'id').format(DateTime.now())}';
-    if (_filterPeriod == 'tahun') return 'Rekap Tahun ${DateTime.now().year}';
+    final lang = LocalizationService.currentLocale.value.languageCode;
+    if (_filterPeriod == 'hari_ini') return lang == 'en' ? 'Today (${DateFormat('dd MMM yyyy', lang).format(DateTime.now())})' : 'Hari Ini (${DateFormat('dd MMM yyyy', lang).format(DateTime.now())})';
+    if (_filterPeriod == 'minggu') return lang == 'en' ? 'Last 7 Days Recap' : 'Rekap 7 Hari Terakhir';
+    if (_filterPeriod == 'bulan') return lang == 'en' ? 'Month of ${DateFormat('MMMM yyyy', lang).format(DateTime.now())}' : 'Rekap Bulan ${DateFormat('MMMM yyyy', lang).format(DateTime.now())}';
+    if (_filterPeriod == 'tahun') return lang == 'en' ? 'Year ${DateTime.now().year}' : 'Rekap Tahun ${DateTime.now().year}';
     if (_filterPeriod == 'custom' && _customDateRange != null) {
-      final startStr = DateFormat('dd MMM yyyy', 'id').format(_customDateRange!.start);
-      final endStr = DateFormat('dd MMM yyyy', 'id').format(_customDateRange!.end);
-      return '$startStr s/d $endStr';
+      final startStr = DateFormat('dd MMM yyyy', lang).format(_customDateRange!.start);
+      final endStr = DateFormat('dd MMM yyyy', lang).format(_customDateRange!.end);
+      return '$startStr - $endStr';
     }
-    return 'Semua Waktu';
+    return lang == 'en' ? 'All Time' : 'Semua Waktu';
   }
 
   Map<String, int> get _rekapPerJenis {
@@ -749,18 +751,25 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('Rekap Pelanggaran'),
-        bottom: TabBar(controller: _tab, tabs: const [Tab(text: 'Per Jenis'), Tab(text: 'Per Siswa'), Tab(text: 'Per Kelas')]),
+        title: Text(LocalizationService.tr('rekap_heading')),
+        bottom: TabBar(
+          controller: _tab,
+          tabs: [
+            Tab(text: LocalizationService.currentLocale.value.languageCode == 'en' ? 'By Type' : 'Per Jenis'),
+            Tab(text: LocalizationService.currentLocale.value.languageCode == 'en' ? 'By Student' : 'Per Siswa'),
+            Tab(text: LocalizationService.currentLocale.value.languageCode == 'en' ? 'By Class' : 'Per Kelas'),
+          ],
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: _load,
-            tooltip: 'Reload',
+            tooltip: LocalizationService.tr('btn_refresh'),
           ),
           IconButton(
             icon: const Icon(Icons.picture_as_pdf_outlined, color: Colors.white),
             onPressed: () => _cetakPdf(_tab.index == 0),
-            tooltip: 'Cetak PDF',
+            tooltip: LocalizationService.tr('btn_print'),
           ),
         ],
       ),
@@ -771,15 +780,15 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(children: [
-              _filterChip('semua', 'Semua', Icons.all_inclusive, isDark: isDark, primary: primary),
+              _filterChip('semua', LocalizationService.tr('btn_all'), Icons.all_inclusive, isDark: isDark, primary: primary),
               const SizedBox(width: 8),
-              _filterChip('hari_ini', 'Hari Ini', Icons.today, isDark: isDark, primary: primary),
+              _filterChip('hari_ini', LocalizationService.currentLocale.value.languageCode == 'en' ? 'Today' : 'Hari Ini', Icons.today, isDark: isDark, primary: primary),
               const SizedBox(width: 8),
-              _filterChip('minggu', '7 Hari', Icons.calendar_view_week, isDark: isDark, primary: primary),
+              _filterChip('minggu', LocalizationService.currentLocale.value.languageCode == 'en' ? '7 Days' : '7 Hari', Icons.calendar_view_week, isDark: isDark, primary: primary),
               const SizedBox(width: 8),
-              _filterChip('bulan', 'Bulanan', Icons.calendar_month, isDark: isDark, primary: primary),
+              _filterChip('bulan', LocalizationService.currentLocale.value.languageCode == 'en' ? 'Monthly' : 'Bulanan', Icons.calendar_month, isDark: isDark, primary: primary),
               const SizedBox(width: 8),
-              _filterChip('tahun', 'Tahunan', Icons.calendar_today, isDark: isDark, primary: primary),
+              _filterChip('tahun', LocalizationService.currentLocale.value.languageCode == 'en' ? 'Yearly' : 'Tahunan', Icons.calendar_today, isDark: isDark, primary: primary),
               const SizedBox(width: 8),
               _customDateFilterChip(isDark: isDark, primary: primary),
             ]),

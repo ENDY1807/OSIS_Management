@@ -365,11 +365,11 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
 
     return Scaffold(
       appBar: AppBar(
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.admin_panel_settings_rounded, color: Colors.amber, size: 24),
-            SizedBox(width: 10),
-            Text('Pusat Konfigurasi Super Admin', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const Icon(Icons.admin_panel_settings_rounded, color: Colors.amber, size: 24),
+            const SizedBox(width: 10),
+            Text(LocalizationService.tr('admin_config'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           ],
         ),
         actions: [
@@ -385,7 +385,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
               icon: _saving
                   ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                   : const Icon(Icons.cloud_done_rounded, size: 18),
-              label: Text(_saving ? 'Menyimpan...' : 'Simpan Semua'),
+              label: Text(_saving ? (LocalizationService.currentLocale.value.languageCode == 'en' ? 'Saving...' : 'Menyimpan...') : LocalizationService.tr('btn_save_changes')),
             ),
           ),
         ],

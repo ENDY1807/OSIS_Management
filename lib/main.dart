@@ -115,7 +115,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final List<int> _tabHistory = [0];
   DateTime? _lastBackPressTime;
   String _username = '';
-  List<Widget>? _cachedScreens;
 
   static const _superUsers = ['KETUA', 'WAKIL', 'SEKRETARIS', 'BENDAHARA'];
 
@@ -152,13 +151,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       setState(() {
         _username = u;
         _displayName = d.isNotEmpty ? d : AuthService.getDisplayName(u);
-        _cachedScreens = [
-          ProkerScreen(username: _username),
-          LaporanScreen(username: _username),
-          ArsipScreen(key: _arsipKey, username: _username),
-          PelanggaranScreen(username: _username),
-          const RekapScreen(),
-        ];
       });
     }
   }
@@ -236,12 +228,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  List<Widget> get _screens => _cachedScreens ?? [
-    ProkerScreen(username: _username),
-    LaporanScreen(username: _username),
+  List<Widget> get _screens => [
+    ProkerScreen(key: ValueKey('proker_${_username}_${LocalizationService.currentLocale.value.languageCode}'), username: _username),
+    LaporanScreen(key: ValueKey('laporan_${_username}_${LocalizationService.currentLocale.value.languageCode}'), username: _username),
     ArsipScreen(key: _arsipKey, username: _username),
-    PelanggaranScreen(username: _username),
-    const RekapScreen(),
+    PelanggaranScreen(key: ValueKey('pelanggaran_${_username}_${LocalizationService.currentLocale.value.languageCode}'), username: _username),
+    RekapScreen(key: ValueKey('rekap_${LocalizationService.currentLocale.value.languageCode}')),
   ];
 
   @override

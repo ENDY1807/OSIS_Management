@@ -41,11 +41,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   Future<void> _login() async {
     final rawUsername = _userC.text.trim();
     if (rawUsername.isEmpty) {
-      setState(() => _error = 'Username tidak boleh kosong.');
+      setState(() => _error = LocalizationService.tr('err_username_empty'));
       return;
     }
     if (_passC.text.isEmpty) {
-      setState(() => _error = 'Password tidak boleh kosong.');
+      setState(() => _error = LocalizationService.tr('err_password_empty'));
       return;
     }
     setState(() { _loading = true; _error = null; });
@@ -66,7 +66,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       );
     } else {
       setState(() {
-        _error = 'Username atau password salah.';
+        _error = LocalizationService.tr('err_invalid_credentials');
         _loading = false;
       });
     }
@@ -225,7 +225,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Masukkan username dan password',
+                              LocalizationService.tr('login_instruction'),
                               style: TextStyle(
                                 fontSize: 13,
                                 color: isDark ? Colors.white60 : Colors.grey.shade600,
