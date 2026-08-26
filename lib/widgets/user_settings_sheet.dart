@@ -233,7 +233,7 @@ class _UserSettingsSheetState extends State<UserSettingsSheet> {
                     ),
                     const SizedBox(height: 20),
 
-                    // SECTION 2: BAHASA (LANGUAGE ID / EN)
+                    // SECTION 2: BAHASA (DYNAMIC MULTI-LANGUAGE DARI ADMIN)
                     Text(
                       LocalizationService.tr('language').toUpperCase(),
                       style: TextStyle(
@@ -244,35 +244,40 @@ class _UserSettingsSheetState extends State<UserSettingsSheet> {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: theme.cardTheme.color,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0),
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          ListTile(
-                            leading: const Text('🇮🇩', style: TextStyle(fontSize: 20)),
-                            title: const Text('Bahasa Indonesia', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-                            trailing: currentLocale.languageCode == 'id'
-                                ? Icon(Icons.check_circle_rounded, color: primary, size: 20)
-                                : Icon(Icons.radio_button_unchecked_rounded, color: Colors.grey.shade400, size: 20),
-                            onTap: () => LocalizationService.setLanguage('id'),
+                    ValueListenableBuilder<List<String>>(
+                      valueListenable: AppSettingsService.enabledLanguagesNotifier,
+                      builder: (context, enabledCodes, _) {
+                        final available = LocalizationService.allSupportedLanguages
+                            .where((l) => enabledCodes.contains(l.code))
+                            .toList();
+                        final listToShow = available.isNotEmpty ? available : [LocalizationService.allSupportedLanguages.first];
+
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: theme.cardTheme.color,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0),
+                            ),
                           ),
-                          Divider(height: 1, color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0)),
-                          ListTile(
-                            leading: const Text('🇬🇧', style: TextStyle(fontSize: 20)),
-                            title: const Text('English', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-                            trailing: currentLocale.languageCode == 'en'
-                                ? Icon(Icons.check_circle_rounded, color: primary, size: 20)
-                                : Icon(Icons.radio_button_unchecked_rounded, color: Colors.grey.shade400, size: 20),
-                            onTap: () => LocalizationService.setLanguage('en'),
+                          child: Column(
+                            children: [
+                              for (int i = 0; i < listToShow.length; i++) ...[
+                                if (i > 0)
+                                  Divider(height: 1, color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0)),
+                                ListTile(
+                                  leading: Text(listToShow[i].flag, style: const TextStyle(fontSize: 20)),
+                                  title: Text(listToShow[i].name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                                  trailing: currentLocale.languageCode == listToShow[i].code
+                                      ? Icon(Icons.check_circle_rounded, color: primary, size: 20)
+                                      : Icon(Icons.radio_button_unchecked_rounded, color: Colors.grey.shade400, size: 20),
+                                  onTap: () => LocalizationService.setLanguage(listToShow[i].code),
+                                ),
+                              ],
+                            ],
                           ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
                     const SizedBox(height: 20),
 
@@ -298,12 +303,18 @@ class _UserSettingsSheetState extends State<UserSettingsSheet> {
                       child: Column(
                         children: [
                           ListTile(
-                            leading: Icon(Icons.password_rounded, color: primary, size: 22),
-                            title: Text(LocalizationService.tr('change_password'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-                            trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
-                            onTap: _showChangePasswordDialog,
+                            leading: Icon(Icons.account_circle_outlined, color: primary, size: 22),
+                            title: Text(displayName, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                            subtitle: Text('ID: ${widget.username} • Role: $role', style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.black54)),
                           ),
                           if (isAdmin) ...[
+                            Divider(height: 1, color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0)),
+                            ListTile(
+                              leading: Icon(Icons.password_rounded, color: primary, size: 22),
+                              title: Text(LocalizationService.tr('change_password'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                              trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
+                              onTap: _showChangePasswordDialog,
+                            ),
                             Divider(height: 1, color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0)),
                             ListTile(
                               leading: const Icon(Icons.admin_panel_settings_rounded, color: Colors.amber, size: 24),
@@ -317,6 +328,23 @@ class _UserSettingsSheetState extends State<UserSettingsSheet> {
                                   MaterialPageRoute(builder: (_) => const AdminSettingsScreen()),
                                 );
                               },
+                            ),
+                          ] else ...[
+                            Divider(height: 1, color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0)),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.info_outline_rounded, size: 18, color: isDark ? Colors.white38 : Colors.black38),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      'Penggantian kata sandi dan konfigurasi akun hanya dapat dilakukan oleh Super Admin.',
+                                      style: TextStyle(fontSize: 11, color: isDark ? Colors.white54 : Colors.black54, height: 1.3),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ],

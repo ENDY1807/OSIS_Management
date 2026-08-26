@@ -1,13 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+class AppLanguage {
+  final String code;
+  final String name;
+  final String flag;
+  const AppLanguage({required this.code, required this.name, required this.flag});
+}
+
 class LocalizationService {
   static const _keyLanguage = 'selected_language';
   static final ValueNotifier<Locale> currentLocale = ValueNotifier(const Locale('id'));
 
+  static const List<AppLanguage> allSupportedLanguages = [
+    AppLanguage(code: 'id', name: 'Bahasa Indonesia', flag: '🇮🇩'),
+    AppLanguage(code: 'en', name: 'English', flag: '🇬🇧'),
+    AppLanguage(code: 'su', name: 'Basa Sunda', flag: '🇸🇩'),
+    AppLanguage(code: 'jv', name: 'Basa Jawa', flag: '🇮🇩'),
+    AppLanguage(code: 'ar', name: 'العربية (Arabic)', flag: '🇸🇦'),
+    AppLanguage(code: 'ja', name: '日本語 (Japanese)', flag: '🇯🇵'),
+  ];
+
   static const Map<String, Map<String, String>> _localizedValues = {
     'id': {
-      // App & Navigation
       'app_title': 'OSIS Management',
       'app_subtitle': 'Sistem Manajemen OSIS Digital',
       'login_as': 'Login sebagai:',
@@ -19,8 +34,6 @@ class LocalizationService {
       'nav_manajemen': 'Manajemen',
       'nav_admin': 'Admin Panel',
       'nav_settings': 'Pengaturan',
-
-      // Actions
       'btn_login': 'Masuk',
       'btn_logout': 'Logout',
       'btn_save': 'Simpan',
@@ -33,8 +46,6 @@ class LocalizationService {
       'btn_close': 'Tutup',
       'btn_reset': 'Reset',
       'btn_apply': 'Terapkan',
-
-      // Settings
       'settings_title': 'Pengaturan & Preferensi',
       'theme_mode': 'Mode Tampilan',
       'theme_light': 'White (Light) Mode',
@@ -49,8 +60,6 @@ class LocalizationService {
       'about_app': 'Tentang Aplikasi',
       'notifications': 'Pusat Notifikasi',
       'cloud_status': 'Status Koneksi Cloud',
-
-      // Auth & Roles
       'username': 'Username',
       'password': 'Password',
       'new_password': 'Password Baru',
@@ -63,15 +72,12 @@ class LocalizationService {
       'role_wakil': 'Wakil Ketua OSIS',
       'role_sekretaris': 'Sekretaris OSIS',
       'role_bendahara': 'Bendahara OSIS',
-
-      // Messages
       'msg_saved': 'Perubahan berhasil disimpan',
       'msg_deleted': 'Data berhasil dihapus',
       'msg_error': 'Terjadi kesalahan',
       'msg_sync_success': 'Sinkronisasi berhasil',
     },
     'en': {
-      // App & Navigation
       'app_title': 'OSIS Management',
       'app_subtitle': 'Digital OSIS Management System',
       'login_as': 'Logged in as:',
@@ -83,8 +89,6 @@ class LocalizationService {
       'nav_manajemen': 'Management',
       'nav_admin': 'Admin Panel',
       'nav_settings': 'Settings',
-
-      // Actions
       'btn_login': 'Sign In',
       'btn_logout': 'Sign Out',
       'btn_save': 'Save',
@@ -97,8 +101,6 @@ class LocalizationService {
       'btn_close': 'Close',
       'btn_reset': 'Reset',
       'btn_apply': 'Apply',
-
-      // Settings
       'settings_title': 'Settings & Preferences',
       'theme_mode': 'Display Mode',
       'theme_light': 'White (Light) Mode',
@@ -113,8 +115,6 @@ class LocalizationService {
       'about_app': 'About App',
       'notifications': 'Notification Center',
       'cloud_status': 'Cloud Connection Status',
-
-      // Auth & Roles
       'username': 'Username',
       'password': 'Password',
       'new_password': 'New Password',
@@ -127,23 +127,241 @@ class LocalizationService {
       'role_wakil': 'OSIS Vice President (Wakil)',
       'role_sekretaris': 'OSIS Secretary (Sekretaris)',
       'role_bendahara': 'OSIS Treasurer (Bendahara)',
-
-      // Messages
       'msg_saved': 'Changes saved successfully',
       'msg_deleted': 'Data deleted successfully',
       'msg_error': 'An error occurred',
       'msg_sync_success': 'Synchronization successful',
+    },
+    'su': {
+      'app_title': 'Manajemen OSIS',
+      'app_subtitle': 'Sistem Pangaturan OSIS Digital',
+      'login_as': 'Asup salaku:',
+      'nav_proker': 'Proker',
+      'nav_laporan': 'Laporan',
+      'nav_arsip': 'Arsip',
+      'nav_pelanggaran': 'Pelanggaran',
+      'nav_rekap': 'Rekap',
+      'nav_manajemen': 'Manajemen',
+      'nav_admin': 'Panel Admin',
+      'nav_settings': 'Setelan',
+      'btn_login': 'Asup',
+      'btn_logout': 'Kaluar',
+      'btn_save': 'Simpen',
+      'btn_cancel': 'Batal',
+      'btn_delete': 'Hapus',
+      'btn_edit': 'Robi',
+      'btn_add': 'Tambah',
+      'btn_search': 'Pilari...',
+      'btn_refresh': 'Segerkeun',
+      'btn_close': 'Tutup',
+      'btn_reset': 'Reset',
+      'btn_apply': 'Larapkeun',
+      'settings_title': 'Setelan & Pilihan',
+      'theme_mode': 'Mode Tampilan',
+      'theme_light': 'Mode Caang (Light)',
+      'theme_dark': 'Mode Poek (Dark)',
+      'theme_system': 'Nurutkeun Sistem',
+      'theme_color': 'Warna Tema',
+      'language': 'Basa Aplikasi',
+      'language_id': 'Basa Indonesia',
+      'language_en': 'Basa Inggris',
+      'change_password': 'Ganti Sandi Akun',
+      'admin_config': 'Konfigurasi Admin',
+      'about_app': 'Ngeunaan Aplikasi',
+      'notifications': 'Bewara Notifikasi',
+      'cloud_status': 'Status Sambungan Cloud',
+      'username': 'Nami Pamake',
+      'password': 'Kecap Sandi',
+      'new_password': 'Kecap Sandi Anyar',
+      'confirm_logout': 'Konfirmasi Kaluar',
+      'logout_prompt': 'Naha anjeun yakin hoyong kaluar?',
+      'role_admin': 'Super Admin Sistem',
+      'role_pembina': 'Pembina OSIS',
+      'role_kesiswaan': 'Staf Kesiswaan',
+      'role_ketua': 'Pupuhu OSIS',
+      'role_wakil': 'Wakil Pupuhu OSIS',
+      'role_sekretaris': 'Sekretaris OSIS',
+      'role_bendahara': 'Bendahara OSIS',
+      'msg_saved': 'Parobahan parantos disimpen',
+      'msg_deleted': 'Data parantos dihapus',
+      'msg_error': 'Aya kasalahan',
+      'msg_sync_success': 'Singkronisasi hasil',
+    },
+    'jv': {
+      'app_title': 'Manajemen OSIS',
+      'app_subtitle': 'Sistem Manajemen OSIS Digital',
+      'login_as': 'Mlebu minangka:',
+      'nav_proker': 'Proker',
+      'nav_laporan': 'Laporan',
+      'nav_arsip': 'Arsip',
+      'nav_pelanggaran': 'Pelanggaran',
+      'nav_rekap': 'Rekap',
+      'nav_manajemen': 'Manajemen',
+      'nav_admin': 'Panel Admin',
+      'nav_settings': 'Setelan',
+      'btn_login': 'Mlebu',
+      'btn_logout': 'Metu',
+      'btn_save': 'Simpen',
+      'btn_cancel': 'Batal',
+      'btn_delete': 'Busak',
+      'btn_edit': 'Owahi',
+      'btn_add': 'Tambah',
+      'btn_search': 'Goleki...',
+      'btn_refresh': 'Anyari',
+      'btn_close': 'Tutup',
+      'btn_reset': 'Reset',
+      'btn_apply': 'Terapke',
+      'settings_title': 'Setelan & Pilihan',
+      'theme_mode': 'Mode Tampilan',
+      'theme_light': 'Mode Padhang (Light)',
+      'theme_dark': 'Mode Peteng (Dark)',
+      'theme_system': 'Melu Sistem',
+      'theme_color': 'Werna Tema',
+      'language': 'Basa Aplikasi',
+      'language_id': 'Basa Indonesia',
+      'language_en': 'Basa Inggris',
+      'change_password': 'Ganti Sandi Akun',
+      'admin_config': 'Konfigurasi Admin',
+      'about_app': 'Babagan Aplikasi',
+      'notifications': 'Pusat Notifikasi',
+      'cloud_status': 'Status Sambungan Cloud',
+      'username': 'Jeneng Penganggo',
+      'password': 'Tembung Sandi',
+      'new_password': 'Tembung Sandi Anyar',
+      'confirm_logout': 'Konfirmasi Metu',
+      'logout_prompt': 'Apa sampeyan yakin arep metu?',
+      'role_admin': 'Super Admin Sistem',
+      'role_pembina': 'Pembina OSIS',
+      'role_kesiswaan': 'Staf Kesiswaan',
+      'role_ketua': 'Ketua OSIS',
+      'role_wakil': 'Wakil Ketua OSIS',
+      'role_sekretaris': 'Sekretaris OSIS',
+      'role_bendahara': 'Bendahara OSIS',
+      'msg_saved': 'Owah-owahan kasil disimpen',
+      'msg_deleted': 'Data kasil dibusak',
+      'msg_error': 'Ana kaluputan',
+      'msg_sync_success': 'Sinkronisasi kasil',
+    },
+    'ar': {
+      'app_title': 'إدارة اتحاد الطلاب',
+      'app_subtitle': 'النظام الرقمي لإدارة الأنشطة الطلابية',
+      'login_as': 'مسجل باسم:',
+      'nav_proker': 'خطة العمل',
+      'nav_laporan': 'التقارير',
+      'nav_arsip': 'الأرشيف',
+      'nav_pelanggaran': 'المخالفات',
+      'nav_rekap': 'الإحصائيات',
+      'nav_manajemen': 'الإدارة',
+      'nav_admin': 'لوحة الإدارة',
+      'nav_settings': 'الإعدادات',
+      'btn_login': 'تسجيل الدخول',
+      'btn_logout': 'تسجيل الخروج',
+      'btn_save': 'حفظ',
+      'btn_cancel': 'إلغاء',
+      'btn_delete': 'حذف',
+      'btn_edit': 'تعديل',
+      'btn_add': 'إضافة',
+      'btn_search': 'بحث...',
+      'btn_refresh': 'تحديث',
+      'btn_close': 'إغلاق',
+      'btn_reset': 'إعادة تعيين',
+      'btn_apply': 'تطبيق',
+      'settings_title': 'الإعدادات والتفضيلات',
+      'theme_mode': 'وضع العرض',
+      'theme_light': 'الوضع المضيء',
+      'theme_dark': 'الوضع الليلي',
+      'theme_system': 'حسب النظام',
+      'theme_color': 'لون السمة',
+      'language': 'لغة التطبيق',
+      'language_id': 'الإندونيسية',
+      'language_en': 'الإنجليزية',
+      'change_password': 'تغيير كلمة المرور',
+      'admin_config': 'إعدادات المشرف',
+      'about_app': 'عن التطبيق',
+      'notifications': 'مركز الإشعارات',
+      'cloud_status': 'حالة السحابة',
+      'username': 'اسم المستخدم',
+      'password': 'كلمة المرور',
+      'new_password': 'كلمة المرور الجديدة',
+      'confirm_logout': 'تأكيد الخروج',
+      'logout_prompt': 'هل أنت متأكد من تسجيل الخروج؟',
+      'role_admin': 'المشرف الرئيسي',
+      'role_pembina': 'المشرف التربوي',
+      'role_kesiswaan': 'شؤون الطلاب',
+      'role_ketua': 'رئيس الاتحاد',
+      'role_wakil': 'نائب الرئيس',
+      'role_sekretaris': 'أمين السر',
+      'role_bendahara': 'أمين الصندوق',
+      'msg_saved': 'تم حفظ التغييرات بنجاح',
+      'msg_deleted': 'تم حذف البيانات بنجاح',
+      'msg_error': 'حدث خطأ',
+      'msg_sync_success': 'تمت المزامنة بنجاح',
+    },
+    'ja': {
+      'app_title': '生徒会管理システム',
+      'app_subtitle': 'デジタル生徒会管理プラットフォーム',
+      'login_as': 'ログイン中:',
+      'nav_proker': '活動計画',
+      'nav_laporan': '報告書',
+      'nav_arsip': 'アーカイブ',
+      'nav_pelanggaran': '規律管理',
+      'nav_rekap': '集計データ',
+      'nav_manajemen': 'システム管理',
+      'nav_admin': '管理者パネル',
+      'nav_settings': '設定',
+      'btn_login': 'ログイン',
+      'btn_logout': 'ログアウト',
+      'btn_save': '保存',
+      'btn_cancel': 'キャンセル',
+      'btn_delete': '削除',
+      'btn_edit': '編集',
+      'btn_add': '追加',
+      'btn_search': '検索...',
+      'btn_refresh': '更新',
+      'btn_close': '閉じる',
+      'btn_reset': 'リセット',
+      'btn_apply': '適用',
+      'settings_title': '設定と環境設定',
+      'theme_mode': 'テーマモード',
+      'theme_light': 'ライトモード',
+      'theme_dark': 'ダークモード',
+      'theme_system': 'システム連動',
+      'theme_color': 'アクセントカラー',
+      'language': 'アプリ言語',
+      'language_id': 'インドネシア語',
+      'language_en': '英語',
+      'change_password': 'パスワード変更',
+      'admin_config': 'システム設定（管理者）',
+      'about_app': 'アプリについて',
+      'notifications': '通知センター',
+      'cloud_status': 'クラウド状態',
+      'username': 'ユーザー名',
+      'password': 'パスワード',
+      'new_password': '新しいパスワード',
+      'confirm_logout': 'ログアウトの確認',
+      'logout_prompt': '本当にログアウトしますか？',
+      'role_admin': 'システム管理者',
+      'role_pembina': '顧問・指導教員',
+      'role_kesiswaan': '生徒指導部',
+      'role_ketua': '生徒会長',
+      'role_wakil': '副生徒会長',
+      'role_sekretaris': '書記',
+      'role_bendahara': '会計',
+      'msg_saved': '変更が正常に保存されました',
+      'msg_deleted': 'データを正常に削除しました',
+      'msg_error': 'エラーが発生しました',
+      'msg_sync_success': '同期に成功しました',
     },
   };
 
   static Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     final langCode = prefs.getString(_keyLanguage) ?? 'id';
-    currentLocale.value = Locale(langCode);
+    currentLocale.value = Locale(_localizedValues.containsKey(langCode) ? langCode : 'id');
   }
 
   static Future<void> setLanguage(String langCode) async {
-    final code = (langCode == 'en') ? 'en' : 'id';
+    final code = _localizedValues.containsKey(langCode) ? langCode : 'id';
     currentLocale.value = Locale(code);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyLanguage, code);
@@ -151,8 +369,7 @@ class LocalizationService {
 
   static String tr(String key) {
     final code = currentLocale.value.languageCode;
-    final dict = _localizedValues[code] ?? _localizedValues['id']!;
-    return dict[key] ?? _localizedValues['id']?[key] ?? key;
+    return _localizedValues[code]?[key] ?? _localizedValues['id']?[key] ?? key;
   }
 }
 

@@ -17,15 +17,20 @@ class AppSettingsService {
   static const _keyAppName = 'app_custom_name';
   static const _keyAppSubtitle = 'app_custom_subtitle';
   static const _keyLogoUrl = 'app_logo_url';
+  static const _keyEnabledLanguages = 'app_enabled_languages';
 
   static const List<ThemePreset> presets = [
     ThemePreset(name: 'Cyan Sky (Bawaan)', color: Color(0xFF00B4D8), darkColor: Color(0xFF03045E)),
     ThemePreset(name: 'Royal Indigo', color: Color(0xFF4F46E5), darkColor: Color(0xFF1E1B4B)),
-    ThemePreset(name: 'Emerald Green', color: Color(0xFF10B981), darkColor: Color(0xFF064E3B)),
+    ThemePreset(name: 'Emerald Forest', color: Color(0xFF10B981), darkColor: Color(0xFF064E3B)),
     ThemePreset(name: 'Deep Purple', color: Color(0xFF8B5CF6), darkColor: Color(0xFF4C1D95)),
     ThemePreset(name: 'Sunset Orange', color: Color(0xFFF97316), darkColor: Color(0xFF7C2D12)),
     ThemePreset(name: 'Crimson Rose', color: Color(0xFFE11D48), darkColor: Color(0xFF881337)),
     ThemePreset(name: 'Teal Ocean', color: Color(0xFF0D9488), darkColor: Color(0xFF134E4A)),
+    ThemePreset(name: 'Midnight Blue', color: Color(0xFF2563EB), darkColor: Color(0xFF1E3A8A)),
+    ThemePreset(name: 'Golden Sun', color: Color(0xFFEAB308), darkColor: Color(0xFF713F12)),
+    ThemePreset(name: 'Cyberpunk Pink', color: Color(0xFFEC4899), darkColor: Color(0xFF831843)),
+    ThemePreset(name: 'Slate Monochrome', color: Color(0xFF64748B), darkColor: Color(0xFF0F172A)),
   ];
 
   static final ValueNotifier<ThemeMode> themeModeNotifier = ValueNotifier(ThemeMode.system);
@@ -33,6 +38,7 @@ class AppSettingsService {
   static final ValueNotifier<String> appNameNotifier = ValueNotifier('OSIS Management');
   static final ValueNotifier<String> appSubtitleNotifier = ValueNotifier('Sistem Manajemen OSIS Digital');
   static final ValueNotifier<String> logoUrlNotifier = ValueNotifier('');
+  static final ValueNotifier<List<String>> enabledLanguagesNotifier = ValueNotifier(['id', 'en', 'su', 'jv', 'ar', 'ja']);
 
   static SupabaseClient? get _supabase {
     try {
@@ -71,10 +77,16 @@ class AppSettingsService {
       logoUrlNotifier.value = savedLogo;
     }
 
-    // 4. Initialize Localization
+    // 4. Load Enabled Languages
+    final savedLangs = prefs.getStringList(_keyEnabledLanguages);
+    if (savedLangs != null && savedLangs.isNotEmpty) {
+      enabledLanguagesNotifier.value = savedLangs;
+    }
+
+    // 5. Initialize Localization
     await LocalizationService.init();
 
-    // 5. Sync from Cloud
+    // 6. Sync from Cloud
     syncFromSupabase();
   }
 
@@ -109,7 +121,14 @@ class AppSettingsService {
   static Future<void> setAccentColor(Color color) async {
     accentColorNotifier.value = color;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_keyAccentColor, color.value);
+    await prefs.setInt(_keyAccentColor, color.toARGB32());
+  }
+
+  static Future<void> setEnabledLanguages(List<String> langs) async {
+    if (langs.isEmpty) langs = ['id'];
+    enabledLanguagesNotifier.value = langs;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_keyEnabledLanguages, langs);
   }
 
   static Future<void> setAppBranding({
@@ -117,6 +136,7 @@ class AppSettingsService {
     String? subtitle,
     String? logoUrl,
     Color? globalColor,
+    List<String>? enabledLanguages,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     if (name != null) {
@@ -133,14 +153,18 @@ class AppSettingsService {
     }
     if (globalColor != null) {
       accentColorNotifier.value = globalColor;
-      await prefs.setInt(_keyAccentColor, globalColor.value);
+      await prefs.setInt(_keyAccentColor, globalColor.toARGB32());
+    }
+    if (enabledLanguages != null) {
+      enabledLanguagesNotifier.value = enabledLanguages;
+      await prefs.setStringList(_keyEnabledLanguages, enabledLanguages);
     }
 
     // Save to Supabase Cloud if online
     try {
       final client = _supabase;
       if (client != null) {
-        final colorHex = '0x${(globalColor ?? accentColorNotifier.value).value.toRadixString(16).padLeft(8, '0').toUpperCase()}';
+        final colorHex = '0x${(globalColor ?? accentColorNotifier.value).toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase()}';
         await client.from('app_settings').upsert({
           'id': 'global_config',
           'app_name': appNameNotifier.value,

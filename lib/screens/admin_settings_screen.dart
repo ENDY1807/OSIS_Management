@@ -19,6 +19,8 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
   final _logoUrlCtrl = TextEditingController();
 
   Color _selectedAccent = const Color(0xFF00B4D8);
+  final _hexColorCtrl = TextEditingController();
+  List<String> _selectedLanguages = ['id', 'en', 'su', 'jv', 'ar', 'ja'];
   bool _savingBranding = false;
   bool _isSyncing = false;
   StreamSubscription<String>? _dataSub;
@@ -32,6 +34,8 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
     _appSubtitleCtrl.text = AppSettingsService.appSubtitleNotifier.value;
     _logoUrlCtrl.text = AppSettingsService.logoUrlNotifier.value;
     _selectedAccent = AppSettingsService.accentColorNotifier.value;
+    _hexColorCtrl.text = '#${_selectedAccent.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
+    _selectedLanguages = List<String>.from(AppSettingsService.enabledLanguagesNotifier.value);
 
     _loadAccounts();
     _dataSub = DataService.onDataChanged.listen((table) {
@@ -47,6 +51,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
     _appNameCtrl.dispose();
     _appSubtitleCtrl.dispose();
     _logoUrlCtrl.dispose();
+    _hexColorCtrl.dispose();
     _dataSub?.cancel();
     super.dispose();
   }
@@ -64,6 +69,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
       subtitle: _appSubtitleCtrl.text.trim(),
       logoUrl: _logoUrlCtrl.text.trim(),
       globalColor: _selectedAccent,
+      enabledLanguages: _selectedLanguages.isEmpty ? ['id'] : _selectedLanguages,
     );
     if (!mounted) return;
     setState(() => _savingBranding = false);
@@ -319,7 +325,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Perubahan nama, subtitle, dan warna tema akan disinkronkan ke cloud untuk seluruh pengguna.',
+                        'Perubahan nama, subtitle, logo, palet warna, dan bahasa akan disinkronkan ke cloud untuk seluruh pengguna secara real-time.',
                         style: TextStyle(fontSize: 11, color: isDark ? Colors.white70 : Colors.black87),
                       ),
                     ],
@@ -362,7 +368,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
 
           // PALET WARNA UTAMA
           const Text(
-            'WARNA AKSEN UTAMA SISTEM',
+            'WARNA PALET & AKSEN SISTEM',
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 0.8),
           ),
           const SizedBox(height: 10),
@@ -370,9 +376,14 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
             spacing: 10,
             runSpacing: 10,
             children: AppSettingsService.presets.map((p) {
-              final isSelected = _selectedAccent.value == p.color.value;
+              final isSelected = _selectedAccent.toARGB32() == p.color.toARGB32();
               return InkWell(
-                onTap: () => setState(() => _selectedAccent = p.color),
+                onTap: () {
+                  setState(() {
+                    _selectedAccent = p.color;
+                    _hexColorCtrl.text = '#${p.color.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
+                  });
+                },
                 borderRadius: BorderRadius.circular(12),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -412,6 +423,86 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
                 ),
               );
             }).toList(),
+          ),
+          const SizedBox(height: 14),
+
+          // KUSTOM HEX COLOR PICKER
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _hexColorCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Warna Hex Bebas (#RRGGBB)',
+                    prefixIcon: Container(
+                      margin: const EdgeInsets.all(10),
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: _selectedAccent,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 1.5),
+                      ),
+                    ),
+                    hintText: '#00B4D8',
+                  ),
+                  onChanged: (val) {
+                    String clean = val.trim().replaceAll('#', '');
+                    if (clean.length == 6) {
+                      try {
+                        final valInt = int.parse('0xFF$clean');
+                        setState(() => _selectedAccent = Color(valInt));
+                      } catch (_) {}
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          // PILIHAN BAHASA AKTIF DI APLIKASI
+          const Text(
+            'BAHASA YANG DIAKTIFKAN UNTUK USER',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 0.8),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            decoration: BoxDecoration(
+              color: theme.cardTheme.color,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0)),
+            ),
+            child: Column(
+              children: [
+                for (int i = 0; i < LocalizationService.allSupportedLanguages.length; i++) ...[
+                  if (i > 0) Divider(height: 1, color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0)),
+                  CheckboxListTile(
+                    secondary: Text(LocalizationService.allSupportedLanguages[i].flag, style: const TextStyle(fontSize: 20)),
+                    title: Text(LocalizationService.allSupportedLanguages[i].name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                    subtitle: Text('Kode: ${LocalizationService.allSupportedLanguages[i].code}', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                    value: _selectedLanguages.contains(LocalizationService.allSupportedLanguages[i].code),
+                    activeColor: primary,
+                    onChanged: (val) {
+                      setState(() {
+                        final code = LocalizationService.allSupportedLanguages[i].code;
+                        if (val == true) {
+                          if (!_selectedLanguages.contains(code)) _selectedLanguages.add(code);
+                        } else {
+                          if (_selectedLanguages.length > 1) {
+                            _selectedLanguages.remove(code);
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Minimal 1 bahasa harus aktif!'), backgroundColor: Colors.orange),
+                            );
+                          }
+                        }
+                      });
+                    },
+                  ),
+                ],
+              ],
+            ),
           ),
           const SizedBox(height: 30),
 
@@ -584,25 +675,31 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
           _roleMatrixCard(
             role: 'ADMIN (Super Admin)',
             color: Colors.amber,
-            desc: 'Akses tanpa batas ke seluruh modul aplikasi, konfigurasi identitas/branding, warna tema, manajemen seluruh akun, data siswa, pelanggaran, arsip, laporan, dan proker.',
+            desc: '• Kontrol penuh atas seluruh sistem OSIS Management\n• Mengganti kata sandi akun manapun & reset akun ke default\n• Mengatur Tema, Palet Warna, Subtitle, Nama Aplikasi, & Logo\n• Mengatur daftar pilihan bahasa yang aktif untuk seluruh user\n• CRUD Siswa, CRUD Jenis Pelanggaran, Proker, Laporan, Arsip, & Status Cloud',
           ),
           const SizedBox(height: 10),
           _roleMatrixCard(
             role: 'PEMBINA & KESISWAAN',
             color: Colors.purple,
-            desc: 'Akses supervisi penuh atas Proker, Laporan Kegiatan, Manajemen Siswa, Jenis Pelanggaran, Status Cloud, Rekap Data, Arsip, dan Notifikasi Seluruh Aktivitas.',
+            desc: '• CRUD Siswa (Tambah, Edit, Import Excel/CSV, Hapus)\n• CRUD Jenis Pelanggaran (Tambah, Edit, Hapus, Atur Hari Aktif)\n• Akses supervisi penuh Proker, Laporan Kegiatan, Status Cloud, Rekap Data, & Arsip\n• Tidak dapat mengubah kata sandi akun sendiri (Admin Only)',
           ),
           const SizedBox(height: 10),
           _roleMatrixCard(
-            role: 'BPH (KETUA, WAKIL, SEKRETARIS, BENDAHARA)',
+            role: 'KETOS - BENDAHARA (BPH)',
             color: Colors.blue,
-            desc: 'Akses kelola data proker, laporan, siswa, jenis pelanggaran, arsip umum, rekap data, dan notifikasi real-time.',
+            desc: '• CRUD Siswa (Tambah, Edit, Import Excel/CSV, Hapus)\n• CRUD Jenis Pelanggaran (Tambah, Edit, Hapus, Atur Hari Aktif)\n• Akses kelola Proker seluruh sekbid, Laporan Kegiatan, Status Cloud, & Rekap Data\n• Tidak dapat mengubah kata sandi akun sendiri (Admin Only)',
           ),
           const SizedBox(height: 10),
           _roleMatrixCard(
-            role: 'SEKBID (SEKBID 1 - 10)',
+            role: 'SEKBID 2 (Budi Pekerti / Ketertiban)',
+            color: Colors.orange,
+            desc: '• CRUD Jenis Pelanggaran (Tambah, Edit, Hapus, Atur Hari Aktif)\n• TIDAK BISA CRUD Siswa (Hanya melihat data siswa saat mencatat pelanggaran)\n• Catat pelanggaran harian, kelola Proker & Laporan Sekbid 2, & akses Arsip/Rekap\n• Tidak dapat mengubah kata sandi akun sendiri (Admin Only)',
+          ),
+          const SizedBox(height: 10),
+          _roleMatrixCard(
+            role: 'SEKBID 1 & SEKBID 3 - 10',
             color: Colors.teal,
-            desc: 'Akses pembuatan & update proker sekbid terkait, upload laporan kegiatan, penginputan pelanggaran tata tertib (khusus Sekbid 2 kelola jenis), dan akses arsip/rekap.',
+            desc: '• TIDAK BISA CRUD Siswa\n• TIDAK BISA CRUD Jenis Pelanggaran\n• Pencatatan pelanggaran harian tata tertib siswa\n• Pengelolaan Proker & Laporan Kegiatan masing-masing Sekbid\n• Akses Arsip dokumen & Rekap data statistik\n• Tidak dapat mengubah kata sandi akun sendiri (Admin Only)',
           ),
         ],
       ),

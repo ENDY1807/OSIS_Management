@@ -119,8 +119,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   bool get _isAdmin     => _username == 'ADMIN' || AuthService.getRole(_username) == 'ADMIN';
   bool get _isPembina   => _isAdmin || _username == 'PEMBINA' || _username == 'KESISWAAN' || AuthService.getRole(_username) == 'PEMBINA' || AuthService.getRole(_username) == 'KESISWAAN';
-  bool get _isSuperUser => _isAdmin || _isPembina || _superUsers.contains(_username);
-  bool get _canAccessManajemen => _isSuperUser || _username == 'SEKBID2';
+  bool get _isSuperUser => _isAdmin || _isPembina || _superUsers.contains(_username) || _superUsers.contains(AuthService.getRole(_username));
+  bool get _isSekbid2   => _username == 'SEKBID2' || AuthService.getRole(_username) == 'SEKBID2';
+  bool get _canAccessManajemen => _isSuperUser || _isSekbid2;
   bool get _canReceiveNotifications => NotificationService.isTargetRole(_username) || _isAdmin;
 
   String _displayName = '';
@@ -252,7 +253,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   ),
                   if (_username.isNotEmpty)
                     Text(
-                      '${LocalizationService.tr('login_as')} $_roleDisplay',
+                      _roleDisplay,
                       style: const TextStyle(fontSize: 10, color: Colors.white70, letterSpacing: 0.2),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
