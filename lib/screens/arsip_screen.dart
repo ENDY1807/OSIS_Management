@@ -1722,41 +1722,45 @@ class _ArsipScreenState extends State<ArsipScreen> {
   // ── UI BUILD ───────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primary = theme.colorScheme.primary;
+
     final subfolders = _currentSubfolders;
     final files = _currentFiles;
     final bool isEmpty = subfolders.isEmpty && files.isEmpty;
 
     return Scaffold(
-      backgroundColor: kBg,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: _isSelectionMode ? _buildSelectionAppBar() : _buildNormalAppBar(),
       body: Column(
         children: [
           // Breadcrumb Navigation
-          _buildBreadcrumbsBar(),
+          _buildBreadcrumbsBar(isDark: isDark, primary: primary),
 
           // Search and View Controls Bar
-          _buildToolbar(),
+          _buildToolbar(isDark: isDark, primary: primary),
 
           // Main Content
           Expanded(
             child: _loading
-                ? const Center(child: CircularProgressIndicator(color: kAccent))
+                ? Center(child: CircularProgressIndicator(color: primary))
                 : isEmpty
-                    ? _buildEmptyState()
+                    ? _buildEmptyState(isDark: isDark)
                     : RefreshIndicator(
                         onRefresh: _load,
-                        color: kAccent,
+                        color: primary,
                         child: _viewMode == ViewMode.list
-                            ? _buildListView(subfolders, files)
-                            : _buildGridView(subfolders, files),
+                            ? _buildListView(subfolders, files, isDark: isDark, primary: primary)
+                            : _buildGridView(subfolders, files, isDark: isDark, primary: primary),
                       ),
           ),
 
           // Bottom Clipboard Bar
-          if (_clipboardMode != ClipboardMode.none) _buildClipboardBar(),
+          if (_clipboardMode != ClipboardMode.none) _buildClipboardBar(isDark: isDark, primary: primary),
         ],
       ),
-      floatingActionButton: _canEdit && !_isSelectionMode ? _buildFloatingActionButtons() : null,
+      floatingActionButton: _canEdit && !_isSelectionMode ? _buildFloatingActionButtons(isDark: isDark, primary: primary) : null,
     );
   }
 
@@ -1886,11 +1890,11 @@ class _ArsipScreenState extends State<ArsipScreen> {
   }
 
   // Breadcrumb Path Bar
-  Widget _buildBreadcrumbsBar() {
+  Widget _buildBreadcrumbsBar({bool isDark = false, Color primary = kAccent}) {
     final segments = _pathSegments;
     return Container(
       width: double.infinity,
-      color: Colors.white,
+      color: isDark ? const Color(0xFF141D2E) : Colors.white,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -1898,7 +1902,7 @@ class _ArsipScreenState extends State<ArsipScreen> {
           children: [
             if (_currentPath.isNotEmpty) ...[
               IconButton(
-                icon: const Icon(Icons.arrow_upward_rounded, size: 18, color: kAccent),
+                icon: Icon(Icons.arrow_upward_rounded, size: 18, color: primary),
                 tooltip: 'Naik 1 Tingkat',
                 onPressed: _goUp,
                 visualDensity: VisualDensity.compact,
@@ -1913,19 +1917,19 @@ class _ArsipScreenState extends State<ArsipScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: _currentPath.isEmpty ? kAccent.withAlpha(20) : Colors.transparent,
+                  color: _currentPath.isEmpty ? primary.withAlpha(isDark ? 40 : 20) : Colors.transparent,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.home_rounded, size: 16, color: _currentPath.isEmpty ? kAccent : kTextMid),
+                    Icon(Icons.home_rounded, size: 16, color: _currentPath.isEmpty ? primary : (isDark ? const Color(0xFF94A3B8) : kTextMid)),
                     const SizedBox(width: 4),
                     Text(
                       'Root',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: _currentPath.isEmpty ? FontWeight.bold : FontWeight.normal,
-                        color: _currentPath.isEmpty ? kAccent : kTextDark,
+                        color: _currentPath.isEmpty ? primary : (isDark ? Colors.white : kTextDark),
                       ),
                     ),
                   ],
@@ -1933,14 +1937,14 @@ class _ArsipScreenState extends State<ArsipScreen> {
               ),
             ),
             for (int i = 0; i < segments.length; i++) ...[
-              const Icon(Icons.chevron_right, size: 16, color: kTextLight),
+              Icon(Icons.chevron_right, size: 16, color: isDark ? const Color(0xFF64748B) : kTextLight),
               InkWell(
                 onTap: () => _navigateToPath(segments.sublist(0, i + 1).join('/')),
                 borderRadius: BorderRadius.circular(6),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: i == segments.length - 1 ? kAccent.withAlpha(20) : Colors.transparent,
+                    color: i == segments.length - 1 ? primary.withAlpha(isDark ? 40 : 20) : Colors.transparent,
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
@@ -1948,7 +1952,7 @@ class _ArsipScreenState extends State<ArsipScreen> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: i == segments.length - 1 ? FontWeight.bold : FontWeight.normal,
-                      color: i == segments.length - 1 ? kAccent : kTextDark,
+                      color: i == segments.length - 1 ? primary : (isDark ? Colors.white : kTextDark),
                     ),
                   ),
                 ),
@@ -1961,9 +1965,12 @@ class _ArsipScreenState extends State<ArsipScreen> {
   }
 
   // Toolbar (Search, Filter, Sort)
-  Widget _buildToolbar() {
+  Widget _buildToolbar({bool isDark = false, Color primary = kAccent}) {
     return Container(
-      color: Colors.white,
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF141D2E) : Colors.white,
+        border: isDark ? const Border(bottom: BorderSide(color: Color(0xFF243452))) : null,
+      ),
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
       child: Row(
         children: [
@@ -1974,19 +1981,20 @@ class _ArsipScreenState extends State<ArsipScreen> {
                 onChanged: (val) => setState(() => _search = val),
                 decoration: InputDecoration(
                   hintText: 'Cari dalam folder ini...',
-                  hintStyle: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+                  hintStyle: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF64748B) : Colors.grey.shade400),
                   prefixIcon: const Icon(Icons.search, size: 18),
                   contentPadding: EdgeInsets.zero,
                   filled: true,
-                  fillColor: kBg,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                  fillColor: isDark ? const Color(0xFF0E1626) : kBg,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: isDark ? const BorderSide(color: Color(0xFF243452)) : BorderSide.none),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: isDark ? const BorderSide(color: Color(0xFF243452)) : BorderSide.none),
                 ),
               ),
             ),
           ),
           const SizedBox(width: 8),
           IconButton(
-            icon: Icon(_sortMode == SortMode.dateNewest ? Icons.sort_rounded : Icons.filter_list_rounded, color: kAccent),
+            icon: Icon(_sortMode == SortMode.dateNewest ? Icons.sort_rounded : Icons.filter_list_rounded, color: primary),
             tooltip: 'Ganti Urutan',
             onPressed: () {
               setState(() {
@@ -2006,11 +2014,11 @@ class _ArsipScreenState extends State<ArsipScreen> {
   }
 
   // Clipboard Bottom Bar
-  Widget _buildClipboardBar() {
+  Widget _buildClipboardBar({bool isDark = false, Color primary = kAccent}) {
     final count = _clipboardFiles.length + _clipboardFolders.length;
     final isCut = _clipboardMode == ClipboardMode.cut;
     return Container(
-      color: isCut ? Colors.orange.shade900 : kPrimaryDark,
+      color: isCut ? Colors.orange.shade900 : (isDark ? const Color(0xFF0D1424) : kPrimaryDark),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: SafeArea(
         top: false,
@@ -2028,7 +2036,7 @@ class _ArsipScreenState extends State<ArsipScreen> {
               onPressed: _pasteClipboard,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
-                foregroundColor: isCut ? Colors.orange.shade900 : kPrimaryDark,
+                foregroundColor: isCut ? Colors.orange.shade900 : (isDark ? Colors.black : kPrimaryDark),
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
@@ -2047,15 +2055,21 @@ class _ArsipScreenState extends State<ArsipScreen> {
   }
 
   // List View Mode
-  Widget _buildListView(List<String> subfolders, List<Arsip> files) {
+  Widget _buildListView(List<String> subfolders, List<Arsip> files, {bool isDark = false, Color primary = kAccent}) {
+    final cardBg = isDark ? const Color(0xFF141D2E) : Colors.white;
+    final cardBorder = isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0);
+    final textTitle = isDark ? Colors.white : kTextDark;
+    final textMuted = isDark ? const Color(0xFF64748B) : kTextLight;
+    final textSub = isDark ? const Color(0xFF94A3B8) : kTextMid;
+
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
       children: [
         // Subfolders
         if (subfolders.isNotEmpty) ...[
-          const Padding(
-            padding: EdgeInsets.only(left: 4, bottom: 6),
-            child: Text('FOLDER', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kTextLight, letterSpacing: 0.5)),
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 6),
+            child: Text('FOLDER', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textMuted, letterSpacing: 0.5)),
           ),
           ...subfolders.map((path) {
             final folderName = path.split('/').last;
@@ -2068,10 +2082,10 @@ class _ArsipScreenState extends State<ArsipScreen> {
             return Container(
               margin: const EdgeInsets.only(bottom: 6),
               decoration: BoxDecoration(
-                color: isSelected ? kAccent.withAlpha(20) : Colors.white,
+                color: isSelected ? primary.withAlpha(isDark ? 45 : 20) : cardBg,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: isSelected ? kAccent : Colors.transparent),
-                boxShadow: [BoxShadow(color: kPrimary.withAlpha(40), blurRadius: 4, offset: const Offset(0, 1))],
+                border: Border.all(color: isSelected ? primary : cardBorder),
+                boxShadow: isDark ? null : [BoxShadow(color: kPrimary.withAlpha(40), blurRadius: 4, offset: const Offset(0, 1))],
               ),
               child: ListTile(
                 onTap: () {
@@ -2085,16 +2099,16 @@ class _ArsipScreenState extends State<ArsipScreen> {
                 leading: _isSelectionMode
                     ? Checkbox(
                         value: isSelected,
-                        activeColor: kAccent,
+                        activeColor: primary,
                         onChanged: (_) => _toggleFolderSelection(path),
                       )
                     : Container(
                         width: 40, height: 40,
-                        decoration: BoxDecoration(color: kAccent.withAlpha(25), borderRadius: BorderRadius.circular(10)),
-                        child: const Icon(Icons.folder_rounded, color: kAccent, size: 24),
+                        decoration: BoxDecoration(color: primary.withAlpha(isDark ? 40 : 25), borderRadius: BorderRadius.circular(10)),
+                        child: Icon(Icons.folder_rounded, color: primary, size: 24),
                       ),
-                title: Text(folderName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kTextDark)),
-                subtitle: Text('$childCount item di dalamnya', style: const TextStyle(fontSize: 11, color: kTextLight)),
+                title: Text(folderName, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textTitle)),
+                subtitle: Text('$childCount item di dalamnya', style: TextStyle(fontSize: 11, color: textMuted)),
                 trailing: _isSelectionMode
                     ? null
                     : Row(
@@ -2102,7 +2116,7 @@ class _ArsipScreenState extends State<ArsipScreen> {
                         children: [
                           if (_canEdit)
                             PopupMenuButton<String>(
-                              icon: const Icon(Icons.more_vert, size: 18, color: kTextLight),
+                              icon: Icon(Icons.more_vert, size: 18, color: textMuted),
                               onSelected: (val) async {
                                 if (val == 'move') {
                                   _showMoveDialog([], foldersToMove: [path]);
@@ -2146,7 +2160,7 @@ class _ArsipScreenState extends State<ArsipScreen> {
                                 ),
                               ],
                             ),
-                          const Icon(Icons.chevron_right, color: kTextLight, size: 18),
+                          Icon(Icons.chevron_right, color: textMuted, size: 18),
                         ],
                       ),
               ),
@@ -2157,19 +2171,19 @@ class _ArsipScreenState extends State<ArsipScreen> {
 
         // Files
         if (files.isNotEmpty) ...[
-          const Padding(
-            padding: EdgeInsets.only(left: 4, bottom: 6),
-            child: Text('DOKUMEN & FILE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kTextLight, letterSpacing: 0.5)),
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 6),
+            child: Text('DOKUMEN & FILE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textMuted, letterSpacing: 0.5)),
           ),
           ...files.map((a) {
             final isSelected = _selectedFileIds.contains(a.id);
             return Container(
               margin: const EdgeInsets.only(bottom: 6),
               decoration: BoxDecoration(
-                color: isSelected ? kAccent.withAlpha(20) : Colors.white,
+                color: isSelected ? primary.withAlpha(isDark ? 45 : 20) : cardBg,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: isSelected ? kAccent : Colors.transparent),
-                boxShadow: [BoxShadow(color: kPrimary.withAlpha(40), blurRadius: 4, offset: const Offset(0, 1))],
+                border: Border.all(color: isSelected ? primary : cardBorder),
+                boxShadow: isDark ? null : [BoxShadow(color: kPrimary.withAlpha(40), blurRadius: 4, offset: const Offset(0, 1))],
               ),
               child: ListTile(
                 onTap: () {
@@ -2183,19 +2197,19 @@ class _ArsipScreenState extends State<ArsipScreen> {
                 leading: _isSelectionMode
                     ? Checkbox(
                         value: isSelected,
-                        activeColor: kAccent,
+                        activeColor: primary,
                         onChanged: (_) => _toggleFileSelection(a.id),
                       )
                     : _fileFormatBadge(a.fileUrl, a.judul),
-                title: Text(a.judul, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kTextDark), maxLines: 1, overflow: TextOverflow.ellipsis),
+                title: Text(a.judul, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textTitle), maxLines: 1, overflow: TextOverflow.ellipsis),
                 subtitle: Text(
                   [
                     if (a.nomorSurat.isNotEmpty) 'No. ${a.nomorSurat}',
                     DateFormat('dd MMM yyyy', 'id').format(a.tanggal),
                   ].join(' • '),
-                  style: const TextStyle(fontSize: 11, color: kTextMid),
+                  style: TextStyle(fontSize: 11, color: textSub),
                 ),
-                trailing: const Icon(Icons.chevron_right, color: kTextLight, size: 18),
+                trailing: Icon(Icons.chevron_right, color: textMuted, size: 18),
               ),
             );
           }),
@@ -2205,14 +2219,19 @@ class _ArsipScreenState extends State<ArsipScreen> {
   }
 
   // Grid View Mode
-  Widget _buildGridView(List<String> subfolders, List<Arsip> files) {
+  Widget _buildGridView(List<String> subfolders, List<Arsip> files, {bool isDark = false, Color primary = kAccent}) {
+    final cardBg = isDark ? const Color(0xFF141D2E) : Colors.white;
+    final cardBorder = isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0);
+    final textTitle = isDark ? Colors.white : kTextDark;
+    final textMuted = isDark ? const Color(0xFF64748B) : kTextLight;
+
     return CustomScrollView(
       slivers: [
         if (subfolders.isNotEmpty) ...[
-          const SliverToBoxAdapter(
+          SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(20, 12, 20, 8),
-              child: Text('FOLDER', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kTextLight, letterSpacing: 0.5)),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+              child: Text('FOLDER', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textMuted, letterSpacing: 0.5)),
             ),
           ),
           SliverPadding(
@@ -2245,25 +2264,25 @@ class _ArsipScreenState extends State<ArsipScreen> {
                     onLongPress: () => _toggleFolderSelection(path),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: isSelected ? kAccent.withAlpha(25) : Colors.white,
+                        color: isSelected ? primary.withAlpha(isDark ? 45 : 25) : cardBg,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: isSelected ? kAccent : Colors.transparent, width: 1.5),
-                        boxShadow: [BoxShadow(color: kPrimary.withAlpha(40), blurRadius: 4, offset: const Offset(0, 1))],
+                        border: Border.all(color: isSelected ? primary : cardBorder, width: 1.5),
+                        boxShadow: isDark ? null : [BoxShadow(color: kPrimary.withAlpha(40), blurRadius: 4, offset: const Offset(0, 1))],
                       ),
                       padding: const EdgeInsets.all(8),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.folder_rounded, color: kAccent, size: 36),
+                          Icon(Icons.folder_rounded, color: primary, size: 36),
                           const SizedBox(height: 6),
                           Text(
                             folderName,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: kTextDark),
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: textTitle),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             textAlign: TextAlign.center,
                           ),
-                          Text('$childCount file', style: const TextStyle(fontSize: 10, color: kTextLight)),
+                          Text('$childCount file', style: TextStyle(fontSize: 10, color: textMuted)),
                         ],
                       ),
                     ),
@@ -2277,10 +2296,10 @@ class _ArsipScreenState extends State<ArsipScreen> {
         ],
 
         if (files.isNotEmpty) ...[
-          const SliverToBoxAdapter(
+          SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(20, 12, 20, 8),
-              child: Text('DOKUMEN & FILE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kTextLight, letterSpacing: 0.5)),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+              child: Text('DOKUMEN & FILE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textMuted, letterSpacing: 0.5)),
             ),
           ),
           SliverPadding(
@@ -2307,10 +2326,10 @@ class _ArsipScreenState extends State<ArsipScreen> {
                     onLongPress: () => _toggleFileSelection(a.id),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: isSelected ? kAccent.withAlpha(25) : Colors.white,
+                        color: isSelected ? primary.withAlpha(isDark ? 45 : 25) : cardBg,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: isSelected ? kAccent : Colors.transparent, width: 1.5),
-                        boxShadow: [BoxShadow(color: kPrimary.withAlpha(40), blurRadius: 4, offset: const Offset(0, 1))],
+                        border: Border.all(color: isSelected ? primary : cardBorder, width: 1.5),
+                        boxShadow: isDark ? null : [BoxShadow(color: kPrimary.withAlpha(40), blurRadius: 4, offset: const Offset(0, 1))],
                       ),
                       padding: const EdgeInsets.all(8),
                       child: Column(
@@ -2320,7 +2339,7 @@ class _ArsipScreenState extends State<ArsipScreen> {
                           const SizedBox(height: 6),
                           Text(
                             a.judul,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: kTextDark),
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: textTitle),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             textAlign: TextAlign.center,
@@ -2339,26 +2358,26 @@ class _ArsipScreenState extends State<ArsipScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState({bool isDark = false}) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.folder_open_rounded, size: 64, color: kTextLight),
+          Icon(Icons.folder_open_rounded, size: 64, color: isDark ? const Color(0xFF64748B) : kTextLight),
           const SizedBox(height: 12),
           Text(
             _search.isNotEmpty ? 'Tidak ada hasil untuk "$_search"' : 'Folder ini masih kosong',
-            style: const TextStyle(fontSize: 15, color: kTextMid, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: 15, color: isDark ? const Color(0xFF94A3B8) : kTextMid, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 4),
-          const Text('Gunakan tombol + di bawah untuk membuat folder atau upload file',
-              style: TextStyle(fontSize: 12, color: kTextLight)),
+          Text('Gunakan tombol + di bawah untuk membuat folder atau upload file',
+              style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF64748B) : kTextLight)),
         ],
       ),
     );
   }
 
-  Widget _buildFloatingActionButtons() {
+  Widget _buildFloatingActionButtons({bool isDark = false, Color primary = kAccent}) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -2366,8 +2385,8 @@ class _ArsipScreenState extends State<ArsipScreen> {
         FloatingActionButton.small(
           heroTag: 'fab_folder',
           onPressed: _showCreateFolderDialog,
-          backgroundColor: Colors.white,
-          foregroundColor: kAccent,
+          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+          foregroundColor: isDark ? primary : kAccent,
           tooltip: 'Buat Folder Baru',
           child: const Icon(Icons.create_new_folder_rounded),
         ),
@@ -2375,9 +2394,9 @@ class _ArsipScreenState extends State<ArsipScreen> {
         FloatingActionButton.extended(
           heroTag: 'fab_file',
           onPressed: () => _showFileForm(),
-          backgroundColor: kAccent,
-          icon: const Icon(Icons.add_rounded, color: Colors.white),
-          label: const Text('Tambah File', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          backgroundColor: primary,
+          icon: Icon(Icons.add_rounded, color: isDark ? Colors.black : Colors.white),
+          label: Text('Tambah File', style: TextStyle(color: isDark ? Colors.black : Colors.white, fontWeight: FontWeight.bold)),
         ),
       ],
     );

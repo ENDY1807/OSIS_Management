@@ -360,6 +360,7 @@ class _ManajemenScreenState extends State<ManajemenScreen> with SingleTickerProv
     final namaC = TextEditingController(text: existing?.nama);
     List<int> selectedHari = List.from(existing?.hariAktif ?? []);
     const hariLabels = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showModalBottomSheet(
       context: context,
@@ -367,23 +368,27 @@ class _ManajemenScreenState extends State<ManajemenScreen> with SingleTickerProv
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModal) => Container(
-          decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF141D2E) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: isDark ? const Border(top: BorderSide(color: Color(0xFF243452), width: 1)) : null,
+          ),
           padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(2)))),
+              Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: isDark ? const Color(0xFF243452) : kPrimary, borderRadius: BorderRadius.circular(2)))),
               const SizedBox(height: 16),
               Text(existing == null ? 'Tambah Jenis Pelanggaran' : 'Edit Jenis',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kTextDark)),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
               const SizedBox(height: 16),
               TextField(controller: namaC, decoration: const InputDecoration(
                 labelText: 'Nama Pelanggaran', prefixIcon: Icon(Icons.warning_amber_outlined, color: kAccent))),
               const SizedBox(height: 16),
-              const Text('Aktif pada hari:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kTextDark)),
+              Text('Aktif pada hari:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white : kTextDark)),
               const SizedBox(height: 4),
-              const Text('Kosongkan = muncul setiap hari', style: TextStyle(fontSize: 11, color: kTextLight)),
+              Text('Kosongkan = muncul setiap hari', style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF64748B) : kTextLight)),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8, runSpacing: 8,
@@ -399,11 +404,15 @@ class _ManajemenScreenState extends State<ManajemenScreen> with SingleTickerProv
                     }),
                     selectedColor: kAccent,
                     checkmarkColor: Colors.white,
-                    labelStyle: TextStyle(color: selected ? Colors.white : kTextDark,
-                        fontWeight: FontWeight.w600, fontSize: 12),
-                    backgroundColor: kPrimary.withAlpha(60),
+                    labelStyle: TextStyle(
+                      color: selected ? Colors.white : (isDark ? const Color(0xFF94A3B8) : kTextDark),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                    backgroundColor: isDark ? const Color(0xFF0E1626) : kPrimary.withAlpha(60),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                    side: BorderSide.none,
+                    side: isDark && !selected ? const BorderSide(color: Color(0xFF243452)) : BorderSide.none,
+                    showCheckmark: false,
                   );
                 }),
               ),
@@ -411,42 +420,35 @@ class _ManajemenScreenState extends State<ManajemenScreen> with SingleTickerProv
               ElevatedButton(
                 onPressed: () async {
                   if (namaC.text.trim().isEmpty) return;
-                  try {
-                    if (existing != null) {
-                      await DataService.updateJenis(JenisPelanggaran(
-                          id: existing.id, nama: namaC.text.trim(), hariAktif: selectedHari));
-                      await NotificationService.notifyUpdate(
-                        title: 'Jenis Pelanggaran Diperbarui',
-                        message: 'Jenis pelanggaran "${namaC.text.trim()}" diperbarui oleh $_username',
-                        category: 'manajemen',
-                        actor: _username,
-                      );
-                    } else {
-                      await DataService.addJenis(namaC.text.trim(), hariAktif: selectedHari);
-                      await NotificationService.notifyUpdate(
-                        title: 'Jenis Pelanggaran Ditambahkan',
-                        message: 'Jenis pelanggaran baru "${namaC.text.trim()}" ditambahkan oleh $_username',
-                        category: 'manajemen',
-                        actor: _username,
-                      );
-                    }
-                    if (ctx.mounted) {
-                      Navigator.pop(ctx);
-                      ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
-                        content: Text('Tersimpan ke Supabase'),
-                        backgroundColor: Colors.green,
-                        duration: Duration(seconds: 2),
-                      ));
-                      _load();
-                    }
-                  } catch (e) {
-                    if (ctx.mounted) {
-                      ScaffoldMessenger.of(ctx).showSnackBar(
-                        SnackBar(content: Text('Gagal: $e'), backgroundColor: Colors.red));
-                    }
+                  if (existing == null) {
+                    await DataService.addJenis(namaC.text.trim(), hariAktif: selectedHari);
+                    await NotificationService.notifyUpdate(
+                      title: 'Jenis Pelanggaran Baru',
+                      message: 'Jenis pelanggaran "${namaC.text.trim()}" telah ditambahkan oleh $_username',
+                      category: 'manajemen',
+                      actor: _username,
+                    );
+                  } else {
+                    await DataService.updateJenis(JenisPelanggaran(id: existing.id, nama: namaC.text.trim(), hariAktif: selectedHari));
+                    await NotificationService.notifyUpdate(
+                      title: 'Jenis Pelanggaran Diperbarui',
+                      message: 'Jenis pelanggaran "${namaC.text.trim()}" telah diperbarui oleh $_username',
+                      category: 'manajemen',
+                      actor: _username,
+                    );
+                  }
+                  if (ctx.mounted) {
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
+                      content: Text('Tersimpan ke Supabase'),
+                      backgroundColor: Colors.green,
+                      duration: Duration(seconds: 2),
+                    ));
+                    _load();
                   }
                 },
-                style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16),
+                style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
                 child: const Text('Simpan', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
@@ -458,20 +460,25 @@ class _ManajemenScreenState extends State<ManajemenScreen> with SingleTickerProv
   }
 
   void _showBottomForm({required String title, required List<Widget> fields, required Future<bool> Function() onSave}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
-        decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF141D2E) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: isDark ? const Border(top: BorderSide(color: Color(0xFF243452), width: 1)) : null,
+        ),
         padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(2)))),
+            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: isDark ? const Color(0xFF243452) : kPrimary, borderRadius: BorderRadius.circular(2)))),
             const SizedBox(height: 16),
-            Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kTextDark)),
+            Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
             const SizedBox(height: 16),
             ...fields,
             const SizedBox(height: 20),
@@ -506,8 +513,17 @@ class _ManajemenScreenState extends State<ManajemenScreen> with SingleTickerProv
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primary = theme.colorScheme.primary;
+    final cardBg = isDark ? const Color(0xFF141D2E) : Colors.white;
+    final cardBorder = isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0);
+    final textTitle = isDark ? Colors.white : kTextDark;
+    final textSub = isDark ? const Color(0xFF94A3B8) : kTextMid;
+    final textMuted = isDark ? const Color(0xFF64748B) : kTextLight;
+
     return Scaffold(
-      backgroundColor: kBg,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Manajemen'),
         actions: [
@@ -532,21 +548,21 @@ class _ManajemenScreenState extends State<ManajemenScreen> with SingleTickerProv
         ),
       ),
       body: _tab == null
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator(color: primary))
           : TabBarView(
         controller: _tab!,
         children: [
           if (_canSeeSiswa) Column(children: [
             Container(
-              color: Colors.white,
+              color: isDark ? const Color(0xFF141D2E) : Colors.white,
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(children: [
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      const Text('Data Siswa', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kTextDark)),
-                      Text('${_filteredSiswa.length}${_searchQuery.isNotEmpty ? ' dari ${_siswa.length}' : ''} siswa', style: const TextStyle(fontSize: 12, color: kTextMid)),
+                      Text('Data Siswa', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: textTitle)),
+                      Text('${_filteredSiswa.length}${_searchQuery.isNotEmpty ? ' dari ${_siswa.length}' : ''} siswa', style: TextStyle(fontSize: 12, color: textSub)),
                     ])),
                   ]),
                   const SizedBox(height: 10),
@@ -556,7 +572,7 @@ class _ManajemenScreenState extends State<ManajemenScreen> with SingleTickerProv
                     onChanged: (v) => setState(() => _searchQuery = v),
                     decoration: InputDecoration(
                       hintText: 'Cari nama, NIS, atau kelas...',
-                      prefixIcon: const Icon(Icons.search, color: kAccent, size: 20),
+                      prefixIcon: Icon(Icons.search, color: primary, size: 20),
                       suffixIcon: _searchQuery.isNotEmpty
                           ? IconButton(
                               icon: const Icon(Icons.clear, size: 18),
@@ -592,7 +608,8 @@ class _ManajemenScreenState extends State<ManajemenScreen> with SingleTickerProv
                           icon: const Icon(Icons.folder_open_outlined, size: 16),
                           label: const Text('Kelola File', style: TextStyle(fontSize: 13)),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: kAccent, foregroundColor: Colors.white,
+                            backgroundColor: isDark ? primary : kAccent,
+                            foregroundColor: isDark ? Colors.black : Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 10),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
@@ -600,27 +617,27 @@ class _ManajemenScreenState extends State<ManajemenScreen> with SingleTickerProv
                       ),
                     ]),
                     const SizedBox(height: 4),
-                    const Text('Format: kolom Nama, Kelas, NIS (baris pertama = header)',
-                        style: TextStyle(fontSize: 10, color: kTextLight)),
+                    Text('Format: kolom Nama, Kelas, NIS (baris pertama = header)',
+                        style: TextStyle(fontSize: 10, color: textMuted)),
                   ],
                 ],
               ),
             ),
-            const Divider(height: 1, color: kPrimary),
+            Divider(height: 1, color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0)),
             Expanded(
               child: _siswa.isEmpty
                   ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      const Icon(Icons.people_outline, size: 64, color: kTextLight),
+                      Icon(Icons.people_outline, size: 64, color: textMuted),
                       const SizedBox(height: 12),
-                      const Text('Belum ada data siswa', style: TextStyle(color: kTextMid, fontSize: 15)),
+                      Text('Belum ada data siswa', style: TextStyle(color: textSub, fontSize: 15)),
                       const SizedBox(height: 4),
-                      const Text('Impor dari Excel atau tap + untuk tambah manual', style: TextStyle(color: kTextLight, fontSize: 12)),
+                      Text('Impor dari Excel atau tap + untuk tambah manual', style: TextStyle(color: textMuted, fontSize: 12)),
                     ]))
                   : _filteredSiswa.isEmpty
                       ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                          const Icon(Icons.search_off, size: 48, color: kTextLight),
+                          Icon(Icons.search_off, size: 48, color: textMuted),
                           const SizedBox(height: 12),
-                          Text('Tidak ada siswa "$_searchQuery"', style: const TextStyle(color: kTextMid)),
+                          Text('Tidak ada siswa "$_searchQuery"', style: TextStyle(color: textSub)),
                         ]))
                       : ListView.builder(
                           padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
@@ -629,17 +646,23 @@ class _ManajemenScreenState extends State<ManajemenScreen> with SingleTickerProv
                             final s = _filteredSiswa[i];
                             return Container(
                               margin: const EdgeInsets.only(bottom: 8),
-                              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12),
-                                  boxShadow: [BoxShadow(color: kPrimary.withAlpha(60), blurRadius: 4)]),
+                              decoration: BoxDecoration(
+                                color: cardBg,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: cardBorder),
+                                boxShadow: isDark ? null : [BoxShadow(color: kPrimary.withAlpha(60), blurRadius: 4)],
+                              ),
                               child: ListTile(
-                                leading: CircleAvatar(backgroundColor: kPrimary,
-                                    child: Text(s.nama.substring(0, 1).toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, color: kTextDark))),
-                                title: Text(s.nama, style: const TextStyle(fontWeight: FontWeight.bold, color: kTextDark)),
-                                subtitle: Text('Kelas ${s.kelas} • NIS: ${s.nis}', style: const TextStyle(color: kTextMid, fontSize: 12)),
+                                leading: CircleAvatar(
+                                  backgroundColor: isDark ? const Color(0xFF1A263D) : kPrimary,
+                                  child: Text(s.nama.isNotEmpty ? s.nama.substring(0, 1).toUpperCase() : '?',
+                                      style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? primary : kTextDark))),
+                                title: Text(s.nama, style: TextStyle(fontWeight: FontWeight.bold, color: textTitle)),
+                                subtitle: Text('Kelas ${s.kelas} • NIS: ${s.nis}', style: TextStyle(color: textSub, fontSize: 12)),
                                 trailing: _canEditSiswa ? Row(mainAxisSize: MainAxisSize.min, children: [
-                                  IconButton(icon: const Icon(Icons.edit_outlined, color: kAccent, size: 20), onPressed: () => _showSiswaForm(s)),
+                                  IconButton(icon: Icon(Icons.edit_outlined, color: primary, size: 20), onPressed: () => _showSiswaForm(s)),
                                   IconButton(
-                                    icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                                    icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
                                     onPressed: () async {
                                       await DataService.deleteSiswa(s.id);
                                       await NotificationService.notifyUpdate(
@@ -662,7 +685,7 @@ class _ManajemenScreenState extends State<ManajemenScreen> with SingleTickerProv
           // ── Jenis Pelanggaran ──
           if (_canSeeJenis)
           _jenis.isEmpty
-              ? const Center(child: Text('Belum ada jenis pelanggaran', style: TextStyle(color: kTextMid)))
+              ? Center(child: Text('Belum ada jenis pelanggaran', style: TextStyle(color: textSub)))
               : ListView.builder(
                   padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                   itemCount: _jenis.length,
@@ -674,16 +697,20 @@ class _ManajemenScreenState extends State<ManajemenScreen> with SingleTickerProv
                         : j.hariAktif.map((h) => hariLabels[h]).join(', ');
                     return Container(
                       margin: const EdgeInsets.only(bottom: 8),
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12),
-                          boxShadow: [BoxShadow(color: kPrimary.withAlpha(60), blurRadius: 4)]),
+                      decoration: BoxDecoration(
+                        color: cardBg,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: cardBorder),
+                        boxShadow: isDark ? null : [BoxShadow(color: kPrimary.withAlpha(60), blurRadius: 4)],
+                      ),
                       child: ListTile(
-                        leading: const Icon(Icons.warning_amber_outlined, color: kAccent, size: 22),
-                        title: Text(j.nama, style: const TextStyle(fontWeight: FontWeight.bold, color: kTextDark)),
-                        subtitle: Text(hariText, style: const TextStyle(fontSize: 11, color: kTextMid)),
+                        leading: Icon(Icons.warning_amber_outlined, color: primary, size: 22),
+                        title: Text(j.nama, style: TextStyle(fontWeight: FontWeight.bold, color: textTitle)),
+                        subtitle: Text(hariText, style: TextStyle(fontSize: 11, color: textSub)),
                         trailing: _canEditJenis ? Row(mainAxisSize: MainAxisSize.min, children: [
-                          IconButton(icon: const Icon(Icons.edit_outlined, color: kAccent, size: 20), onPressed: () => _showJenisForm(j)),
+                          IconButton(icon: Icon(Icons.edit_outlined, color: primary, size: 20), onPressed: () => _showJenisForm(j)),
                           IconButton(
-                            icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                            icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
                             onPressed: () async {
                               await DataService.deleteJenis(j.id);
                               await NotificationService.notifyUpdate(
@@ -708,9 +735,9 @@ class _ManajemenScreenState extends State<ManajemenScreen> with SingleTickerProv
         ],
       ),
       floatingActionButton: (_canEditSiswa && _canSeeSiswa && (_tab?.index ?? 0) == _siswaTabIndex)
-          ? FloatingActionButton(onPressed: _showSiswaForm, child: const Icon(Icons.add))
+          ? FloatingActionButton(onPressed: _showSiswaForm, backgroundColor: primary, foregroundColor: isDark ? Colors.black : Colors.white, child: const Icon(Icons.add))
           : (_canEditJenis && _canSeeJenis && (_tab?.index ?? 0) == _jenisTabIndex)
-              ? FloatingActionButton(onPressed: _showJenisForm, child: const Icon(Icons.add))
+              ? FloatingActionButton(onPressed: _showJenisForm, backgroundColor: primary, foregroundColor: isDark ? Colors.black : Colors.white, child: const Icon(Icons.add))
               : null,
     );
   }
@@ -744,6 +771,14 @@ class _CloudStatusTabState extends State<_CloudStatusTab> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primary = theme.colorScheme.primary;
+    final cardBg = isDark ? const Color(0xFF141D2E) : Colors.white;
+    final cardBorder = isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0);
+    final textTitle = isDark ? Colors.white : kTextDark;
+    final textSub = isDark ? const Color(0xFF94A3B8) : kTextMid;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -789,31 +824,34 @@ class _CloudStatusTabState extends State<_CloudStatusTab> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: cardBg,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: kPrimary),
+            border: Border.all(color: cardBorder),
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Row(children: [
-              Icon(Icons.dns_outlined, size: 16, color: kAccent),
-              SizedBox(width: 8),
-              Text('Supabase Project', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kTextDark)),
+            Row(children: [
+              Icon(Icons.dns_outlined, size: 16, color: primary),
+              const SizedBox(width: 8),
+              Text('Supabase Project', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textTitle)),
             ]),
             const SizedBox(height: 10),
-            const Text('vvvrzxaxnumtstlgovqw.supabase.co',
-                style: TextStyle(fontSize: 12, color: kTextMid, fontFamily: 'monospace')),
+            Text('vvvrzxaxnumtstlgovqw.supabase.co',
+                style: TextStyle(fontSize: 12, color: textSub, fontFamily: 'monospace')),
             const SizedBox(height: 10),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: _isConnected ? Colors.green.shade50 : Colors.orange.shade50,
+                color: _isConnected
+                    ? (isDark ? Colors.green.withAlpha(40) : Colors.green.shade50)
+                    : (isDark ? Colors.orange.withAlpha(40) : Colors.orange.shade50),
                 borderRadius: BorderRadius.circular(6),
+                border: isDark ? Border.all(color: _isConnected ? Colors.green.withAlpha(80) : Colors.orange.withAlpha(80)) : null,
               ),
               child: Text(
                 _isConnected ? '● Auto-sync aktif — data langsung masuk cloud' : '● Offline — data tersimpan lokal sementara',
                 style: TextStyle(
                   fontSize: 11, fontWeight: FontWeight.bold,
-                  color: _isConnected ? Colors.green.shade700 : Colors.orange.shade700,
+                  color: _isConnected ? (isDark ? Colors.green.shade400 : Colors.green.shade700) : (isDark ? Colors.orange.shade400 : Colors.orange.shade700),
                 ),
               ),
             ),
@@ -823,22 +861,22 @@ class _CloudStatusTabState extends State<_CloudStatusTab> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: cardBg,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: kPrimary),
+            border: Border.all(color: cardBorder),
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Row(children: [
-              Icon(Icons.info_outline, size: 16, color: kAccent),
-              SizedBox(width: 8),
-              Text('Cara Kerja', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kTextDark)),
+            Row(children: [
+              Icon(Icons.info_outline, size: 16, color: primary),
+              const SizedBox(width: 8),
+              Text('Cara Kerja', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textTitle)),
             ]),
             const SizedBox(height: 10),
             ..._infoItems([
               'Tambah / edit / hapus data → langsung tersimpan ke Supabase',
               'Tidak perlu pencet tombol sinkronisasi',
               'Jika offline, data tersimpan lokal dan akan sync otomatis saat online',
-            ]),
+            ], isDark: isDark, primary: primary),
           ]),
         ),
         const SizedBox(height: 20),
@@ -847,7 +885,8 @@ class _CloudStatusTabState extends State<_CloudStatusTab> {
           icon: const Icon(Icons.refresh, size: 18),
           label: const Text('Cek Koneksi Ulang'),
           style: OutlinedButton.styleFrom(
-              foregroundColor: kAccent,
+              foregroundColor: primary,
+              side: BorderSide(color: isDark ? const Color(0xFF243452) : primary),
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
         ),
@@ -855,12 +894,12 @@ class _CloudStatusTabState extends State<_CloudStatusTab> {
     );
   }
 
-  List<Widget> _infoItems(List<String> items) => items.map((t) => Padding(
+  List<Widget> _infoItems(List<String> items, {bool isDark = false, Color primary = kAccent}) => items.map((t) => Padding(
     padding: const EdgeInsets.only(bottom: 6),
     child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Icon(Icons.check_circle_outline, size: 14, color: kAccent),
+      Icon(Icons.check_circle_outline, size: 14, color: primary),
       const SizedBox(width: 8),
-      Expanded(child: Text(t, style: const TextStyle(fontSize: 12, color: kTextMid))),
+      Expanded(child: Text(t, style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : kTextMid))),
     ]),
   )).toList();
 }
@@ -975,6 +1014,14 @@ class _KonfigurasiAkunTabState extends State<_KonfigurasiAkunTab> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primary = theme.colorScheme.primary;
+    final cardBg = isDark ? const Color(0xFF141D2E) : Colors.white;
+    final cardBorder = isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0);
+    final textTitle = isDark ? Colors.white : kTextDark;
+    final textMuted = isDark ? const Color(0xFF64748B) : kTextLight;
+
     final entries = _accounts.entries.toList();
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -982,23 +1029,23 @@ class _KonfigurasiAkunTabState extends State<_KonfigurasiAkunTab> {
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: Colors.blue.shade50,
+            color: isDark ? const Color(0xFF141D2E) : Colors.blue.shade50,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.blue.shade200),
+            border: Border.all(color: isDark ? const Color(0xFF243452) : Colors.blue.shade200),
           ),
           child: Row(children: [
-            Icon(Icons.cloud_sync_rounded, color: Colors.blue.shade700, size: 22),
+            Icon(Icons.cloud_sync_rounded, color: primary, size: 22),
             const SizedBox(width: 10),
             Expanded(child: Text(
               'Akun tersinkronisasi otomatis dengan Supabase Cloud. Perubahan password langsung aktif di seluruh perangkat pengguna.',
-              style: TextStyle(fontSize: 12, color: Colors.blue.shade700),
+              style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFCBD5E1) : Colors.blue.shade700),
             )),
             if (_isSyncing)
               const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
             else
               IconButton(
                 icon: const Icon(Icons.refresh, size: 20),
-                color: Colors.blue.shade700,
+                color: primary,
                 tooltip: 'Sinkron Ulang Akun',
                 onPressed: _syncAccounts,
               ),
@@ -1008,19 +1055,20 @@ class _KonfigurasiAkunTabState extends State<_KonfigurasiAkunTab> {
         ...entries.map((e) => Container(
           margin: const EdgeInsets.only(bottom: 8),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: cardBg,
             borderRadius: BorderRadius.circular(12),
-            boxShadow: [BoxShadow(color: kPrimary.withAlpha(60), blurRadius: 4)],
+            border: Border.all(color: cardBorder),
+            boxShadow: isDark ? null : [BoxShadow(color: kPrimary.withAlpha(60), blurRadius: 4)],
           ),
           child: ListTile(
             leading: CircleAvatar(
-              backgroundColor: kPrimary,
-              child: Text(e.key.substring(0, 1), style: const TextStyle(fontWeight: FontWeight.bold, color: kTextDark, fontSize: 13)),
+              backgroundColor: isDark ? const Color(0xFF1A263D) : kPrimary,
+              child: Text(e.key.substring(0, 1), style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? primary : kTextDark, fontSize: 13)),
             ),
-            title: Text(e.key, style: const TextStyle(fontWeight: FontWeight.bold, color: kTextDark, fontSize: 14)),
-            subtitle: Text('●' * e.value.length.clamp(0, 12), style: const TextStyle(fontSize: 12, color: kTextLight, letterSpacing: 2)),
+            title: Text(e.key, style: TextStyle(fontWeight: FontWeight.bold, color: textTitle, fontSize: 14)),
+            subtitle: Text('●' * e.value.length.clamp(0, 12), style: TextStyle(fontSize: 12, color: textMuted, letterSpacing: 2)),
             trailing: IconButton(
-              icon: const Icon(Icons.edit_outlined, color: kAccent, size: 20),
+              icon: Icon(Icons.edit_outlined, color: primary, size: 20),
               onPressed: () => _showEditDialog(e.key),
             ),
           ),
@@ -1031,8 +1079,8 @@ class _KonfigurasiAkunTabState extends State<_KonfigurasiAkunTab> {
           icon: const Icon(Icons.restore, size: 18),
           label: const Text('Reset Semua ke Default'),
           style: OutlinedButton.styleFrom(
-            foregroundColor: Colors.red,
-            side: const BorderSide(color: Colors.red),
+            foregroundColor: Colors.redAccent,
+            side: const BorderSide(color: Colors.redAccent),
             padding: const EdgeInsets.symmetric(vertical: 14),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),

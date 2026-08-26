@@ -103,15 +103,17 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
     DateTime tanggalRencana = existing?.tanggalRencana ?? DateTime.now();
     DateTime? tanggalRealisasi = existing?.tanggalRealisasi;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModal) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF141D2E) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: isDark ? const Border(top: BorderSide(color: Color(0xFF243452), width: 1)) : null,
           ),
           padding: EdgeInsets.only(
             left: 20, right: 20, top: 20,
@@ -123,10 +125,10 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Center(child: Container(width: 40, height: 4,
-                    decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(2)))),
+                    decoration: BoxDecoration(color: isDark ? const Color(0xFF243452) : kPrimary, borderRadius: BorderRadius.circular(2)))),
                 const SizedBox(height: 16),
                 Text(existing == null ? 'Tambah Program Kerja' : 'Edit Program Kerja',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kTextDark)),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
                 const SizedBox(height: 16),
 
                 TextField(controller: namaC,
@@ -283,14 +285,23 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
   }
 
   Widget _buildProkerCard(Proker p) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final color = _statusColor(p.status);
+    final cardBg = isDark ? const Color(0xFF141D2E) : Colors.white;
+    final cardBorder = isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0);
+    final textTitle = isDark ? Colors.white : kTextDark;
+    final textSub = isDark ? const Color(0xFF94A3B8) : kTextMid;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: kPrimary.withAlpha(100), blurRadius: 8, offset: const Offset(0, 2))],
-        border: Border(left: BorderSide(color: color, width: 4)),
+        boxShadow: isDark ? null : [BoxShadow(color: kPrimary.withAlpha(100), blurRadius: 8, offset: const Offset(0, 2))],
+        border: isDark
+            ? Border.all(color: cardBorder)
+            : Border(left: BorderSide(color: color, width: 4)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -300,11 +311,11 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
             Row(
               children: [
                 Expanded(
-                  child: Text(p.nama, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: kTextDark)),
+                  child: Text(p.nama, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textTitle)),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(color: color.withAlpha(25), borderRadius: BorderRadius.circular(20)),
+                  decoration: BoxDecoration(color: color.withAlpha(isDark ? 40 : 25), borderRadius: BorderRadius.circular(20)),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
                     Icon(_statusIcon(p.status), size: 13, color: color),
                     const SizedBox(width: 4),
@@ -315,25 +326,29 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
             ),
             if (p.deskripsi.isNotEmpty) ...[
               const SizedBox(height: 6),
-              Text(p.deskripsi, style: const TextStyle(fontSize: 13, color: kTextMid), maxLines: 2, overflow: TextOverflow.ellipsis),
+              Text(p.deskripsi, style: TextStyle(fontSize: 13, color: textSub), maxLines: 2, overflow: TextOverflow.ellipsis),
             ],
             const SizedBox(height: 10),
             Wrap(
               spacing: 8, runSpacing: 6,
               children: [
-                _chip(Icons.group_outlined, p.sekbid),
-                _chip(Icons.person_outline, p.penanggungJawab),
-                _chip(Icons.calendar_today_outlined, DateFormat('dd MMM yyyy', 'id').format(p.tanggalRencana)),
+                _chip(Icons.group_outlined, p.sekbid, isDark: isDark),
+                _chip(Icons.person_outline, p.penanggungJawab, isDark: isDark),
+                _chip(Icons.calendar_today_outlined, DateFormat('dd MMM yyyy', 'id').format(p.tanggalRencana), isDark: isDark),
                 if (p.tanggalRealisasi != null)
-                  _chip(Icons.event_available_outlined, DateFormat('dd MMM yyyy', 'id').format(p.tanggalRealisasi!), color: Colors.green),
+                  _chip(Icons.event_available_outlined, DateFormat('dd MMM yyyy', 'id').format(p.tanggalRealisasi!), color: Colors.green, isDark: isDark),
               ],
             ),
             if (p.keterangan.isNotEmpty) ...[
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(color: kBg, borderRadius: BorderRadius.circular(8)),
-                child: Text(p.keterangan, style: const TextStyle(fontSize: 12, color: kTextMid, fontStyle: FontStyle.italic)),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF0E1626) : kBg,
+                  borderRadius: BorderRadius.circular(8),
+                  border: isDark ? Border.all(color: const Color(0xFF243452)) : null,
+                ),
+                child: Text(p.keterangan, style: TextStyle(fontSize: 12, color: textSub, fontStyle: FontStyle.italic)),
               ),
             ],
             const SizedBox(height: 10),
@@ -342,14 +357,14 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
               children: [
                 if (_canEditProker(p)) ...[
                 TextButton.icon(
-                  style: TextButton.styleFrom(foregroundColor: kAccent, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6)),
+                  style: TextButton.styleFrom(foregroundColor: theme.colorScheme.primary, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6)),
                   icon: const Icon(Icons.edit_outlined, size: 16),
                   label: const Text('Edit', style: TextStyle(fontSize: 13)),
                   onPressed: () => _showForm(p),
                 ),
                 const SizedBox(width: 4),
                 TextButton.icon(
-                  style: TextButton.styleFrom(foregroundColor: Colors.red, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6)),
+                  style: TextButton.styleFrom(foregroundColor: Colors.redAccent, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6)),
                   icon: const Icon(Icons.delete_outline, size: 16),
                   label: const Text('Hapus', style: TextStyle(fontSize: 13)),
                   onPressed: () async {
@@ -387,30 +402,41 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
     );
   }
 
-  Widget _chip(IconData icon, String label, {Color? color}) => Container(
+  Widget _chip(IconData icon, String label, {Color? color, bool isDark = false}) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-    decoration: BoxDecoration(color: kPrimary.withAlpha(60), borderRadius: BorderRadius.circular(6)),
+    decoration: BoxDecoration(
+      color: isDark ? const Color(0xFF1A263D) : kPrimary.withAlpha(60),
+      borderRadius: BorderRadius.circular(6),
+      border: isDark ? Border.all(color: const Color(0xFF243452)) : null,
+    ),
     child: Row(mainAxisSize: MainAxisSize.min, children: [
-      Icon(icon, size: 12, color: color ?? kAccent),
+      Icon(icon, size: 12, color: color ?? (isDark ? const Color(0xFF00B4D8) : kAccent)),
       const SizedBox(width: 4),
-      Text(label, style: TextStyle(fontSize: 11, color: color ?? kTextMid, fontWeight: FontWeight.w500)),
+      Text(label, style: TextStyle(fontSize: 11, color: color ?? (isDark ? const Color(0xFFF1F5F9) : kTextMid), fontWeight: FontWeight.w500)),
     ]),
   );
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primary = theme.colorScheme.primary;
+
     final allSekbid = (_isSuperUser || _isPembina) ? ['Semua', ...AuthService.sekbidList] : [_currentUser];
     final totalBelum    = _proker.where((p) => p.status == StatusProker.belum).length;
     final totalBerjalan = _proker.where((p) => p.status == StatusProker.berjalan).length;
     final totalSelesai  = _proker.where((p) => p.status == StatusProker.selesai).length;
 
     return Scaffold(
-      backgroundColor: kBg,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Column(
         children: [
           // Stats header
           Container(
-            color: kAccent,
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF0D1424) : primary,
+              border: isDark ? const Border(bottom: BorderSide(color: Color(0xFF243452))) : null,
+            ),
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
             child: Row(
               children: [
@@ -425,7 +451,7 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
 
           if (_isSuperUser || _isPembina)
           Container(
-            color: Colors.white,
+            color: isDark ? const Color(0xFF141D2E) : Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -438,15 +464,15 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
                       label: Text(s),
                       selected: selected,
                       onSelected: (_) => setState(() => _filterSekbid = s),
-                      selectedColor: kAccent,
-                      checkmarkColor: Colors.white,
+                      selectedColor: primary,
+                      checkmarkColor: Colors.black,
                       labelStyle: TextStyle(
-                        color: selected ? Colors.white : kTextDark,
+                        color: selected ? (isDark ? Colors.black : Colors.white) : (isDark ? const Color(0xFF94A3B8) : kTextDark),
                         fontWeight: FontWeight.w600, fontSize: 12,
                       ),
-                      backgroundColor: kPrimary.withAlpha(60),
+                      backgroundColor: isDark ? const Color(0xFF0E1626) : kPrimary.withAlpha(60),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                      side: BorderSide.none,
+                      side: isDark && !selected ? const BorderSide(color: Color(0xFF243452)) : BorderSide.none,
                       showCheckmark: false,
                     ),
                   );
@@ -457,7 +483,7 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
 
           // Tabs
           Container(
-            color: kAccent,
+            color: isDark ? const Color(0xFF0D1424) : primary,
             child: TabBar(
               controller: _tab,
               tabs: [
@@ -479,16 +505,16 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.assignment_outlined, size: 64, color: kTextLight),
+                        Icon(Icons.assignment_outlined, size: 64, color: isDark ? const Color(0xFF64748B) : kTextLight),
                         const SizedBox(height: 12),
-                        Text('Belum ada program kerja', style: TextStyle(color: kTextLight, fontSize: 15)),
+                        Text('Belum ada program kerja', style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : kTextLight, fontSize: 15)),
                       ],
                     ),
                   );
                 }
                 return RefreshIndicator(
                   onRefresh: _load,
-                  color: kAccent,
+                  color: primary,
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     itemCount: list.length,
@@ -520,7 +546,7 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
       ),
       child: Column(
         children: [
-          Text('$count', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: color == const Color(0xFF007A8E) ? Colors.white : Colors.white)),
+          Text('$count', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
           Text(label, style: const TextStyle(fontSize: 11, color: Colors.white70)),
         ],
       ),

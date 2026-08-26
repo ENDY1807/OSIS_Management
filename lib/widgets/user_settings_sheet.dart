@@ -196,7 +196,7 @@ class _UserSettingsSheetState extends State<UserSettingsSheet> {
                         color: theme.cardTheme.color,
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
-                          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                          color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0),
                         ),
                       ),
                       padding: const EdgeInsets.all(6),
@@ -249,7 +249,7 @@ class _UserSettingsSheetState extends State<UserSettingsSheet> {
                         color: theme.cardTheme.color,
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
-                          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                          color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0),
                         ),
                       ),
                       child: Column(
@@ -262,7 +262,7 @@ class _UserSettingsSheetState extends State<UserSettingsSheet> {
                                 : Icon(Icons.radio_button_unchecked_rounded, color: Colors.grey.shade400, size: 20),
                             onTap: () => LocalizationService.setLanguage('id'),
                           ),
-                          Divider(height: 1, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                          Divider(height: 1, color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0)),
                           ListTile(
                             leading: const Text('🇬🇧', style: TextStyle(fontSize: 20)),
                             title: const Text('English', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
@@ -292,7 +292,7 @@ class _UserSettingsSheetState extends State<UserSettingsSheet> {
                         color: theme.cardTheme.color,
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
-                          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                          color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0),
                         ),
                       ),
                       child: Column(
@@ -304,7 +304,7 @@ class _UserSettingsSheetState extends State<UserSettingsSheet> {
                             onTap: _showChangePasswordDialog,
                           ),
                           if (isAdmin) ...[
-                            Divider(height: 1, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                            Divider(height: 1, color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0)),
                             ListTile(
                               leading: const Icon(Icons.admin_panel_settings_rounded, color: Colors.amber, size: 24),
                               title: const Text('Konfigurasi Super Admin', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.amber)),

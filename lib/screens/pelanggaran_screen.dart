@@ -116,15 +116,17 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
     final siswaCtrl = TextEditingController();
     final siswaFocus = FocusNode();
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModal) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF141D2E) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: isDark ? const Border(top: BorderSide(color: Color(0xFF243452), width: 1)) : null,
           ),
           padding: EdgeInsets.only(
             left: 20, right: 20, top: 20,
@@ -136,10 +138,10 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Center(child: Container(width: 40, height: 4,
-                    decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(2)))),
+                    decoration: BoxDecoration(color: isDark ? const Color(0xFF243452) : kPrimary, borderRadius: BorderRadius.circular(2)))),
                 const SizedBox(height: 16),
-                const Text('Catat Pelanggaran',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kTextDark)),
+                Text('Catat Pelanggaran',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
                 const SizedBox(height: 16),
 
                 // ── Pilih Siswa (Autocomplete) ──
@@ -403,8 +405,17 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primary = theme.colorScheme.primary;
+    final cardBg = isDark ? const Color(0xFF141D2E) : Colors.white;
+    final cardBorder = isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0);
+    final textTitle = isDark ? Colors.white : kTextDark;
+    final textSub = isDark ? const Color(0xFF94A3B8) : kTextMid;
+    final textMuted = isDark ? const Color(0xFF64748B) : kTextLight;
+
     return Scaffold(
-      backgroundColor: kBg,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: () => FocusScope.of(context).unfocus(),
@@ -414,7 +425,10 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
             GestureDetector(
               onTap: _pickDate,
               child: Container(
-                color: kPrimaryDark,
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF0D1424) : kPrimaryDark,
+                  border: isDark ? const Border(bottom: BorderSide(color: Color(0xFF243452))) : null,
+                ),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 child: Row(children: [
                   const Icon(Icons.calendar_today, color: Colors.white, size: 16),
@@ -455,14 +469,14 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
 
             // ── Filter Siswa (Autocomplete, bisa ketik) ──
             Container(
-              color: Colors.white,
+              color: isDark ? const Color(0xFF141D2E) : Colors.white,
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
               child: _siswa.isEmpty
                   ? TextField(
                       readOnly: true,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Filter Siswa',
-                        prefixIcon: Icon(Icons.filter_list, color: kAccent),
+                        prefixIcon: Icon(Icons.filter_list, color: primary),
                         isDense: true,
                       ),
                     )
@@ -490,7 +504,7 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
                           onTapOutside: (_) => fn.unfocus(),
                           decoration: InputDecoration(
                             labelText: 'Filter Siswa',
-                            prefixIcon: const Icon(Icons.filter_list, color: kAccent),
+                            prefixIcon: Icon(Icons.filter_list, color: primary),
                             isDense: true,
                             suffixIcon: _filterSiswaId != null
                                 ? IconButton(
@@ -507,6 +521,7 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
                           alignment: Alignment.topLeft,
                           child: Material(
                             elevation: 4,
+                            color: isDark ? const Color(0xFF1A263D) : Colors.white,
                             borderRadius: BorderRadius.circular(12),
                             child: SizedBox(
                               width: constraints.maxWidth,
@@ -517,9 +532,9 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
                                   shrinkWrap: true,
                                   children: options.map((s) => ListTile(
                                     dense: true,
-                                    title: Text(s.nama, style: const TextStyle(fontSize: 13)),
+                                    title: Text(s.nama, style: TextStyle(fontSize: 13, color: textTitle)),
                                     subtitle: Text('${s.kelas} • NIS: ${s.nis}',
-                                        style: const TextStyle(fontSize: 11)),
+                                        style: TextStyle(fontSize: 11, color: textMuted)),
                                     onTap: () => onSel(s),
                                   )).toList(),
                                 ),
@@ -534,7 +549,7 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
           // ── Summary bar ──
           if (_filtered.isNotEmpty)
             Container(
-              color: kAccent,
+              color: isDark ? const Color(0xFF1A263D) : primary,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(children: [
                 const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 16),
@@ -552,25 +567,25 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
 
           Expanded(
             child: _loading
-                ? const Center(child: CircularProgressIndicator())
+                ? Center(child: CircularProgressIndicator(color: primary))
                 : _filtered.isEmpty
                     ? Center(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.check_circle_outline, size: 72, color: kTextLight),
+                            Icon(Icons.check_circle_outline, size: 72, color: textMuted),
                             const SizedBox(height: 16),
-                            const Text('Tidak ada pelanggaran',
-                                style: TextStyle(fontSize: 16, color: kTextMid)),
+                            Text('Tidak ada pelanggaran',
+                                style: TextStyle(fontSize: 16, color: textSub)),
                             const SizedBox(height: 8),
-                            const Text('Tap + untuk mencatat pelanggaran',
-                                style: TextStyle(fontSize: 12, color: kTextLight)),
+                            Text('Tap + untuk mencatat pelanggaran',
+                                style: TextStyle(fontSize: 12, color: textMuted)),
                           ],
                         ),
                       )
                     : RefreshIndicator(
                         onRefresh: _load,
-                        color: kAccent,
+                        color: primary,
                         child: ListView.builder(
                           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                           itemCount: _filtered.map((p) => p.siswaId).toSet().length,
@@ -582,9 +597,10 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
                             return Container(
                               margin: const EdgeInsets.only(bottom: 10),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: cardBg,
                                 borderRadius: BorderRadius.circular(14),
-                                boxShadow: [BoxShadow(
+                                border: Border.all(color: cardBorder),
+                                boxShadow: isDark ? null : [BoxShadow(
                                     color: kPrimary.withAlpha(80), blurRadius: 6, offset: const Offset(0, 2))],
                               ),
                               child: Padding(
@@ -596,14 +612,14 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
                                       Container(
                                         width: 44, height: 44,
                                         decoration: BoxDecoration(
-                                          color: Colors.orange.shade50,
+                                          color: Colors.orange.withAlpha(isDark ? 45 : 30),
                                           shape: BoxShape.circle,
-                                          border: Border.all(color: Colors.orange.shade200),
+                                          border: Border.all(color: Colors.orange.withAlpha(100)),
                                         ),
                                         child: Center(
                                           child: Text('${pelSiswa.length}',
                                               style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold,
-                                                  color: Colors.orange.shade700)),
+                                                  color: Colors.orange.shade400)),
                                         ),
                                       ),
                                       const SizedBox(width: 12),
@@ -612,10 +628,10 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
                                             Text(_namaSiswa(siswaId),
-                                                style: const TextStyle(fontSize: 14,
-                                                    fontWeight: FontWeight.bold, color: kTextDark)),
+                                                style: TextStyle(fontSize: 14,
+                                                    fontWeight: FontWeight.bold, color: textTitle)),
                                             Text('Kelas ${_kelasSiswa(siswaId)} • ${pelSiswa.length} pelanggaran',
-                                                style: const TextStyle(fontSize: 11, color: kTextLight)),
+                                                style: TextStyle(fontSize: 11, color: textMuted)),
                                           ],
                                         ),
                                       ),

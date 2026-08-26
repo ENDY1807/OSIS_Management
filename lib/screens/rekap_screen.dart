@@ -150,40 +150,42 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
   }
 
   void _showExportPdfModal() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF141D2E) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: isDark ? const Border(top: BorderSide(color: Color(0xFF243452), width: 1)) : null,
         ),
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(2)))),
+            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: isDark ? const Color(0xFF243452) : kPrimary, borderRadius: BorderRadius.circular(2)))),
             const SizedBox(height: 16),
             Row(children: [
               Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(10)),
-                child: const Icon(Icons.picture_as_pdf, color: Colors.red, size: 24),
+                decoration: BoxDecoration(color: Colors.red.withAlpha(isDark ? 45 : 25), borderRadius: BorderRadius.circular(10)),
+                child: const Icon(Icons.picture_as_pdf, color: Colors.redAccent, size: 24),
               ),
               const SizedBox(width: 12),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('Cetak Rekap PDF', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: kTextDark)),
+                Text('Cetak Rekap PDF', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
                 Text('Periode: $_periodeLabel (${_filteredPelanggaran.length} data)',
-                    style: const TextStyle(fontSize: 12, color: kTextMid)),
+                    style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : kTextMid)),
               ])),
             ]),
             const SizedBox(height: 16),
-            const Divider(height: 1),
+            Divider(height: 1, color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0)),
             ListTile(
               leading: const Icon(Icons.category_outlined, color: kAccent),
               title: const Text('Rekap Berdasarkan Jenis Pelanggaran', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-              subtitle: const Text('Tabel total frekuensi per kategori jenis', style: TextStyle(fontSize: 11)),
+              subtitle: Text('Tabel total frekuensi per kategori jenis', style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : null)),
               onTap: () {
                 Navigator.pop(ctx);
                 PdfService.cetakRekap(siswa: _siswa, jenis: _jenis, pelanggaran: _filteredPelanggaran, perJenis: true, periodeLabel: _periodeLabel);
@@ -192,7 +194,7 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
             ListTile(
               leading: const Icon(Icons.person_outline, color: kAccent),
               title: const Text('Rekap Peringkat Siswa', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-              subtitle: const Text('Peringkat siswa paling sering melanggar', style: TextStyle(fontSize: 11)),
+              subtitle: Text('Peringkat siswa paling sering melanggar', style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : null)),
               onTap: () {
                 Navigator.pop(ctx);
                 PdfService.cetakRekap(siswa: _siswa, jenis: _jenis, pelanggaran: _filteredPelanggaran, perJenis: false, periodeLabel: _periodeLabel);
@@ -201,16 +203,16 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
             ListTile(
               leading: const Icon(Icons.school_outlined, color: kAccent),
               title: const Text('Rekap Berdasarkan Kelas', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-              subtitle: const Text('Distribusi jumlah pelanggaran per kelas', style: TextStyle(fontSize: 11)),
+              subtitle: Text('Distribusi jumlah pelanggaran per kelas', style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : null)),
               onTap: () {
                 Navigator.pop(ctx);
                 PdfService.cetakRekapKelas(siswa: _siswa, pelanggaran: _filteredPelanggaran, periodeLabel: _periodeLabel);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.menu_book_outlined, color: Colors.indigo),
-              title: const Text('Rekap Lengkap (Semua)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.indigo)),
-              subtitle: const Text('Gabungan jenis, kelas, dan peringkat siswa', style: TextStyle(fontSize: 11)),
+              leading: const Icon(Icons.menu_book_outlined, color: Colors.indigoAccent),
+              title: const Text('Rekap Lengkap (Semua)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.indigoAccent)),
+              subtitle: Text('Gabungan jenis, kelas, dan peringkat siswa', style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : null)),
               onTap: () {
                 Navigator.pop(ctx);
                 PdfService.cetakRekapLengkap(siswa: _siswa, jenis: _jenis, pelanggaran: _filteredPelanggaran, periodeLabel: _periodeLabel);
@@ -283,18 +285,23 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
     final sortedKelasList = freqKelas.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
     final double maxKelasY = sortedKelasList.isEmpty ? 5.0 : (sortedKelasList.first.value + 2).toDouble();
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
-        decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF141D2E) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: isDark ? const Border(top: BorderSide(color: Color(0xFF243452), width: 1)) : null,
+        ),
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(2)))),
+            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: isDark ? const Color(0xFF243452) : kPrimary, borderRadius: BorderRadius.circular(2)))),
             const SizedBox(height: 16),
             Row(children: [
               CircleAvatar(
@@ -304,21 +311,25 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
               ),
               const SizedBox(width: 12),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(jenis.nama, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: kTextDark)),
-                Text(_periodeLabel, style: const TextStyle(color: kTextLight, fontSize: 11)),
+                Text(jenis.nama, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
+                Text(_periodeLabel, style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : kTextLight, fontSize: 11)),
               ])),
             ]),
             const SizedBox(height: 12),
-            _statCard('${pelMatching.length}', 'Total Kejadian', Colors.red.shade50, Colors.red.shade700),
+            _statCard('${pelMatching.length}', 'Total Kejadian', Colors.red.shade50, Colors.red.shade700, isDark: isDark),
             const SizedBox(height: 16),
 
             if (sortedKelasList.isNotEmpty) ...[
-              const Text('Grafik Distribusi Kelas', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: kTextDark)),
+              Text('Grafik Distribusi Kelas', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
               const SizedBox(height: 8),
               Container(
                 height: 140,
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: kBg, borderRadius: BorderRadius.circular(12)),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF0E1626) : kBg,
+                  borderRadius: BorderRadius.circular(12),
+                  border: isDark ? Border.all(color: const Color(0xFF243452)) : null,
+                ),
                 child: BarChart(BarChartData(
                   alignment: BarChartAlignment.spaceAround,
                   maxY: maxKelasY,
@@ -341,11 +352,12 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
                   titlesData: FlTitlesData(
                     bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (v, _) {
                       final idx = v.toInt();
-                      if (idx < 0 || idx >= sortedKelasList.take(6).length) return const SizedBox();
-                      final kName = sortedKelasList[idx].key;
+                      final displayed = sortedKelasList.take(6).toList();
+                      if (idx < 0 || idx >= displayed.length) return const SizedBox();
+                      final kName = displayed[idx].key;
                       return Padding(
                         padding: const EdgeInsets.only(top: 4),
-                        child: Text(kName.length > 5 ? kName.substring(0, 5) : kName, style: const TextStyle(fontSize: 9, color: kTextMid)),
+                        child: Text(kName.length > 5 ? kName.substring(0, 5) : kName, style: TextStyle(fontSize: 9, color: isDark ? const Color(0xFF94A3B8) : kTextMid)),
                       );
                     })),
                     leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -359,19 +371,19 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
               const SizedBox(height: 16),
             ],
 
-            const Text('Rincian Siswa Melanggar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: kTextDark)),
+            Text('Rincian Siswa Melanggar', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
             const SizedBox(height: 8),
             pelMatching.isEmpty
-                ? const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 20),
-                    child: Center(child: Text('Tidak ada rincian data.', style: TextStyle(color: kTextLight))),
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    child: Center(child: Text('Tidak ada rincian data.', style: TextStyle(color: isDark ? const Color(0xFF64748B) : kTextLight))),
                   )
                 : ConstrainedBox(
                     constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.3),
                     child: ListView.separated(
                       shrinkWrap: true,
                       itemCount: pelMatching.length,
-                      separatorBuilder: (_, i) => const Divider(height: 1, color: kPrimary),
+                      separatorBuilder: (_, i) => Divider(height: 1, color: isDark ? const Color(0xFF243452) : kPrimary),
                       itemBuilder: (ctx, i) {
                         final p = pelMatching[i];
                         final s = _siswa.firstWhere((e) => e.id == p.siswaId, orElse: () => Siswa(id: '', nama: '-', kelas: '-', nis: '-'));
@@ -386,13 +398,13 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
                               Container(width: 7, height: 7, margin: const EdgeInsets.only(right: 10, top: 4),
                                   decoration: const BoxDecoration(shape: BoxShape.circle, color: kAccent)),
                               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                Text(s.nama, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kTextDark)),
+                                Text(s.nama, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : kTextDark)),
                                 Text('Kelas ${s.kelas} • NIS ${s.nis} • ${DateFormat('dd MMM yyyy', 'id').format(p.tanggal)}',
-                                    style: const TextStyle(fontSize: 11, color: kTextLight)),
+                                    style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : kTextLight)),
                                 if (p.keterangan.isNotEmpty)
-                                  Text(p.keterangan, style: const TextStyle(fontSize: 12, color: kTextMid, fontStyle: FontStyle.italic)),
+                                  Text(p.keterangan, style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFCBD5E1) : kTextMid, fontStyle: FontStyle.italic)),
                               ])),
-                              const Icon(Icons.chevron_right, size: 18, color: kTextLight),
+                              Icon(Icons.chevron_right, size: 18, color: isDark ? const Color(0xFF64748B) : kTextLight),
                             ]),
                           ),
                         );
@@ -401,7 +413,7 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
                   ),
             const SizedBox(height: 16),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: kAccent, foregroundColor: Colors.white,
+              style: ElevatedButton.styleFrom(backgroundColor: kAccent, foregroundColor: Colors.black,
                   padding: const EdgeInsets.symmetric(vertical: 13), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
               onPressed: () => Navigator.pop(ctx),
               child: const Text('Tutup', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -426,18 +438,23 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
     final sortedJenisList = freqJenis.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
     final double maxJenisY = sortedJenisList.isEmpty ? 5.0 : (sortedJenisList.first.value + 2).toDouble();
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
-        decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF141D2E) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: isDark ? const Border(top: BorderSide(color: Color(0xFF243452), width: 1)) : null,
+        ),
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(2)))),
+            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: isDark ? const Color(0xFF243452) : kPrimary, borderRadius: BorderRadius.circular(2)))),
             const SizedBox(height: 16),
             Row(children: [
               CircleAvatar(
@@ -447,21 +464,25 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
               ),
               const SizedBox(width: 12),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Kelas $kelas', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: kTextDark)),
-                Text(_periodeLabel, style: const TextStyle(color: kTextLight, fontSize: 11)),
+                Text('Kelas $kelas', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
+                Text(_periodeLabel, style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : kTextLight, fontSize: 11)),
               ])),
             ]),
             const SizedBox(height: 12),
-            _statCard('${pelMatching.length}', 'Total Pelanggaran Kelas', Colors.blue.shade50, Colors.blue.shade700),
+            _statCard('${pelMatching.length}', 'Total Pelanggaran Kelas', Colors.blue.shade50, Colors.blue.shade700, isDark: isDark),
             const SizedBox(height: 16),
 
             if (sortedJenisList.isNotEmpty) ...[
-              const Text('Grafik Jenis Pelanggaran di Kelas Ini', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: kTextDark)),
+              Text('Grafik Jenis Pelanggaran di Kelas Ini', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
               const SizedBox(height: 8),
               Container(
                 height: 140,
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: kBg, borderRadius: BorderRadius.circular(12)),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF0E1626) : kBg,
+                  borderRadius: BorderRadius.circular(12),
+                  border: isDark ? Border.all(color: const Color(0xFF243452)) : null,
+                ),
                 child: BarChart(BarChartData(
                   alignment: BarChartAlignment.spaceAround,
                   maxY: maxJenisY,
@@ -488,12 +509,14 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
                   titlesData: FlTitlesData(
                     bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (v, _) {
                       final idx = v.toInt();
-                      if (idx < 0 || idx >= sortedJenisList.take(6).length) return const SizedBox();
-                      final jId = sortedJenisList[idx].key;
+                      final displayed = sortedJenisList.take(6).toList();
+                      if (idx < 0 || idx >= displayed.length) return const SizedBox();
+                      final jId = displayed[idx].key;
                       final jObj = _jenis.firstWhere((e) => e.id == jId, orElse: () => JenisPelanggaran(id: '', nama: '-'));
+                      final jName = jObj.nama;
                       return Padding(
                         padding: const EdgeInsets.only(top: 4),
-                        child: Text(jObj.nama.length > 5 ? '${jObj.nama.substring(0, 5)}..' : jObj.nama, style: const TextStyle(fontSize: 9, color: kTextMid)),
+                        child: Text(jName.length > 5 ? jName.substring(0, 5) : jName, style: TextStyle(fontSize: 9, color: isDark ? const Color(0xFF94A3B8) : kTextMid)),
                       );
                     })),
                     leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -507,19 +530,19 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
               const SizedBox(height: 16),
             ],
 
-            const Text('Daftar Pelanggaran Siswa Kelas Ini', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: kTextDark)),
+            Text('Rincian Siswa Melanggar di Kelas Ini', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
             const SizedBox(height: 8),
             pelMatching.isEmpty
-                ? const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 20),
-                    child: Center(child: Text('Tidak ada pelanggaran pada periode ini.', style: TextStyle(color: kTextLight))),
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    child: Center(child: Text('Tidak ada rincian data.', style: TextStyle(color: isDark ? const Color(0xFF64748B) : kTextLight))),
                   )
                 : ConstrainedBox(
                     constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.3),
                     child: ListView.separated(
                       shrinkWrap: true,
                       itemCount: pelMatching.length,
-                      separatorBuilder: (_, i) => const Divider(height: 1, color: kPrimary),
+                      separatorBuilder: (_, i) => Divider(height: 1, color: isDark ? const Color(0xFF243452) : kPrimary),
                       itemBuilder: (ctx, i) {
                         final p = pelMatching[i];
                         final s = _siswa.firstWhere((e) => e.id == p.siswaId, orElse: () => Siswa(id: '', nama: '-', kelas: '-', nis: '-'));
@@ -535,13 +558,13 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
                               Container(width: 7, height: 7, margin: const EdgeInsets.only(right: 10, top: 4),
                                   decoration: const BoxDecoration(shape: BoxShape.circle, color: kAccent)),
                               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                Text(s.nama, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kTextDark)),
+                                Text(s.nama, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : kTextDark)),
                                 Text('${j.nama} • ${DateFormat('dd MMM yyyy', 'id').format(p.tanggal)}',
-                                    style: const TextStyle(fontSize: 11, color: kTextLight)),
+                                    style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : kTextLight)),
                                 if (p.keterangan.isNotEmpty)
-                                  Text(p.keterangan, style: const TextStyle(fontSize: 12, color: kTextMid, fontStyle: FontStyle.italic)),
+                                  Text(p.keterangan, style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFCBD5E1) : kTextMid, fontStyle: FontStyle.italic)),
                               ])),
-                              const Icon(Icons.chevron_right, size: 18, color: kTextLight),
+                              Icon(Icons.chevron_right, size: 18, color: isDark ? const Color(0xFF64748B) : kTextLight),
                             ]),
                           ),
                         );
@@ -577,7 +600,7 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
                 Expanded(
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: kTextDark,
+                      foregroundColor: isDark ? Colors.white : kTextDark,
                       padding: const EdgeInsets.symmetric(vertical: 13),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
@@ -596,46 +619,51 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
   void _showDetailSiswa(Siswa siswa) {
     final pelanggaranSiswa = _filteredPelanggaran.where((p) => p.siswaId == siswa.id).toList();
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
-        decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF141D2E) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: isDark ? const Border(top: BorderSide(color: Color(0xFF243452), width: 1)) : null,
+        ),
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(2)))),
+            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: isDark ? const Color(0xFF243452) : kPrimary, borderRadius: BorderRadius.circular(2)))),
             const SizedBox(height: 16),
             Row(children: [
-              CircleAvatar(radius: 26, backgroundColor: kPrimary,
-                child: Text(siswa.nama.substring(0, 1).toUpperCase(),
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kTextDark))),
+              CircleAvatar(radius: 26, backgroundColor: isDark ? const Color(0xFF1A263D) : kPrimary,
+                child: Text(siswa.nama.isNotEmpty ? siswa.nama.substring(0, 1).toUpperCase() : '?',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark))),
               const SizedBox(width: 12),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(siswa.nama, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: kTextDark)),
-                Text('Kelas ${siswa.kelas} • NIS ${siswa.nis}', style: const TextStyle(color: kTextMid, fontSize: 13)),
-                Text(_periodeLabel, style: const TextStyle(color: kTextLight, fontSize: 11)),
+                Text(siswa.nama, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
+                Text('Kelas ${siswa.kelas} • NIS ${siswa.nis}', style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : kTextMid, fontSize: 13)),
+                Text(_periodeLabel, style: TextStyle(color: isDark ? const Color(0xFF64748B) : kTextLight, fontSize: 11)),
               ])),
             ]),
             const SizedBox(height: 12),
-            _statCard('${pelanggaranSiswa.length}', 'Total Pelanggaran', Colors.orange.shade50, Colors.orange.shade700),
+            _statCard('${pelanggaranSiswa.length}', 'Total Pelanggaran', Colors.orange.shade50, Colors.orange.shade700, isDark: isDark),
             const SizedBox(height: 16),
-            const Text('Riwayat Pelanggaran', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: kTextDark)),
+            Text('Riwayat Pelanggaran', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
             const SizedBox(height: 8),
             pelanggaranSiswa.isEmpty
-                ? const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 20),
-                    child: Center(child: Text('Tidak ada pelanggaran pada periode ini.', style: TextStyle(color: kTextLight))),
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    child: Center(child: Text('Tidak ada pelanggaran pada periode ini.', style: TextStyle(color: isDark ? const Color(0xFF64748B) : kTextLight))),
                   )
                 : ConstrainedBox(
                     constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.3),
                     child: ListView.separated(
                       shrinkWrap: true,
                       itemCount: pelanggaranSiswa.length,
-                      separatorBuilder: (_, i) => const Divider(height: 1, color: kPrimary),
+                      separatorBuilder: (_, i) => Divider(height: 1, color: isDark ? const Color(0xFF243452) : kPrimary),
                       itemBuilder: (ctx, i) {
                         final p = pelanggaranSiswa[i];
                         final j = _jenis.firstWhere((e) => e.id == p.jenisId, orElse: () => JenisPelanggaran(id: '', nama: '-'));
@@ -645,11 +673,11 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
                             Container(width: 7, height: 7, margin: const EdgeInsets.only(right: 10, top: 4),
                                 decoration: const BoxDecoration(shape: BoxShape.circle, color: kAccent)),
                             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              Text(j.nama, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kTextDark)),
+                              Text(j.nama, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : kTextDark)),
                               Text(DateFormat('dd MMMM yyyy', 'id').format(p.tanggal),
-                                  style: const TextStyle(fontSize: 11, color: kTextLight)),
+                                  style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : kTextLight)),
                               if (p.keterangan.isNotEmpty)
-                                Text(p.keterangan, style: const TextStyle(fontSize: 12, color: kTextMid, fontStyle: FontStyle.italic)),
+                                Text(p.keterangan, style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFCBD5E1) : kTextMid, fontStyle: FontStyle.italic)),
                             ])),
                           ]),
                         );
@@ -680,17 +708,25 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
     );
   }
 
-  Widget _statCard(String value, String label, Color bg, Color fg) => Container(
+  Widget _statCard(String value, String label, Color bg, Color fg, {bool isDark = false}) => Container(
     padding: const EdgeInsets.symmetric(vertical: 12),
-    decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
+    decoration: BoxDecoration(
+      color: isDark ? fg.withAlpha(35) : bg,
+      borderRadius: BorderRadius.circular(12),
+      border: isDark ? Border.all(color: fg.withAlpha(70)) : null,
+    ),
     child: Column(children: [
-      Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: fg)),
-      Text(label, style: TextStyle(fontSize: 11, color: fg, fontWeight: FontWeight.w500)),
+      Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: isDark ? Colors.white : fg)),
+      Text(label, style: TextStyle(fontSize: 11, color: isDark ? Colors.white70 : fg, fontWeight: FontWeight.w500)),
     ]),
   );
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primary = theme.colorScheme.primary;
+
     final rekapJenis = _rekapPerJenis;
     final rekapSiswa = _rekapPerSiswa;
     final rekapKelasMap = _rekapPerKelas;
@@ -702,8 +738,15 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
     final double maxY = rekapJenis.values.isEmpty ? 10.0 : (rekapJenis.values.reduce((a, b) => a > b ? a : b) + 2).toDouble();
     final double maxKelasY = sortedKelasList.isEmpty ? 10.0 : (sortedKelasList.first.value + 2).toDouble();
 
+    final cardBg = isDark ? const Color(0xFF141D2E) : Colors.white;
+    final cardBorder = isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0);
+    final chartBg = isDark ? const Color(0xFF0E1626) : kBg;
+    final textTitle = isDark ? Colors.white : kTextDark;
+    final textSub = isDark ? const Color(0xFF94A3B8) : kTextMid;
+    final textMuted = isDark ? const Color(0xFF64748B) : kTextLight;
+
     return Scaffold(
-      backgroundColor: kBg,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: const Text('Rekap Pelanggaran'),
@@ -723,80 +766,84 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
       ),
       body: Column(children: [
         Container(
-          color: Colors.white,
+          color: isDark ? const Color(0xFF0D1424) : Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(children: [
-              _filterChip('semua', 'Semua', Icons.all_inclusive),
+              _filterChip('semua', 'Semua', Icons.all_inclusive, isDark: isDark, primary: primary),
               const SizedBox(width: 8),
-              _filterChip('hari_ini', 'Hari Ini', Icons.today),
+              _filterChip('hari_ini', 'Hari Ini', Icons.today, isDark: isDark, primary: primary),
               const SizedBox(width: 8),
-              _filterChip('minggu', '7 Hari', Icons.calendar_view_week),
+              _filterChip('minggu', '7 Hari', Icons.calendar_view_week, isDark: isDark, primary: primary),
               const SizedBox(width: 8),
-              _filterChip('bulan', 'Bulanan', Icons.calendar_month),
+              _filterChip('bulan', 'Bulanan', Icons.calendar_month, isDark: isDark, primary: primary),
               const SizedBox(width: 8),
-              _filterChip('tahun', 'Tahunan', Icons.calendar_today),
+              _filterChip('tahun', 'Tahunan', Icons.calendar_today, isDark: isDark, primary: primary),
               const SizedBox(width: 8),
-              _customDateFilterChip(),
+              _customDateFilterChip(isDark: isDark, primary: primary),
             ]),
           ),
         ),
         if (_filterPeriod == 'custom' && _customDateRange != null)
           Container(
-            color: kAccent.withAlpha(25),
+            color: isDark ? primary.withAlpha(35) : kAccent.withAlpha(25),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             child: Row(
               children: [
-                const Icon(Icons.date_range, size: 14, color: kAccent),
+                Icon(Icons.date_range, size: 14, color: primary),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     'Rentang: $_periodeLabel',
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kPrimaryDark),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kPrimaryDark),
                   ),
                 ),
                 InkWell(
                   onTap: _pickCustomDateRange,
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: const [
-                      Text('Ubah', style: TextStyle(fontSize: 12, color: kAccent, fontWeight: FontWeight.bold)),
-                      SizedBox(width: 4),
-                      Icon(Icons.edit_outlined, size: 14, color: kAccent),
+                    children: [
+                      Text('Ubah', style: TextStyle(fontSize: 12, color: primary, fontWeight: FontWeight.bold)),
+                      const SizedBox(width: 4),
+                      Icon(Icons.edit_outlined, size: 14, color: primary),
                     ],
                   ),
                 ),
               ],
             ),
           ),
-        const Divider(height: 1, color: kPrimary),
+        Divider(height: 1, color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0)),
         Expanded(
           child: _loading
-              ? const Center(child: CircularProgressIndicator())
+              ? Center(child: CircularProgressIndicator(color: primary))
               : TabBarView(controller: _tab, children: [
                   // Tab Per Jenis
                   _filteredPelanggaran.isEmpty
-                      ? _emptyState('Belum ada data pelanggaran')
+                      ? _emptyState('Belum ada data pelanggaran', isDark: isDark)
                       : RefreshIndicator(
                           onRefresh: _load,
-                          color: kAccent,
+                          color: primary,
                           child: SingleChildScrollView(
                             physics: const AlwaysScrollableScrollPhysics(),
                             padding: const EdgeInsets.all(16),
                             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: const [
-                                  Text('Grafik Distribusi', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: kTextDark)),
-                                  Text('(Ketuk batang untuk detail)', style: TextStyle(fontSize: 11, color: kTextLight, fontStyle: FontStyle.italic)),
+                                children: [
+                                  Text('Grafik Distribusi', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textTitle)),
+                                  Text('(Ketuk batang untuk detail)', style: TextStyle(fontSize: 11, color: textMuted, fontStyle: FontStyle.italic)),
                                 ],
                               ),
                               const SizedBox(height: 16),
                               Container(
                                 padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [BoxShadow(color: kPrimary.withAlpha(80), blurRadius: 8)]),
+                                decoration: BoxDecoration(
+                                  color: cardBg,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: cardBorder),
+                                  boxShadow: isDark ? null : [BoxShadow(color: kPrimary.withAlpha(80), blurRadius: 8)],
+                                ),
                                 child: SizedBox(
                                   height: 200,
                                   child: BarChart(BarChartData(
@@ -812,7 +859,7 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
                                         }
                                       },
                                       touchTooltipData: BarTouchTooltipData(
-                                        getTooltipColor: (_) => kAccent,
+                                        getTooltipColor: (_) => primary,
                                         getTooltipItem: (g, gi, rod, ri) => BarTooltipItem(
                                           '${_jenis[g.x.toInt()].nama}\n${rod.toY.toInt()} kali\n(Ketuk untuk detail)',
                                           const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
@@ -823,9 +870,9 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
                                       final count = rekapJenis[e.value.id] ?? 0;
                                       return BarChartGroupData(x: e.key, barRods: [BarChartRodData(
                                         toY: count.toDouble(),
-                                        gradient: const LinearGradient(colors: [kPrimaryDark, kAccent], begin: Alignment.bottomCenter, end: Alignment.topCenter),
+                                        gradient: LinearGradient(colors: isDark ? [primary.withAlpha(160), primary] : [kPrimaryDark, kAccent], begin: Alignment.bottomCenter, end: Alignment.topCenter),
                                         width: 20, borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
-                                        backDrawRodData: BackgroundBarChartRodData(show: true, toY: maxY, color: kBg),
+                                        backDrawRodData: BackgroundBarChartRodData(show: true, toY: maxY, color: chartBg),
                                       )]);
                                     }).toList(),
                                     titlesData: FlTitlesData(
@@ -836,22 +883,22 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
                                           final nm = _jenis[idx].nama;
                                           return Padding(padding: const EdgeInsets.only(top: 6),
                                               child: Text(nm.length > 7 ? '${nm.substring(0, 7)}..' : nm,
-                                                  style: const TextStyle(fontSize: 9, color: kTextMid, fontWeight: FontWeight.bold)));
+                                                  style: TextStyle(fontSize: 9, color: textSub, fontWeight: FontWeight.bold)));
                                         },
                                       )),
                                       leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 24,
-                                        getTitlesWidget: (v, _) => Text(v.toInt().toString(), style: const TextStyle(fontSize: 9, color: kTextLight)))),
+                                        getTitlesWidget: (v, _) => Text(v.toInt().toString(), style: TextStyle(fontSize: 9, color: textMuted)))),
                                       topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                                       rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                                     ),
                                     gridData: FlGridData(show: true, drawVerticalLine: false,
-                                        getDrawingHorizontalLine: (_) => const FlLine(color: kPrimary, strokeWidth: 0.5)),
+                                        getDrawingHorizontalLine: (_) => FlLine(color: isDark ? const Color(0xFF243452) : kPrimary, strokeWidth: 0.5)),
                                     borderData: FlBorderData(show: false),
                                   )),
                                 ),
                               ),
                               const SizedBox(height: 20),
-                              const Text('Rincian per Jenis', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: kTextDark)),
+                              Text('Rincian per Jenis', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textTitle)),
                               const SizedBox(height: 8),
                               ..._jenis.map((j) {
                                 final count = rekapJenis[j.id] ?? 0;
@@ -862,23 +909,23 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
                                     margin: const EdgeInsets.only(bottom: 8),
                                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                                     decoration: BoxDecoration(
-                                      color: Colors.white,
+                                      color: cardBg,
                                       borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(color: count > 0 ? kPrimary : const Color(0xFFEEEEEE)),
-                                      boxShadow: [BoxShadow(color: kPrimary.withAlpha(50), blurRadius: 4)],
+                                      border: Border.all(color: cardBorder),
+                                      boxShadow: isDark ? null : [BoxShadow(color: kPrimary.withAlpha(50), blurRadius: 4)],
                                     ),
                                     child: Row(children: [
-                                      Expanded(child: Text(j.nama, style: const TextStyle(fontWeight: FontWeight.bold, color: kTextDark, fontSize: 14))),
+                                      Expanded(child: Text(j.nama, style: TextStyle(fontWeight: FontWeight.bold, color: textTitle, fontSize: 14))),
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                         decoration: BoxDecoration(
-                                          color: count > 0 ? kAccent : Colors.grey.shade300,
+                                          color: count > 0 ? primary : (isDark ? const Color(0xFF243452) : Colors.grey.shade300),
                                           borderRadius: BorderRadius.circular(20),
                                         ),
                                         child: Text('$count kali', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
                                       ),
                                       const SizedBox(width: 8),
-                                      const Icon(Icons.chevron_right, color: kTextLight, size: 20),
+                                      Icon(Icons.chevron_right, color: textMuted, size: 20),
                                     ]),
                                   ),
                                 );
@@ -889,10 +936,10 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
 
                   // Tab Per Siswa
                   _filteredPelanggaran.isEmpty
-                      ? _emptyState('Belum ada data pelanggaran')
+                      ? _emptyState('Belum ada data pelanggaran', isDark: isDark)
                       : RefreshIndicator(
                           onRefresh: _load,
-                          color: kAccent,
+                          color: primary,
                           child: ListView.builder(
                             physics: const AlwaysScrollableScrollPhysics(),
                             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
@@ -908,29 +955,30 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
                                   margin: const EdgeInsets.only(bottom: 10),
                                   padding: const EdgeInsets.all(14),
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color: cardBg,
                                     borderRadius: BorderRadius.circular(14),
-                                    boxShadow: [BoxShadow(color: kPrimary.withAlpha(80), blurRadius: 6, offset: const Offset(0, 2))],
+                                    border: Border.all(color: cardBorder),
+                                    boxShadow: isDark ? null : [BoxShadow(color: kPrimary.withAlpha(80), blurRadius: 6, offset: const Offset(0, 2))],
                                   ),
                                   child: Row(children: [
                                     Container(
                                       width: 36, height: 36,
                                       decoration: BoxDecoration(
-                                        color: rank <= 3 ? [kAccent, kPrimaryDark, const Color(0xFFB2EBF2)][rank - 1] : kBg,
+                                        color: rank <= 3 ? [primary, kPrimaryDark, const Color(0xFFB2EBF2)][rank - 1] : (isDark ? const Color(0xFF1A263D) : kBg),
                                         shape: BoxShape.circle,
                                       ),
                                       child: Center(child: Text('$rank',
                                           style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold,
-                                              color: rank <= 2 ? Colors.white : kTextDark))),
+                                              color: rank <= 2 ? Colors.white : (isDark ? Colors.white : kTextDark)))),
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                      Text(siswa.nama, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: kTextDark)),
-                                      Text('Kelas ${siswa.kelas} • NIS: ${siswa.nis}', style: const TextStyle(fontSize: 12, color: kTextLight)),
+                                      Text(siswa.nama, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: textTitle)),
+                                      Text('Kelas ${siswa.kelas} • NIS: ${siswa.nis}', style: TextStyle(fontSize: 12, color: textSub)),
                                       const SizedBox(height: 4),
-                                      _badge('${entry.value}x pelanggaran', Colors.orange.shade700, Colors.orange.shade50),
+                                      _badge('${entry.value}x pelanggaran', Colors.orange.shade700, Colors.orange.withAlpha(isDark ? 45 : 30)),
                                     ])),
-                                    const Icon(Icons.chevron_right, color: kTextLight),
+                                    Icon(Icons.chevron_right, color: textMuted),
                                   ]),
                                 ),
                               );
@@ -941,7 +989,7 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
                   // Tab Per Kelas
                    RefreshIndicator(
                           onRefresh: _load,
-                          color: kAccent,
+                          color: primary,
                           child: SingleChildScrollView(
                             physics: const AlwaysScrollableScrollPhysics(),
                             padding: const EdgeInsets.all(16),
@@ -950,16 +998,20 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
                               children: [
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: const [
-                                    Text('Grafik Distribusi per Kelas', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: kTextDark)),
-                                    Text('(Ketuk untuk detail)', style: TextStyle(fontSize: 11, color: kTextLight, fontStyle: FontStyle.italic)),
+                                  children: [
+                                    Text('Grafik Distribusi per Kelas', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textTitle)),
+                                    Text('(Ketuk untuk detail)', style: TextStyle(fontSize: 11, color: textMuted, fontStyle: FontStyle.italic)),
                                   ],
                                 ),
                                 const SizedBox(height: 12),
                                 Container(
                                   padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16),
-                                      boxShadow: [BoxShadow(color: kPrimary.withAlpha(80), blurRadius: 8)]),
+                                  decoration: BoxDecoration(
+                                    color: cardBg,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: cardBorder),
+                                    boxShadow: isDark ? null : [BoxShadow(color: kPrimary.withAlpha(80), blurRadius: 8)],
+                                  ),
                                   child: SizedBox(
                                     height: 180,
                                     child: BarChart(BarChartData(
@@ -969,19 +1021,19 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
                                         touchCallback: (FlTouchEvent event, barTouchResponse) {
                                           if (event is FlTapUpEvent && barTouchResponse != null && barTouchResponse.spot != null) {
                                             final idx = barTouchResponse.spot!.touchedBarGroupIndex;
-                                            final displayedKelas = sortedKelasList.take(8).toList();
-                                            if (idx >= 0 && idx < displayedKelas.length) {
-                                              _showDetailKelas(displayedKelas[idx].key);
+                                            final displayed = sortedKelasList.take(8).toList();
+                                            if (idx >= 0 && idx < displayed.length) {
+                                              _showDetailKelas(displayed[idx].key);
                                             }
                                           }
                                         },
                                         touchTooltipData: BarTouchTooltipData(
-                                          getTooltipColor: (_) => kAccent,
+                                          getTooltipColor: (_) => primary,
                                           getTooltipItem: (g, gi, rod, ri) {
-                                            final displayedKelas = sortedKelasList.take(8).toList();
-                                            final kName = displayedKelas[g.x.toInt()].key;
+                                            final displayed = sortedKelasList.take(8).toList();
+                                            final kName = g.x.toInt() < displayed.length ? displayed[g.x.toInt()].key : '';
                                             return BarTooltipItem(
-                                              'Kelas $kName\n${rod.toY.toInt()} pelanggaran\n(Ketuk untuk detail)',
+                                              'Kelas $kName\n${rod.toY.toInt()} pelanggaran',
                                               const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
                                             );
                                           },
@@ -990,44 +1042,43 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
                                       barGroups: sortedKelasList.take(8).toList().asMap().entries.map((e) {
                                         return BarChartGroupData(x: e.key, barRods: [BarChartRodData(
                                           toY: e.value.value.toDouble(),
-                                          gradient: const LinearGradient(colors: [kAccent, kPrimaryDark], begin: Alignment.bottomCenter, end: Alignment.topCenter),
+                                          gradient: LinearGradient(colors: isDark ? [primary.withAlpha(160), primary] : [kAccent, kPrimaryDark], begin: Alignment.bottomCenter, end: Alignment.topCenter),
                                           width: 18, borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
-                                          backDrawRodData: BackgroundBarChartRodData(show: true, toY: maxKelasY, color: kBg),
+                                          backDrawRodData: BackgroundBarChartRodData(show: true, toY: maxKelasY, color: chartBg),
                                         )]);
                                       }).toList(),
                                       titlesData: FlTitlesData(
                                         bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true,
                                           getTitlesWidget: (v, _) {
                                             final idx = v.toInt();
-                                            final displayedKelas = sortedKelasList.take(8).toList();
-                                            if (idx < 0 || idx >= displayedKelas.length) return const SizedBox();
-                                            final nm = displayedKelas[idx].key;
+                                            final displayed = sortedKelasList.take(8).toList();
+                                            if (idx < 0 || idx >= displayed.length) return const SizedBox();
+                                            final kName = displayed[idx].key;
                                             return Padding(padding: const EdgeInsets.only(top: 6),
-                                                child: Text(nm.length > 6 ? '${nm.substring(0, 6)}..' : nm,
-                                                    style: const TextStyle(fontSize: 9, color: kTextMid, fontWeight: FontWeight.bold)));
+                                                child: Text(kName, style: TextStyle(fontSize: 10, color: textSub, fontWeight: FontWeight.bold)));
                                           },
                                         )),
                                         leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 24,
-                                          getTitlesWidget: (v, _) => Text(v.toInt().toString(), style: const TextStyle(fontSize: 9, color: kTextLight)))),
+                                          getTitlesWidget: (v, _) => Text(v.toInt().toString(), style: TextStyle(fontSize: 9, color: textMuted)))),
                                         topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                                         rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                                       ),
                                       gridData: FlGridData(show: true, drawVerticalLine: false,
-                                          getDrawingHorizontalLine: (_) => const FlLine(color: kPrimary, strokeWidth: 0.5)),
+                                          getDrawingHorizontalLine: (_) => FlLine(color: isDark ? const Color(0xFF243452) : kPrimary, strokeWidth: 0.5)),
                                       borderData: FlBorderData(show: false),
                                     )),
                                   ),
                                 ),
                                 const SizedBox(height: 20),
-                                const Text('Daftar Rekap Kelas', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: kTextDark)),
+                                Text('Daftar Rekap Kelas', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textTitle)),
                                 const SizedBox(height: 10),
                                 // Search bar for class filter
                                 TextField(
-                                  decoration: const InputDecoration(
+                                  decoration: InputDecoration(
                                     hintText: 'Cari kelas...',
-                                    prefixIcon: Icon(Icons.search, color: kAccent, size: 20),
+                                    prefixIcon: Icon(Icons.search, color: primary, size: 20),
                                     isDense: true,
-                                    contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                                    contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
                                   ),
                                   onChanged: (v) => setState(() => _searchKelas = v),
                                 ),
@@ -1047,24 +1098,24 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
                                       margin: const EdgeInsets.only(bottom: 8),
                                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                                       decoration: BoxDecoration(
-                                        color: Colors.white,
+                                        color: cardBg,
                                         borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(color: kPrimary),
-                                        boxShadow: [BoxShadow(color: kPrimary.withAlpha(50), blurRadius: 4)],
+                                        border: Border.all(color: cardBorder),
+                                        boxShadow: isDark ? null : [BoxShadow(color: kPrimary.withAlpha(50), blurRadius: 4)],
                                       ),
                                       child: Row(
                                         children: [
-                                          Expanded(child: Text('Kelas $kelas', style: const TextStyle(fontWeight: FontWeight.bold, color: kTextDark, fontSize: 14))),
+                                          Expanded(child: Text('Kelas $kelas', style: TextStyle(fontWeight: FontWeight.bold, color: textTitle, fontSize: 14))),
                                           Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                             decoration: BoxDecoration(
-                                              color: kAccent,
+                                              color: primary,
                                               borderRadius: BorderRadius.circular(20),
                                             ),
                                             child: Text('$count pelanggaran', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
                                           ),
                                           const SizedBox(width: 8),
-                                          const Icon(Icons.chevron_right, color: kTextLight, size: 20),
+                                          Icon(Icons.chevron_right, color: textMuted, size: 20),
                                         ],
                                       ),
                                     ),
@@ -1086,43 +1137,45 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
     child: Text(text, style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.bold)),
   );
 
-  Widget _filterChip(String value, String label, IconData icon) {
+  Widget _filterChip(String value, String label, IconData icon, {bool isDark = false, Color primary = kAccent}) {
     final selected = _filterPeriod == value;
     return GestureDetector(
       onTap: () => setState(() => _filterPeriod = value),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: selected ? kAccent : kPrimary.withAlpha(60),
+          color: selected
+              ? primary
+              : (isDark ? const Color(0xFF141D2E) : kPrimary.withAlpha(60)),
           borderRadius: BorderRadius.circular(20),
+          border: isDark && !selected ? Border.all(color: const Color(0xFF243452)) : null,
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, size: 14, color: selected ? Colors.white : kTextMid),
+          Icon(icon, size: 14, color: selected ? Colors.white : (isDark ? const Color(0xFF94A3B8) : kTextMid)),
           const SizedBox(width: 6),
-          Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: selected ? Colors.white : kTextMid)),
+          Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: selected ? Colors.white : (isDark ? const Color(0xFF94A3B8) : kTextMid))),
         ]),
       ),
     );
   }
 
-  Widget _customDateFilterChip() {
+  Widget _customDateFilterChip({bool isDark = false, Color primary = kAccent}) {
     final isCustom = _filterPeriod == 'custom';
     return GestureDetector(
       onTap: () {
-        if (!isCustom) {
-          _pickCustomDateRange();
-        } else {
-          _pickCustomDateRange();
-        }
+        _pickCustomDateRange();
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: isCustom ? Colors.indigo : kPrimary.withAlpha(60),
+          color: isCustom
+              ? (isDark ? primary : Colors.indigo)
+              : (isDark ? const Color(0xFF141D2E) : kPrimary.withAlpha(60)),
           borderRadius: BorderRadius.circular(20),
+          border: isDark && !isCustom ? Border.all(color: const Color(0xFF243452)) : null,
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.date_range, size: 14, color: isCustom ? Colors.white : kTextMid),
+          Icon(Icons.date_range, size: 14, color: isCustom ? Colors.white : (isDark ? const Color(0xFF94A3B8) : kTextMid)),
           const SizedBox(width: 6),
           Text(
             _customDateRange != null && isCustom
@@ -1131,7 +1184,7 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: isCustom ? Colors.white : kTextMid,
+              color: isCustom ? Colors.white : (isDark ? const Color(0xFF94A3B8) : kTextMid),
             ),
           ),
         ]),
@@ -1139,9 +1192,9 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
     );
   }
 
-  Widget _emptyState(String msg) => Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-    const Icon(Icons.bar_chart, size: 64, color: kTextLight),
+  Widget _emptyState(String msg, {bool isDark = false}) => Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+    Icon(Icons.bar_chart, size: 64, color: isDark ? const Color(0xFF64748B) : kTextLight),
     const SizedBox(height: 12),
-    Text(msg, style: const TextStyle(fontSize: 15, color: kTextMid)),
+    Text(msg, style: TextStyle(fontSize: 15, color: isDark ? const Color(0xFF94A3B8) : kTextMid)),
   ]));
 }

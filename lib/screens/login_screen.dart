@@ -202,11 +202,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       opacity: _fade,
                       child: Container(
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                          color: isDark ? const Color(0xFF141D2E) : Colors.white,
                           borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                          border: isDark ? const Border(top: BorderSide(color: Color(0xFF243452), width: 1)) : null,
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withAlpha(isDark ? 80 : 30),
+                              color: Colors.black.withAlpha(isDark ? 90 : 30),
                               blurRadius: 20,
                               offset: const Offset(0, -4),
                             ),
@@ -339,9 +340,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF7F8FA),
+        color: isDark ? const Color(0xFF0E1626) : const Color(0xFFF7F8FA),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE8E8E8)),
+        border: Border.all(color: isDark ? const Color(0xFF243452) : const Color(0xFFE8E8E8)),
       ),
       child: TextField(
         controller: controller,
@@ -350,7 +351,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         style: TextStyle(fontSize: 14, color: isDark ? Colors.white : Colors.black87),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: TextStyle(color: isDark ? Colors.grey.shade600 : Colors.grey.shade400, fontSize: 13),
+          hintStyle: TextStyle(color: isDark ? const Color(0xFF64748B) : Colors.grey.shade400, fontSize: 13),
           prefixIcon: Icon(icon, color: Theme.of(context).colorScheme.primary, size: 20),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 16),
@@ -362,9 +363,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   Widget _passwordBox({required bool isDark}) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF7F8FA),
+        color: isDark ? const Color(0xFF0E1626) : const Color(0xFFF7F8FA),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE8E8E8)),
+        border: Border.all(color: isDark ? const Color(0xFF243452) : const Color(0xFFE8E8E8)),
       ),
       child: TextField(
         controller: _passC,
@@ -373,7 +374,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         style: TextStyle(fontSize: 14, color: isDark ? Colors.white : Colors.black87),
         decoration: InputDecoration(
           hintText: LocalizationService.tr('password'),
-          hintStyle: TextStyle(color: isDark ? Colors.grey.shade600 : Colors.grey.shade400),
+          hintStyle: TextStyle(color: isDark ? const Color(0xFF64748B) : Colors.grey.shade400),
           prefixIcon: Icon(Icons.lock_outline_rounded, color: Theme.of(context).colorScheme.primary, size: 20),
           suffixIcon: IconButton(
             icon: Icon(_obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,

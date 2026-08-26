@@ -200,10 +200,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: isDark
-                  ? [const Color(0xFF111827), const Color(0xFF1E293B)]
+                  ? [const Color(0xFF0A0E1A), const Color(0xFF141D2E)]
                   : [const Color(0xFF03045E), const Color(0xFF0077B6)],
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
+            ),
+            border: Border(
+              bottom: BorderSide(
+                color: isDark ? const Color(0xFF243452) : Colors.transparent,
+                width: 1,
+              ),
             ),
           ),
         ),
@@ -373,9 +379,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: theme.navigationBarTheme.backgroundColor,
+          border: Border(
+            top: BorderSide(
+              color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0),
+              width: 1,
+            ),
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withAlpha(isDark ? 40 : 18),
+              color: Colors.black.withAlpha(isDark ? 50 : 15),
               blurRadius: 16,
               offset: const Offset(0, -2),
             ),
@@ -410,8 +422,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         builder: (ctx, setM) => Container(
           height: MediaQuery.of(ctx).size.height * 0.75,
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            color: isDark ? const Color(0xFF141D2E) : Colors.white,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: isDark ? const Border(top: BorderSide(color: Color(0xFF243452), width: 1)) : null,
           ),
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
           child: Column(
@@ -422,7 +435,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: isDark ? Colors.white24 : const Color(0xFFA2EBFB),
+                    color: isDark ? const Color(0xFF243452) : const Color(0xFFA2EBFB),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
