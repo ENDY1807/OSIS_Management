@@ -559,7 +559,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
           const SizedBox(height: 12),
           GridView.builder(
             shrinkWrap: true,
-            physics: const NeverScrollableScrollExceptionScrollPhysics(),
+            physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               mainAxisExtent: 74,
@@ -835,7 +835,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
                 ),
                 ListView.separated(
                   shrinkWrap: true,
-                  physics: const NeverScrollableScrollExceptionScrollPhysics(),
+                  physics: const NeverScrollableScrollPhysics(),
                   itemCount: _sekbidList.length,
                   separatorBuilder: (_, __) => const Divider(height: 1),
                   itemBuilder: (_, i) {

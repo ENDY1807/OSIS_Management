@@ -213,7 +213,7 @@ class _ColorWheelPainter extends CustomPainter {
     final radialPaint = Paint()
       ..shader = RadialGradient(
         colors: [
-          Colors.white.withOpacity(hsv.value),
+          Colors.white.withAlpha((hsv.value * 255).round()),
           Colors.transparent,
         ],
       ).createShader(Rect.fromCircle(center: center, radius: radius));

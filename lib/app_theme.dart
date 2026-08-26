@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'services/app_settings_service.dart';
 
-// Dynamic color helpers that read the current active theme color
+// Dynamic color helpers
 Color get appPrimary => AppSettingsService.accentColorNotifier.value;
 Color get appPrimaryDark {
   final hsv = HSVColor.fromColor(appPrimary);
@@ -306,14 +306,19 @@ ThemeData buildAppTheme({
   );
 }
 
-// Backward compatibility constants (now dynamically linked to app settings)
-Color get kPrimary     => appPrimaryLight;
-Color get kAccent      => appPrimary;
-Color get kDark        => const Color(0xFF0F172A);
-Color get kPrimaryDark => appPrimaryDark;
+// Backward compatibility constants (compile-time constant for const widgets)
+const kDefaultPrimary     = Color(0xFFA2EBFB);
+const kDefaultAccent      = Color(0xFF00B4D8);
+const kDefaultDark        = Color(0xFF0F172A);
+const kDefaultPrimaryDark = Color(0xFF0077B6);
+
+const kPrimary     = Color(0xFFA2EBFB);
+const kAccent      = Color(0xFF00B4D8);
+const kDark        = Color(0xFF0F172A);
+const kPrimaryDark = Color(0xFF0077B6);
 const kBg          = Color(0xFFF8FAFC);
 const kSurface     = Colors.white;
 const kTextDark    = Color(0xFF0F172A);
-Color get kTextMid     => appPrimary;
-Color get kTextLight   => appPrimaryLight;
+const kTextMid     = Color(0xFF0077B6);
+const kTextLight   = Color(0xFF90E0EF);
 const kDivider     = Color(0xFFE2E8F0);
