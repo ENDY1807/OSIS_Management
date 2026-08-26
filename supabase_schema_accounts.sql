@@ -1,5 +1,5 @@
 -- ==============================================================================
--- SKRIP TABEL AKUN & AUTENTIKASI SUPABASE (OSIS MANAGEMENT)
+-- SKRIP TABEL AKUN, HAK AKSES & KONFIGURASI SUPABASE (OSIS MANAGEMENT)
 -- Jalankan skrip ini di Supabase SQL Editor (Dashboard Supabase -> SQL Editor)
 -- ==============================================================================
 
@@ -8,16 +8,29 @@ CREATE TABLE IF NOT EXISTS public.accounts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     username TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
-    role TEXT,
+    role TEXT NOT NULL DEFAULT 'SEKBID',
     display_name TEXT,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 2. Aktifkan Row Level Security (RLS)
-ALTER TABLE public.accounts ENABLE ROW LEVEL SECURITY;
+-- 2. Buat Tabel 'app_settings' untuk Konfigurasi Global Aplikasi
+CREATE TABLE IF NOT EXISTS public.app_settings (
+    id TEXT PRIMARY KEY DEFAULT 'global_config',
+    app_name TEXT DEFAULT 'OSIS Management',
+    app_subtitle TEXT DEFAULT 'Sistem Manajemen OSIS Digital',
+    logo_url TEXT DEFAULT '',
+    primary_color TEXT DEFAULT '0xFF00B4D8',
+    default_theme_mode TEXT DEFAULT 'system',
+    default_language TEXT DEFAULT 'id',
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
 
--- 3. Kebijakan Akses (Policy) untuk Public/Anon (Read, Insert, Update, Delete)
+-- 3. Aktifkan Row Level Security (RLS)
+ALTER TABLE public.accounts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.app_settings ENABLE ROW LEVEL SECURITY;
+
+-- 4. Kebijakan Akses (Policy) untuk Public/Anon (Read, Insert, Update, Delete)
 DROP POLICY IF EXISTS "Allow all access to accounts for anon" ON public.accounts;
 CREATE POLICY "Allow all access to accounts for anon"
 ON public.accounts
@@ -26,25 +39,59 @@ TO anon, authenticated
 USING (true)
 WITH CHECK (true);
 
--- 4. Aktifkan Supabase Realtime untuk tabel 'accounts'
-ALTER PUBLICATION supabase_realtime ADD TABLE public.accounts;
+DROP POLICY IF EXISTS "Allow all access to app_settings for anon" ON public.app_settings;
+CREATE POLICY "Allow all access to app_settings for anon"
+ON public.app_settings
+FOR ALL
+TO anon, authenticated
+USING (true)
+WITH CHECK (true);
 
--- 5. Masukkan / Seed Data Akun Bawaan (Default Accounts)
+-- 5. Aktifkan Supabase Realtime (Aman / Idempotent)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables
+        WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'accounts'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.accounts;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables
+        WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'app_settings'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.app_settings;
+    END IF;
+END $$;
+
+-- 6. Masukkan / Seed Konfigurasi Bawaan (Default App Settings)
+INSERT INTO public.app_settings (id, app_name, app_subtitle, logo_url, primary_color, default_theme_mode, default_language)
+VALUES ('global_config', 'OSIS Management', 'Sistem Manajemen OSIS Digital', '', '0xFF00B4D8', 'system', 'id')
+ON CONFLICT (id) DO UPDATE SET
+    updated_at = now();
+
+-- 7. Masukkan / Seed Data Akun Bawaan Termasuk Super ADMIN
 INSERT INTO public.accounts (username, password, role, display_name) VALUES
+('ADMIN', 'EndyMahavira24!!@', 'ADMIN', 'Admin Aplikasi OSIS Management'),
 ('PEMBINA', 'PembinaOSIS', 'PEMBINA', 'Pembina OSIS'),
 ('KESISWAAN', 'KesiswaanBaknus', 'KESISWAAN', 'Staf Kesiswaan'),
 ('KETUA', 'OSISBN666', 'KETUA', 'Ketua OSIS'),
 ('WAKIL', 'OSISBN666', 'WAKIL', 'Wakil Ketua OSIS'),
 ('SEKRETARIS', 'OSISBN666', 'SEKRETARIS', 'Sekretaris OSIS'),
-('BENDAHARA', 'OSISBN66', 'BENDAHARA', 'Bendahara OSIS'),
+('BENDAHARA', 'OSISBN666', 'BENDAHARA', 'Bendahara OSIS'),
 ('SEKBID1', 'KeimananTakwa', 'SEKBID', 'Sekbid Keimanan & Takwa'),
 ('SEKBID2', 'BudiPekerti', 'SEKBID', 'Sekbid Budi Pekerti'),
-('SEKBID3', 'Kepribadian', 'SEKBID', 'Sekbid Kepribadian'),
+('SEKBID3', 'Bela Negara', 'SEKBID', 'Sekbid Kepribadian'),
 ('SEKBID4', 'PrestasiAkademik', 'SEKBID', 'Sekbid Prestasi Akademik'),
 ('SEKBID5', 'Demokrasi', 'SEKBID', 'Sekbid Demokrasi'),
-('SEKBID6', 'Kreativitas', 'SEKBID', 'Sekbid Kreativitas'),
-('SEKBID7', 'Kesehatan', 'SEKBID', 'Sekbid Kesehatan'),
+('SEKBID6', 'Kewirausahaan', 'SEKBID', 'Sekbid Kreativitas'),
+('SEKBID7', 'KebugaranJasmani', 'SEKBID', 'Sekbid Kesehatan'),
 ('SEKBID8', 'SastraBudaya', 'SEKBID', 'Sekbid Sastra & Budaya'),
 ('SEKBID9', 'TeknologiInformasi', 'SEKBID', 'Sekbid Teknologi Informasi'),
 ('SEKBID10', 'KomunikasiBahasa', 'SEKBID', 'Sekbid Komunikasi & Bahasa')
-ON CONFLICT (username) DO NOTHING;
+ON CONFLICT (username) DO UPDATE SET
+    password = EXCLUDED.password,
+    role = EXCLUDED.role,
+    display_name = EXCLUDED.display_name,
+    updated_at = now();

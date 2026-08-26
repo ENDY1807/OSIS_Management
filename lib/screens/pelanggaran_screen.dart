@@ -35,7 +35,14 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
       _selectedDate == _today();
 
   static const _superUsers = ['KETUA', 'WAKIL', 'SEKRETARIS', 'BENDAHARA'];
-  bool get _canEdit => _superUsers.contains(widget.username) || widget.username == 'PEMBINA' || widget.username == 'KESISWAAN';
+  bool get _canEdit =>
+      widget.username == 'ADMIN' ||
+      AuthService.getRole(widget.username) == 'ADMIN' ||
+      _superUsers.contains(widget.username) ||
+      widget.username == 'PEMBINA' ||
+      widget.username == 'KESISWAAN' ||
+      AuthService.getRole(widget.username) == 'PEMBINA' ||
+      AuthService.getRole(widget.username) == 'KESISWAAN';
 
   final _filterCtrl = TextEditingController();
   final _filterFocus = FocusNode();

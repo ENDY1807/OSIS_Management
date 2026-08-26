@@ -21,9 +21,9 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
   List<Proker> _proker = [];
   String _currentUser = '';
   String _filterSekbid = 'Semua';
-  bool _userLoaded = false;
-  bool get _isSuperUser => ['KETUA', 'WAKIL', 'SEKRETARIS', 'BENDAHARA'].contains(_currentUser);
-  bool get _isPembina => _currentUser == 'PEMBINA' || _currentUser == 'KESISWAAN';
+  bool get _isAdmin => _currentUser == 'ADMIN' || AuthService.getRole(_currentUser) == 'ADMIN';
+  bool get _isSuperUser => _isAdmin || ['KETUA', 'WAKIL', 'SEKRETARIS', 'BENDAHARA'].contains(_currentUser);
+  bool get _isPembina => _isAdmin || _currentUser == 'PEMBINA' || _currentUser == 'KESISWAAN' || AuthService.getRole(_currentUser) == 'PEMBINA' || AuthService.getRole(_currentUser) == 'KESISWAAN';
   bool get _isSekbid => AuthService.sekbidList.contains(_currentUser);
   bool get _canEdit => _isSuperUser || _isPembina;
   // Sekbid hanya bisa CRUD proker milik sekbid-nya sendiri

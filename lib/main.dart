@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'screens/pelanggaran_screen.dart';
@@ -6,9 +7,13 @@ import 'screens/manajemen_screen.dart';
 import 'screens/proker_screen.dart';
 import 'screens/arsip_screen.dart';
 import 'screens/laporan_screen.dart';
+import 'screens/admin_settings_screen.dart';
 import 'services/data_service.dart';
 import 'services/auth_service.dart';
 import 'services/notification_service.dart';
+import 'services/app_settings_service.dart';
+import 'services/localization_service.dart';
+import 'widgets/user_settings_sheet.dart';
 import 'models/models.dart';
 import 'screens/login_screen.dart';
 import 'app_theme.dart';
@@ -28,6 +33,11 @@ void main() async {
     debugPrint('AuthService init error: $e');
   }
   try {
+    await AppSettingsService.init();
+  } catch (e) {
+    debugPrint('AppSettingsService init error: $e');
+  }
+  try {
     await DataService.initializeSupabase();
   } catch (e) {
     debugPrint('Supabase init error: $e');
@@ -42,30 +52,54 @@ void main() async {
 
 class OsisApp extends StatelessWidget {
   const OsisApp({super.key});
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'OSIS Management',
-      debugShowCheckedModeBanner: false,
-      theme: buildAppTheme(),
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [
-        Locale('id', 'ID'),
-        Locale('en', 'US'),
-      ],
-      home: FutureBuilder<bool>(
-        future: AuthService.isLoggedIn(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const _SplashScreen();
-          }
-          return (snapshot.data ?? false) ? const HomeScreen() : const LoginScreen();
-        },
-      ),
+    return ValueListenableBuilder<Locale>(
+      valueListenable: LocalizationService.currentLocale,
+      builder: (context, currentLocale, _) {
+        return ValueListenableBuilder<ThemeMode>(
+          valueListenable: AppSettingsService.themeModeNotifier,
+          builder: (context, currentThemeMode, _) {
+            return ValueListenableBuilder<Color>(
+              valueListenable: AppSettingsService.accentColorNotifier,
+              builder: (context, accentColor, _) {
+                return ValueListenableBuilder<String>(
+                  valueListenable: AppSettingsService.appNameNotifier,
+                  builder: (context, appName, _) {
+                    return MaterialApp(
+                      title: appName,
+                      debugShowCheckedModeBanner: false,
+                      locale: currentLocale,
+                      themeMode: currentThemeMode,
+                      theme: buildAppTheme(isDark: false, primaryColor: accentColor),
+                      darkTheme: buildAppTheme(isDark: true, primaryColor: accentColor),
+                      localizationsDelegates: const [
+                        GlobalMaterialLocalizations.delegate,
+                        GlobalWidgetsLocalizations.delegate,
+                        GlobalCupertinoLocalizations.delegate,
+                      ],
+                      supportedLocales: const [
+                        Locale('id', 'ID'),
+                        Locale('en', 'US'),
+                      ],
+                      home: FutureBuilder<bool>(
+                        future: AuthService.isLoggedIn(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState != ConnectionState.done) {
+                            return const _SplashScreen();
+                          }
+                          return (snapshot.data ?? false) ? const HomeScreen() : const LoginScreen();
+                        },
+                      ),
+                    );
+                  },
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -83,50 +117,50 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   static const _superUsers = ['KETUA', 'WAKIL', 'SEKRETARIS', 'BENDAHARA'];
 
-  bool get _isPembina   => _username == 'PEMBINA' || _username == 'KESISWAAN';
-  bool get _isSuperUser => _superUsers.contains(_username);
-  bool get _canAccessManajemen => _isSuperUser || _isPembina || _username == 'SEKBID2';
-  bool get _canReceiveNotifications => NotificationService.isTargetRole(_username);
+  bool get _isAdmin     => _username == 'ADMIN' || AuthService.getRole(_username) == 'ADMIN';
+  bool get _isPembina   => _isAdmin || _username == 'PEMBINA' || _username == 'KESISWAAN' || AuthService.getRole(_username) == 'PEMBINA' || AuthService.getRole(_username) == 'KESISWAAN';
+  bool get _isSuperUser => _isAdmin || _isPembina || _superUsers.contains(_username);
+  bool get _canAccessManajemen => _isSuperUser || _username == 'SEKBID2';
+  bool get _canReceiveNotifications => NotificationService.isTargetRole(_username) || _isAdmin;
 
-  static const _roleLabel = {
-    'PEMBINA'    : 'Pembina OSIS',
-    'KESISWAAN'  : 'Staf Kesiswaan',
-    'KETUA'      : 'Ketua OSIS',
-    'WAKIL'      : 'Wakil Ketua OSIS',
-    'SEKRETARIS' : 'Sekretaris OSIS',
-    'BENDAHARA'  : 'Bendahara OSIS',
-    'SEKBID1'    : 'Sekbid Keimanan & Takwa',
-    'SEKBID2'    : 'Sekbid Budi Pekerti',
-    'SEKBID3'    : 'Sekbid Kepribadian',
-    'SEKBID4'    : 'Sekbid Prestasi Akademik',
-    'SEKBID5'    : 'Sekbid Demokrasi',
-    'SEKBID6'    : 'Sekbid Kreativitas',
-    'SEKBID7'    : 'Sekbid Kesehatan',
-    'SEKBID8'    : 'Sekbid Sastra & Budaya',
-    'SEKBID9'    : 'Sekbid Teknologi Informasi',
-    'SEKBID10'   : 'Sekbid Komunikasi & Bahasa',
-  };
+  String _displayName = '';
+  StreamSubscription<String>? _dataSub;
 
-  String get _roleDisplay => _roleLabel[_username] ?? _username;
+  String get _roleDisplay => _displayName.isNotEmpty ? _displayName : AuthService.getDisplayName(_username);
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    AuthService.getUserName().then((v) => setState(() {
-      _username = v ?? '';
-      _cachedScreens = [
-        ProkerScreen(username: _username),
-        LaporanScreen(username: _username),
-        ArsipScreen(username: _username),
-        PelanggaranScreen(username: _username),
-        const RekapScreen(),
-      ];
-    }));
+    _refreshUser();
+    _dataSub = DataService.onDataChanged.listen((table) {
+      if (table == 'accounts' || table == 'all') {
+        _refreshUser();
+      }
+    });
+  }
+
+  Future<void> _refreshUser() async {
+    final u = await AuthService.getUserName() ?? '';
+    final d = await AuthService.getCurrentDisplayName();
+    if (mounted) {
+      setState(() {
+        _username = u;
+        _displayName = d.isNotEmpty ? d : AuthService.getDisplayName(u);
+        _cachedScreens = [
+          ProkerScreen(username: _username),
+          LaporanScreen(username: _username),
+          ArsipScreen(username: _username),
+          PelanggaranScreen(username: _username),
+          const RekapScreen(),
+        ];
+      });
+    }
   }
 
   @override
   void dispose() {
+    _dataSub?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -146,22 +180,28 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     const RekapScreen(),
   ];
 
-  static const _navItems = [
-    (title: 'Proker',      icon: Icons.assignment_outlined,    activeIcon: Icons.assignment_rounded),
-    (title: 'Laporan',     icon: Icons.article_outlined,       activeIcon: Icons.article_rounded),
-    (title: 'Arsip',       icon: Icons.folder_outlined,        activeIcon: Icons.folder_rounded),
-    (title: 'Pelanggaran', icon: Icons.warning_amber_rounded,  activeIcon: Icons.warning_rounded),
-    (title: 'Rekap',       icon: Icons.bar_chart_outlined,     activeIcon: Icons.bar_chart_rounded),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primary = theme.colorScheme.primary;
+
+    final navItems = [
+      (title: LocalizationService.tr('nav_proker'),      icon: Icons.assignment_outlined,    activeIcon: Icons.assignment_rounded),
+      (title: LocalizationService.tr('nav_laporan'),     icon: Icons.article_outlined,       activeIcon: Icons.article_rounded),
+      (title: LocalizationService.tr('nav_arsip'),       icon: Icons.folder_outlined,        activeIcon: Icons.folder_rounded),
+      (title: LocalizationService.tr('nav_pelanggaran'), icon: Icons.warning_amber_rounded,  activeIcon: Icons.warning_rounded),
+      (title: LocalizationService.tr('nav_rekap'),       icon: Icons.bar_chart_outlined,     activeIcon: Icons.bar_chart_rounded),
+    ];
+
     return Scaffold(
       appBar: AppBar(
         flexibleSpace: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF03045E), Color(0xFF0077B6)],
+              colors: isDark
+                  ? [const Color(0xFF111827), const Color(0xFF1E293B)]
+                  : [const Color(0xFF03045E), const Color(0xFF0077B6)],
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
             ),
@@ -169,25 +209,69 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ),
         title: Row(
           children: [
-            Image.asset('assets/logo.png', width: 34, height: 34, fit: BoxFit.contain),
+            ValueListenableBuilder<String>(
+              valueListenable: AppSettingsService.logoUrlNotifier,
+              builder: (context, logoUrl, _) {
+                if (logoUrl.isNotEmpty && Uri.tryParse(logoUrl)?.hasScheme == true) {
+                  return ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: Image.network(
+                      logoUrl,
+                      width: 32,
+                      height: 32,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => Image.asset('assets/logo.png', width: 32, height: 32, fit: BoxFit.contain),
+                    ),
+                  );
+                }
+                return Image.asset('assets/logo.png', width: 32, height: 32, fit: BoxFit.contain);
+              },
+            ),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('OSIS Management',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white, letterSpacing: 0.5)),
+                  ValueListenableBuilder<String>(
+                    valueListenable: AppSettingsService.appNameNotifier,
+                    builder: (context, appName, _) {
+                      return Text(
+                        appName,
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white, letterSpacing: 0.3),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      );
+                    },
+                  ),
                   if (_username.isNotEmpty)
-                    Text('Login sebagai: $_roleDisplay',
-                      style: const TextStyle(fontSize: 10.5, color: Colors.white60, letterSpacing: 0.2)),
+                    Text(
+                      '${LocalizationService.tr('login_as')} $_roleDisplay',
+                      style: const TextStyle(fontSize: 10, color: Colors.white70, letterSpacing: 0.2),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                 ],
               ),
             ),
           ],
         ),
         actions: [
-          // Notification Bell untuk KETUA, WAKIL, SEKRETARIS, BENDAHARA, PEMBINA, KESISWAAN
+          // Quick Toggle Theme Mode (Light / Dark)
+          IconButton(
+            icon: Icon(
+              isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+              color: isDark ? Colors.amberAccent : Colors.white70,
+              size: 20,
+            ),
+            tooltip: isDark ? 'White Mode' : 'Dark Mode',
+            onPressed: () {
+              final newMode = isDark ? ThemeMode.light : ThemeMode.dark;
+              AppSettingsService.setThemeMode(newMode);
+            },
+          ),
+
+          // Notification Bell
           if (_canReceiveNotifications)
             FutureBuilder<int>(
               future: NotificationService.getUnreadCount(forUser: _username),
@@ -202,7 +286,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         color: unread > 0 ? Colors.amberAccent : Colors.white70,
                         size: 22,
                       ),
-                      tooltip: 'Notifikasi Update',
+                      tooltip: LocalizationService.tr('notifications'),
                       onPressed: _showNotificationCenter,
                     ),
                     if (unread > 0)
@@ -227,28 +311,46 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 );
               },
             ),
-          // Tombol Manajemen untuk superUser, Pembina, dan SEKBID2
+
+          // Tombol Manajemen untuk superUser, Pembina, Kesiswaan, Admin, dan SEKBID2
           if (_canAccessManajemen)
             IconButton(
-              icon: const Icon(Icons.tune_rounded, color: Colors.white70, size: 22),
+              icon: const Icon(Icons.tune_rounded, color: Colors.white70, size: 21),
               onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ManajemenScreen())),
-              tooltip: 'Manajemen',
+              tooltip: LocalizationService.tr('nav_manajemen'),
             ),
+
+          // Tombol Super Admin Panel (jika Admin)
+          if (_isAdmin)
+            IconButton(
+              icon: const Icon(Icons.admin_panel_settings_rounded, color: Colors.amber, size: 22),
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminSettingsScreen())),
+              tooltip: LocalizationService.tr('nav_admin'),
+            ),
+
+          // Settings Sheet Toggle untuk semua user
           IconButton(
-            icon: const Icon(Icons.logout_rounded, color: Colors.white70, size: 22),
-            tooltip: 'Logout',
+            icon: const Icon(Icons.settings_outlined, color: Colors.white70, size: 21),
+            tooltip: LocalizationService.tr('nav_settings'),
+            onPressed: () => UserSettingsSheet.show(context, username: _username),
+          ),
+
+          // Logout Button
+          IconButton(
+            icon: const Icon(Icons.logout_rounded, color: Colors.white70, size: 21),
+            tooltip: LocalizationService.tr('btn_logout'),
             onPressed: () async {
               final ok = await showDialog<bool>(
                 context: context,
                 builder: (ctx) => AlertDialog(
-                  title: const Text('Konfirmasi Logout'),
-                  content: Text('Logout dari akun $_username?'),
+                  title: Text(LocalizationService.tr('confirm_logout')),
+                  content: Text('${LocalizationService.tr('logout_prompt')} ($_username)'),
                   actions: [
-                    TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
+                    TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(LocalizationService.tr('btn_cancel'))),
                     ElevatedButton(
                       onPressed: () => Navigator.pop(ctx, true),
                       style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                      child: const Text('Logout'),
+                      child: Text(LocalizationService.tr('btn_logout')),
                     ),
                   ],
                 ),
@@ -256,8 +358,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               if (ok == true) {
                 await AuthService.logout();
                 if (mounted) {
-                  Navigator.of(context).pushAndRemoveUntil(// ignore: use_build_context_synchronously
-                  MaterialPageRoute(builder: (_) => const LoginScreen()), (_) => false);
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    (_) => false,
+                  );
                 }
               }
             },
@@ -268,8 +372,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       body: IndexedStack(index: _idx, children: _screens),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [BoxShadow(color: Colors.black.withAlpha(18), blurRadius: 16, offset: const Offset(0, -2))],
+          color: theme.navigationBarTheme.backgroundColor,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(isDark ? 40 : 18),
+              blurRadius: 16,
+              offset: const Offset(0, -2),
+            ),
+          ],
         ),
         child: NavigationBar(
           selectedIndex: _idx,
@@ -278,11 +388,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             DataService.notifyDataChanged('all');
           },
           backgroundColor: Colors.transparent,
-          indicatorColor: Theme.of(context).colorScheme.primary.withAlpha(35),
+          indicatorColor: primary.withAlpha(isDark ? 50 : 35),
           elevation: 0,
-          destinations: _navItems.map((item) => NavigationDestination(
-            icon: Icon(item.icon, size: 22, color: Colors.grey),
-            selectedIcon: Icon(item.activeIcon, size: 22, color: Theme.of(context).colorScheme.primary),
+          destinations: navItems.map((item) => NavigationDestination(
+            icon: Icon(item.icon, size: 22, color: isDark ? const Color(0xFF64748B) : Colors.grey),
+            selectedIcon: Icon(item.activeIcon, size: 22, color: primary),
             label: item.title,
           )).toList(),
         ),
@@ -291,6 +401,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   void _showNotificationCenter() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -298,9 +409,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setM) => Container(
           height: MediaQuery.of(ctx).size.height * 0.75,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
           child: Column(
@@ -310,7 +421,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 child: Container(
                   width: 40,
                   height: 4,
-                  decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(2)),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white24 : const Color(0xFFA2EBFB),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -319,20 +433,22 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: kAccent.withAlpha(25),
+                      color: Theme.of(context).colorScheme.primary.withAlpha(25),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.notifications_active_rounded, color: kAccent, size: 22),
+                    child: Icon(Icons.notifications_active_rounded, color: Theme.of(context).colorScheme.primary, size: 22),
                   ),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Pusat Notifikasi & Update',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kTextDark)),
-                        Text('Riwayat aktivitas Arsip, Laporan, & Proker',
-                            style: TextStyle(fontSize: 11, color: kTextMid)),
+                        Text(
+                          LocalizationService.tr('notifications'),
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        const Text('Riwayat aktivitas Arsip, Laporan, & Proker',
+                            style: TextStyle(fontSize: 11, color: Colors.grey)),
                       ],
                     ),
                   ),
@@ -354,7 +470,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   future: NotificationService.getNotifications(forUser: _username),
                   builder: (context, snap) {
                     if (snap.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator(color: kAccent));
+                      return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
                     }
                     final list = snap.data ?? [];
                     if (list.isEmpty) {
@@ -362,13 +478,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.notifications_none_rounded, size: 48, color: Colors.grey.shade300),
+                            Icon(Icons.notifications_none_rounded, size: 48, color: Colors.grey.shade400),
                             const SizedBox(height: 10),
                             const Text('Belum ada notifikasi update',
-                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: kTextMid)),
+                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                             const SizedBox(height: 4),
                             const Text('Aktivitas penambahan & perubahan data akan tampil di sini',
-                                style: TextStyle(fontSize: 11, color: kTextLight), textAlign: TextAlign.center),
+                                style: TextStyle(fontSize: 11, color: Colors.grey), textAlign: TextAlign.center),
                           ],
                         ),
                       );
@@ -385,7 +501,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         switch (n.category) {
                           case 'arsip':
                             iconData = Icons.folder_shared_rounded;
-                            iconColor = kAccent;
+                            iconColor = Theme.of(context).colorScheme.primary;
                             break;
                           case 'laporan':
                           case 'laporan_kegiatan':
@@ -408,7 +524,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             break;
                           default:
                             iconData = Icons.notifications_rounded;
-                            iconColor = kTextDark;
+                            iconColor = Colors.teal;
                         }
 
                         final timeStr = DateFormat('dd MMM yyyy, HH:mm', 'id').format(n.timestamp);
@@ -475,17 +591,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: n.isRead ? FontWeight.w600 : FontWeight.bold,
-                                color: kTextDark,
                               ),
                             ),
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const SizedBox(height: 2),
-                                Text(n.body, style: const TextStyle(fontSize: 12, color: Colors.black87)),
+                                Text(n.body, style: TextStyle(fontSize: 12, color: isDark ? Colors.white70 : Colors.black87)),
                                 const SizedBox(height: 4),
                                 Text('$timeStr • Oleh: ${n.actor}',
-                                    style: const TextStyle(fontSize: 10, color: kTextMid)),
+                                    style: const TextStyle(fontSize: 10, color: Colors.grey)),
                               ],
                             ),
                             onTap: () async {
@@ -531,7 +646,10 @@ class _SplashScreenState extends State<_SplashScreen> with SingleTickerProviderS
   }
 
   @override
-  void dispose() { _ctrl.dispose(); super.dispose(); }
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -558,11 +676,21 @@ class _SplashScreenState extends State<_SplashScreen> with SingleTickerProviderS
                 children: [
                   Image.asset('assets/logo.png', width: 100, height: 100, fit: BoxFit.contain),
                   const SizedBox(height: 20),
-                  const Text('OSIS Manager',
-                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.5)),
+                  ValueListenableBuilder<String>(
+                    valueListenable: AppSettingsService.appNameNotifier,
+                    builder: (context, appName, _) => Text(
+                      appName,
+                      style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.5),
+                    ),
+                  ),
                   const SizedBox(height: 6),
-                  Text('Sistem Manajemen OSIS Digital',
-                    style: TextStyle(fontSize: 13, color: Colors.white.withAlpha(200))),
+                  ValueListenableBuilder<String>(
+                    valueListenable: AppSettingsService.appSubtitleNotifier,
+                    builder: (context, sub, _) => Text(
+                      sub,
+                      style: TextStyle(fontSize: 13, color: Colors.white.withAlpha(200)),
+                    ),
+                  ),
                 ],
               ),
             ),

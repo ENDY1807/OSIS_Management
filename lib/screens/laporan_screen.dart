@@ -59,8 +59,12 @@ class _LaporanScreenState extends State<LaporanScreen> {
 
   bool _isOwner(LaporanKegiatan l) =>
       l.pembuatId == widget.username ||
+      widget.username == 'ADMIN' ||
       widget.username == 'PEMBINA' ||
-      widget.username == 'KESISWAAN';
+      widget.username == 'KESISWAAN' ||
+      AuthService.getRole(widget.username) == 'ADMIN' ||
+      AuthService.getRole(widget.username) == 'PEMBINA' ||
+      AuthService.getRole(widget.username) == 'KESISWAAN';
 
   void _showForm({LaporanKegiatan? existing}) async {
     final judulC = TextEditingController(text: existing?.judul ?? '');

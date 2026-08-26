@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../services/app_settings_service.dart';
+import '../services/localization_service.dart';
 import '../main.dart';
 
 const _grad1 = Color(0xFF67F3CE);
@@ -56,7 +58,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     if (!mounted) return;
 
     if (ok) {
-      // Simpan session dan arahkan ke HomeScreen
       AuthService.saveSession(uname);
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
@@ -76,12 +77,17 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final h = MediaQuery.of(context).size.height;
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [_grad1, _grad2],
+            colors: isDark
+                ? [const Color(0xFF0F172A), const Color(0xFF1E293B)]
+                : [_grad1, _grad2],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -92,7 +98,54 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               height: h - MediaQuery.of(context).padding.top,
               child: Column(
                 children: [
-                  // Top section
+                  // Top controls (Quick Theme & Lang)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Language switcher button
+                        InkWell(
+                          onTap: () {
+                            final current = LocalizationService.currentLocale.value.languageCode;
+                            LocalizationService.setLanguage(current == 'id' ? 'en' : 'id');
+                          },
+                          borderRadius: BorderRadius.circular(20),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withAlpha(40),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  LocalizationService.currentLocale.value.languageCode == 'id' ? '🇮🇩 ID' : '🇬🇧 EN',
+                                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        // Dark/Light switcher button
+                        IconButton(
+                          icon: Icon(
+                            isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                          tooltip: 'Ganti Tema',
+                          onPressed: () {
+                            final newMode = isDark ? ThemeMode.light : ThemeMode.dark;
+                            AppSettingsService.setThemeMode(newMode);
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Top section / Logo & Title
                   Expanded(
                     flex: 4,
                     child: FadeTransition(
@@ -100,14 +153,43 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Image.asset('assets/logo.png', width: 80, height: 80, fit: BoxFit.contain),
+                          ValueListenableBuilder<String>(
+                            valueListenable: AppSettingsService.logoUrlNotifier,
+                            builder: (context, logoUrl, _) {
+                              if (logoUrl.isNotEmpty && Uri.tryParse(logoUrl)?.hasScheme == true) {
+                                return ClipRRect(
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Image.network(
+                                    logoUrl,
+                                    width: 80,
+                                    height: 80,
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (_, __, ___) => Image.asset('assets/logo.png', width: 80, height: 80, fit: BoxFit.contain),
+                                  ),
+                                );
+                              }
+                              return Image.asset('assets/logo.png', width: 80, height: 80, fit: BoxFit.contain);
+                            },
+                          ),
                           const SizedBox(height: 16),
-                          const Text('OSIS Manager',
-                            style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold,
-                                color: Colors.white, letterSpacing: 0.5)),
+                          ValueListenableBuilder<String>(
+                            valueListenable: AppSettingsService.appNameNotifier,
+                            builder: (context, appName, _) => Text(
+                              appName,
+                              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold,
+                                  color: Colors.white, letterSpacing: 0.5),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
                           const SizedBox(height: 6),
-                          Text('Sistem Manajemen OSIS Digital',
-                            style: TextStyle(fontSize: 13, color: Colors.white.withAlpha(200))),
+                          ValueListenableBuilder<String>(
+                            valueListenable: AppSettingsService.appSubtitleNotifier,
+                            builder: (context, sub, _) => Text(
+                              sub,
+                              style: TextStyle(fontSize: 13, color: Colors.white.withAlpha(200)),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -119,48 +201,67 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                     child: FadeTransition(
                       opacity: _fade,
                       child: Container(
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withAlpha(isDark ? 80 : 30),
+                              blurRadius: 20,
+                              offset: const Offset(0, -4),
+                            ),
+                          ],
                         ),
                         padding: const EdgeInsets.fromLTRB(28, 32, 28, 28),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            const Text('Masuk',
-                              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF1A1A2E))),
+                            Text(
+                              LocalizationService.tr('btn_login'),
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : const Color(0xFF1A1A2E),
+                              ),
+                            ),
                             const SizedBox(height: 4),
-                            Text('Masukkan username dan password',
-                              style: TextStyle(fontSize: 13, color: Colors.grey.shade500)),
+                            Text(
+                              'Masukkan username dan password',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: isDark ? Colors.white60 : Colors.grey.shade600,
+                              ),
+                            ),
                             const SizedBox(height: 24),
 
                             // Username field
                             _inputBox(
                               controller: _userC,
-                              hint: 'Username',
+                              hint: LocalizationService.tr('username'),
                               icon: Icons.person_outline_rounded,
                               capitalization: TextCapitalization.characters,
+                              isDark: isDark,
                               onSubmitted: (_) => FocusScope.of(context).nextFocus(),
                             ),
                             const SizedBox(height: 12),
 
                             // Password field
-                            _passwordBox(),
+                            _passwordBox(isDark: isDark),
                             const SizedBox(height: 12),
 
                             if (_error != null) ...[
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                                 decoration: BoxDecoration(
-                                  color: Colors.red.shade50,
+                                  color: Colors.red.withAlpha(isDark ? 40 : 25),
                                   borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: Colors.red.shade100),
+                                  border: Border.all(color: Colors.red.shade300),
                                 ),
                                 child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                                   Icon(Icons.error_outline_rounded, color: Colors.red.shade400, size: 16),
                                   const SizedBox(width: 8),
                                   Expanded(child: Text(_error!,
-                                      style: TextStyle(color: Colors.red.shade600, fontSize: 12))),
+                                      style: TextStyle(color: isDark ? Colors.red.shade300 : Colors.red.shade700, fontSize: 12))),
                                 ]),
                               ),
                               const SizedBox(height: 12),
@@ -171,9 +272,19 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                               height: 52,
                               child: DecoratedBox(
                                 decoration: BoxDecoration(
-                                  gradient: const LinearGradient(colors: [_grad1, _grad2]),
+                                  gradient: LinearGradient(
+                                    colors: isDark
+                                        ? [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.primary.withAlpha(180)]
+                                        : [_grad1, _grad2],
+                                  ),
                                   borderRadius: BorderRadius.circular(14),
-                                  boxShadow: [BoxShadow(color: _grad2.withAlpha(80), blurRadius: 12, offset: const Offset(0, 4))],
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: _grad2.withAlpha(80),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
                                 ),
                                 child: ElevatedButton(
                                   onPressed: _loading ? null : _login,
@@ -185,14 +296,25 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                   child: _loading
                                       ? const SizedBox(width: 22, height: 22,
                                           child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
-                                      : const Text('Masuk',
-                                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                                      : Text(
+                                          LocalizationService.tr('btn_login'),
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: isDark ? Colors.black : Colors.white,
+                                          ),
+                                        ),
                                 ),
                               ),
                             ),
                             const SizedBox(height: 24),
-                            Center(child: Text('OSIS © ${DateTime.now().year}',
-                                style: TextStyle(fontSize: 11, color: Colors.grey.shade400))),
+                            ValueListenableBuilder<String>(
+                              valueListenable: AppSettingsService.appNameNotifier,
+                              builder: (_, appName, _) => Center(
+                                child: Text('$appName © ${DateTime.now().year}',
+                                    style: TextStyle(fontSize: 11, color: isDark ? Colors.white38 : Colors.grey.shade400)),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -211,24 +333,25 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     required TextEditingController controller,
     required String hint,
     required IconData icon,
+    required bool isDark,
     TextCapitalization capitalization = TextCapitalization.none,
     void Function(String)? onSubmitted,
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF7F8FA),
+        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF7F8FA),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE8E8E8)),
+        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE8E8E8)),
       ),
       child: TextField(
         controller: controller,
         textCapitalization: capitalization,
         onSubmitted: onSubmitted,
-        style: const TextStyle(fontSize: 14),
+        style: TextStyle(fontSize: 14, color: isDark ? Colors.white : Colors.black87),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-          prefixIcon: Icon(icon, color: _grad2, size: 20),
+          hintStyle: TextStyle(color: isDark ? Colors.grey.shade600 : Colors.grey.shade400, fontSize: 13),
+          prefixIcon: Icon(icon, color: Theme.of(context).colorScheme.primary, size: 20),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 16),
         ),
@@ -236,25 +359,25 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     );
   }
 
-  Widget _passwordBox() {
+  Widget _passwordBox({required bool isDark}) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF7F8FA),
+        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF7F8FA),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE8E8E8)),
+        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE8E8E8)),
       ),
       child: TextField(
         controller: _passC,
         obscureText: _obscure,
         onSubmitted: (_) => _login(),
-        style: const TextStyle(fontSize: 14),
+        style: TextStyle(fontSize: 14, color: isDark ? Colors.white : Colors.black87),
         decoration: InputDecoration(
-          hintText: 'Password',
-          hintStyle: TextStyle(color: Colors.grey.shade400),
-          prefixIcon: const Icon(Icons.lock_outline_rounded, color: _grad2, size: 20),
+          hintText: LocalizationService.tr('password'),
+          hintStyle: TextStyle(color: isDark ? Colors.grey.shade600 : Colors.grey.shade400),
+          prefixIcon: Icon(Icons.lock_outline_rounded, color: Theme.of(context).colorScheme.primary, size: 20),
           suffixIcon: IconButton(
             icon: Icon(_obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                color: Colors.grey.shade400, size: 20),
+                color: isDark ? Colors.grey.shade500 : Colors.grey.shade400, size: 20),
             onPressed: () => setState(() => _obscure = !_obscure),
           ),
           border: InputBorder.none,

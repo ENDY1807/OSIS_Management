@@ -4,35 +4,86 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'data_service.dart';
 
+class AppAccount {
+  final String username;
+  final String password;
+  final String role;
+  final String displayName;
+
+  const AppAccount({
+    required this.username,
+    required this.password,
+    required this.role,
+    required this.displayName,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'username': username,
+    'password': password,
+    'role': role,
+    'display_name': displayName,
+  };
+
+  factory AppAccount.fromJson(Map<String, dynamic> json) => AppAccount(
+    username: json['username']?.toString() ?? '',
+    password: json['password']?.toString() ?? '',
+    role: json['role']?.toString() ?? 'SEKBID',
+    displayName: json['display_name']?.toString() ?? json['username']?.toString() ?? '',
+  );
+}
+
 class AuthService {
-  static const _keyLoggedIn  = 'logged_in';
-  static const _keyUserName  = 'user_name';
-  static const _keyAccounts  = 'accounts_v3'; // bump version for clean sync
+  static const _keyLoggedIn    = 'logged_in';
+  static const _keyUserName    = 'user_name';
+  static const _keyDisplayName = 'user_display_name';
+  static const _keyUserRole    = 'user_role';
+  static const _keyAccounts    = 'accounts_v5'; // bump version for clean display_name sync
 
   static SharedPreferences? _prefs;
   static Future<SharedPreferences> get _sp async =>
       _prefs ??= await SharedPreferences.getInstance();
 
   static const Map<String, String> _defaults = {
+    'ADMIN'      : 'EndyMahavira24!!@',
     'PEMBINA'    : 'PembinaOSIS',
     'KESISWAAN'  : 'KesiswaanBaknus',
     'KETUA'      : 'OSISBN666',
     'WAKIL'      : 'OSISBN666',
     'SEKRETARIS' : 'OSISBN666',
-    'BENDAHARA'  : 'OSISBN66',
+    'BENDAHARA'  : 'OSISBN666',
     'SEKBID1'    : 'KeimananTakwa',
     'SEKBID2'    : 'BudiPekerti',
-    'SEKBID3'    : 'Kepribadian',
+    'SEKBID3'    : 'Bela Negara',
     'SEKBID4'    : 'PrestasiAkademik',
     'SEKBID5'    : 'Demokrasi',
-    'SEKBID6'    : 'Kreativitas',
-    'SEKBID7'    : 'Kesehatan',
+    'SEKBID6'    : 'Kewirausahaan',
+    'SEKBID7'    : 'KebugaranJasmani',
     'SEKBID8'    : 'SastraBudaya',
     'SEKBID9'    : 'TeknologiInformasi',
     'SEKBID10'   : 'KomunikasiBahasa',
   };
 
-  static Map<String, String>? _accounts;
+  static const Map<String, String> defaultDisplayNames = {
+    'ADMIN'      : 'Admin Aplikasi OSIS Management',
+    'PEMBINA'    : 'Pembina OSIS',
+    'KESISWAAN'  : 'Staf Kesiswaan',
+    'KETUA'      : 'Ketua OSIS',
+    'WAKIL'      : 'Wakil Ketua OSIS',
+    'SEKRETARIS' : 'Sekretaris OSIS',
+    'BENDAHARA'  : 'Bendahara OSIS',
+    'SEKBID1'    : 'Sekbid Keimanan & Takwa',
+    'SEKBID2'    : 'Sekbid Budi Pekerti',
+    'SEKBID3'    : 'Sekbid Kepribadian',
+    'SEKBID4'    : 'Sekbid Prestasi Akademik',
+    'SEKBID5'    : 'Sekbid Demokrasi',
+    'SEKBID6'    : 'Sekbid Kreativitas',
+    'SEKBID7'    : 'Sekbid Kesehatan',
+    'SEKBID8'    : 'Sekbid Sastra & Budaya',
+    'SEKBID9'    : 'Sekbid Teknologi Informasi',
+    'SEKBID10'   : 'Sekbid Komunikasi & Bahasa',
+  };
+
+  static Map<String, AppAccount>? _accountDetails;
 
   static SupabaseClient? get _supabase {
     try {
@@ -43,104 +94,142 @@ class AuthService {
   }
 
   /// Normalisasi username: trim spasi, hilangkan spasi ganda, dan ubah ke UPPERCASE.
-  /// Contoh: 'sekbid 1' -> 'SEKBID1', 'pembina' -> 'PEMBINA', 'sekbid 10' -> 'SEKBID10'
   static String normalizeUsername(String input) {
     String clean = input.trim().toUpperCase();
-    // Hilangkan spasi jika formatnya SEKBID X -> SEKBIDX
     clean = clean.replaceAll(RegExp(r'\s+'), '');
     return clean;
   }
 
   static Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
-    _accounts = await _loadAccountsFromCache();
+    await _loadAccountsFromCache();
+    // Non-blocking sync with Supabase
+    syncWithSupabase();
   }
 
   static Future<Map<String, String>> _loadAccountsFromCache() async {
     final prefs = await _sp;
     final raw = prefs.getStringList(_keyAccounts);
+    _accountDetails = {};
+
     if (raw == null) {
-      final map = Map<String, String>.from(_defaults);
-      await prefs.setStringList(
-        _keyAccounts,
-        map.entries.map((e) => '${e.key}:${e.value}').toList(),
-      );
-      return map;
+      for (final e in _defaults.entries) {
+        _accountDetails![e.key] = AppAccount(
+          username: e.key,
+          password: e.value,
+          role: e.key,
+          displayName: defaultDisplayNames[e.key] ?? e.key,
+        );
+      }
+      await _saveAccountsToCache();
+      return _defaults;
     }
+
     final map = <String, String>{};
     for (final entry in raw) {
-      final idx = entry.indexOf(':');
-      if (idx < 0) continue;
-      map[entry.substring(0, idx).toUpperCase()] = entry.substring(idx + 1);
+      // Format: username:::password:::role:::displayName
+      final parts = entry.split(':::');
+      if (parts.isNotEmpty) {
+        final u = parts[0].toUpperCase();
+        final p = parts.length > 1 ? parts[1] : (_defaults[u] ?? '');
+        final r = parts.length > 2 ? parts[2] : u;
+        final d = parts.length > 3 ? parts[3] : (defaultDisplayNames[u] ?? u);
+
+        map[u] = p;
+        _accountDetails![u] = AppAccount(username: u, password: p, role: r, displayName: d);
+      }
     }
-    // Tambahkan akun baru dari _defaults yang belum ada
+
+    // Pastikan semua default accounts ada
     bool changed = false;
     for (final e in _defaults.entries) {
-      if (!map.containsKey(e.key)) {
+      if (!_accountDetails!.containsKey(e.key)) {
+        _accountDetails![e.key] = AppAccount(
+          username: e.key,
+          password: e.value,
+          role: e.key,
+          displayName: defaultDisplayNames[e.key] ?? e.key,
+        );
         map[e.key] = e.value;
         changed = true;
       }
     }
+
     if (changed) {
-      await prefs.setStringList(
-        _keyAccounts,
-        map.entries.map((e) => '${e.key}:${e.value}').toList(),
-      );
+      await _saveAccountsToCache();
     }
     return map;
   }
 
   static Future<void> _saveAccountsToCache() async {
     final prefs = await _sp;
-    await prefs.setStringList(
-      _keyAccounts,
-      (_accounts ?? _defaults).entries.map((e) => '${e.key}:${e.value}').toList(),
-    );
+    final list = <String>[];
+    for (final acc in (_accountDetails ?? {}).values) {
+      list.add('${acc.username}:::${acc.password}:::${acc.role}:::${acc.displayName}');
+    }
+    await prefs.setStringList(_keyAccounts, list);
   }
 
   /// Sinkronisasi akun dengan Supabase Cloud.
-  /// Mengambil data dari tabel `accounts`. Jika tabel kosong, otomatis memasukkan akun default.
   static Future<bool> syncWithSupabase() async {
     try {
       final client = _supabase;
       if (client == null) return false;
 
-      final rows = await client.from('accounts').select('username, password');
+      final rows = await client.from('accounts').select('username, password, role, display_name');
       if (rows.isEmpty) {
-        // Tabel ada tapi kosong -> Seed default accounts ke Supabase
         debugPrint('Tabel accounts di Supabase kosong, melakukan initial seed default...');
         final seedData = _defaults.entries.map((e) => {
           'username': e.key,
           'password': e.value,
           'role': e.key,
-          'display_name': e.key,
+          'display_name': defaultDisplayNames[e.key] ?? e.key,
         }).toList();
 
         await client.from('accounts').upsert(seedData, onConflict: 'username');
-        _accounts = Map.from(_defaults);
-        await _saveAccountsToCache();
+        await _loadAccountsFromCache();
         return true;
       }
 
-      final remoteMap = <String, String>{};
+      final remoteAccounts = <String, AppAccount>{};
       for (final r in rows) {
         final u = (r['username']?.toString() ?? '').trim().toUpperCase();
         final p = r['password']?.toString() ?? '';
+        final role = r['role']?.toString() ?? u;
+        final dName = (r['display_name']?.toString() ?? '').trim().isNotEmpty
+            ? r['display_name'].toString().trim()
+            : (defaultDisplayNames[u] ?? u);
+
         if (u.isNotEmpty) {
-          remoteMap[u] = p;
+          remoteAccounts[u] = AppAccount(username: u, password: p, role: role, displayName: dName);
         }
       }
 
-      // Pastikan akun default penting tetap tersedia jika remote belum memiliki semua
+      // Pastikan ADMIN & default akun selalu tersedia
       for (final e in _defaults.entries) {
-        if (!remoteMap.containsKey(e.key)) {
-          remoteMap[e.key] = e.value;
+        if (!remoteAccounts.containsKey(e.key)) {
+          remoteAccounts[e.key] = AppAccount(
+            username: e.key,
+            password: e.value,
+            role: e.key,
+            displayName: defaultDisplayNames[e.key] ?? e.key,
+          );
         }
       }
 
-      _accounts = remoteMap;
+      _accountDetails = remoteAccounts;
       await _saveAccountsToCache();
-      debugPrint('AuthService: Berhasil sinkron ${remoteMap.length} akun dari Supabase.');
+
+      // Perbarui juga sesi lokal pengguna yang sedang login jika display_name berubah di Supabase
+      final currentU = await getUserName();
+      if (currentU != null && remoteAccounts.containsKey(currentU)) {
+        final currentAcc = remoteAccounts[currentU]!;
+        final p = await _sp;
+        await p.setString(_keyDisplayName, currentAcc.displayName);
+        await p.setString(_keyUserRole, currentAcc.role);
+      }
+
+      debugPrint('AuthService: Berhasil sinkron ${remoteAccounts.length} akun & display_name dari Supabase.');
       return true;
     } catch (e) {
       debugPrint('AuthService syncWithSupabase warning/error: $e');
@@ -153,8 +242,36 @@ class AuthService {
     'SEKBID6', 'SEKBID7', 'SEKBID8', 'SEKBID9', 'SEKBID10',
   ];
 
-  static Map<String, String> get accounts =>
-      Map.unmodifiable(_accounts ?? _defaults);
+  static Map<String, String> get accounts {
+    final map = <String, String>{};
+    for (final e in (_accountDetails ?? {}).entries) {
+      map[e.key] = e.value.password;
+    }
+    return Map.unmodifiable(map.isEmpty ? _defaults : map);
+  }
+
+  static List<AppAccount> get allAccounts {
+    return (_accountDetails ?? {}).values.toList();
+  }
+
+  static AppAccount? getAccount(String username) {
+    final u = normalizeUsername(username);
+    return _accountDetails?[u];
+  }
+
+  static String getDisplayName(String username) {
+    final u = normalizeUsername(username);
+    final acc = _accountDetails?[u];
+    if (acc != null && acc.displayName.trim().isNotEmpty) {
+      return acc.displayName;
+    }
+    return defaultDisplayNames[u] ?? username;
+  }
+
+  static String getRole(String username) {
+    final u = normalizeUsername(username);
+    return _accountDetails?[u]?.role ?? (u.startsWith('SEKBID') ? 'SEKBID' : u);
+  }
 
   /// Autentikasi user dengan pengecekan online Supabase + fallback offline cache.
   static Future<bool> authenticate(String username, String password) async {
@@ -163,25 +280,29 @@ class AuthService {
 
     if (uname.isEmpty || pwd.isEmpty) return false;
 
-    // 1. Cek di remote Supabase terlebih dahulu untuk kredensial terbaru
+    // 1. Cek di remote Supabase terlebih dahulu untuk kredensial dan display_name terbaru
     try {
       final client = _supabase;
       if (client != null) {
         final rows = await client
             .from('accounts')
-            .select('username, password')
+            .select('username, password, role, display_name')
             .eq('username', uname)
             .limit(1);
 
         if (rows.isNotEmpty) {
           final remotePass = rows.first['password']?.toString() ?? '';
           if (remotePass == pwd) {
-            _accounts ??= await _loadAccountsFromCache();
-            _accounts![uname] = remotePass;
+            final role = rows.first['role']?.toString() ?? uname;
+            final rawDName = rows.first['display_name']?.toString() ?? '';
+            final dName = rawDName.trim().isNotEmpty ? rawDName.trim() : (defaultDisplayNames[uname] ?? uname);
+
+            _accountDetails ??= {};
+            _accountDetails![uname] = AppAccount(username: uname, password: remotePass, role: role, displayName: dName);
             await _saveAccountsToCache();
+            saveSession(uname, displayName: dName, role: role);
             return true;
           } else {
-            // Username ditemukan di Supabase tapi password salah
             return false;
           }
         }
@@ -191,36 +312,56 @@ class AuthService {
     }
 
     // 2. Fallback: Cek cache lokal / default
-    _accounts ??= await _loadAccountsFromCache();
-    final localPass = (_accounts ?? _defaults)[uname];
-    if (localPass != null && localPass == pwd) {
+    if (_accountDetails == null || _accountDetails!.isEmpty) {
+      await _loadAccountsFromCache();
+    }
+    final localAcc = _accountDetails?[uname];
+    if (localAcc != null && localAcc.password == pwd) {
+      saveSession(uname, displayName: localAcc.displayName, role: localAcc.role);
+      return true;
+    }
+
+    final defaultPass = _defaults[uname];
+    if (defaultPass != null && defaultPass == pwd) {
+      final dName = defaultDisplayNames[uname] ?? uname;
+      saveSession(uname, displayName: dName, role: uname);
       return true;
     }
 
     return false;
   }
 
-  // Sinkron — instan, pengecekan lokal
   static bool checkPassword(String username, String password) {
     final uname = normalizeUsername(username);
-    return (_accounts ?? _defaults)[uname] == password.trim();
+    final acc = _accountDetails?[uname];
+    if (acc != null) return acc.password == password.trim();
+    return _defaults[uname] == password.trim();
   }
 
   static Future<void> changePassword(String username, String newPassword) async {
     final uname = normalizeUsername(username);
     final nPass = newPassword.trim();
-    final acc = Map<String, String>.from(_accounts ?? _defaults);
-    acc[uname] = nPass;
-    _accounts = acc;
+    final currentAcc = _accountDetails?[uname];
+    final updatedAcc = AppAccount(
+      username: uname,
+      password: nPass,
+      role: currentAcc?.role ?? uname,
+      displayName: currentAcc?.displayName ?? defaultDisplayNames[uname] ?? uname,
+    );
+
+    _accountDetails ??= {};
+    _accountDetails![uname] = updatedAcc;
     await _saveAccountsToCache();
 
-    // Simpan ke Supabase jika terhubung
+    // Simpan ke Supabase
     try {
       final client = _supabase;
       if (client != null) {
         await client.from('accounts').upsert({
           'username': uname,
           'password': nPass,
+          'role': updatedAcc.role,
+          'display_name': updatedAcc.displayName,
           'updated_at': DateTime.now().toIso8601String(),
         }, onConflict: 'username');
         await DataService.broadcastDataChange('accounts');
@@ -230,34 +371,64 @@ class AuthService {
     }
   }
 
-  static Future<void> renameUser(String oldName, String newName) async {
-    final oldU = normalizeUsername(oldName);
-    final newU = normalizeUsername(newName);
-    final acc = Map<String, String>.from(_accounts ?? _defaults);
-    if (!acc.containsKey(oldU)) return;
-    final pass = acc.remove(oldU)!;
-    acc[newU] = pass;
-    _accounts = acc;
+  static Future<void> saveAccount(AppAccount account) async {
+    final uname = normalizeUsername(account.username);
+    final acc = AppAccount(
+      username: uname,
+      password: account.password.trim(),
+      role: account.role.trim().toUpperCase(),
+      displayName: account.displayName.trim().isEmpty ? uname : account.displayName.trim(),
+    );
+
+    _accountDetails ??= {};
+    _accountDetails![uname] = acc;
     await _saveAccountsToCache();
 
     try {
       final client = _supabase;
       if (client != null) {
-        await client.from('accounts').delete().eq('username', oldU);
         await client.from('accounts').upsert({
-          'username': newU,
-          'password': pass,
+          'username': uname,
+          'password': acc.password,
+          'role': acc.role,
+          'display_name': acc.displayName,
           'updated_at': DateTime.now().toIso8601String(),
         }, onConflict: 'username');
         await DataService.broadcastDataChange('accounts');
       }
     } catch (e) {
-      debugPrint('Error renaming user in Supabase: $e');
+      debugPrint('Error saving account to Supabase: $e');
+    }
+  }
+
+  static Future<void> deleteAccount(String username) async {
+    final uname = normalizeUsername(username);
+    if (uname == 'ADMIN') return;
+
+    _accountDetails?.remove(uname);
+    await _saveAccountsToCache();
+
+    try {
+      final client = _supabase;
+      if (client != null) {
+        await client.from('accounts').delete().eq('username', uname);
+        await DataService.broadcastDataChange('accounts');
+      }
+    } catch (e) {
+      debugPrint('Error deleting account from Supabase: $e');
     }
   }
 
   static Future<void> resetAccounts() async {
-    _accounts = Map.from(_defaults);
+    _accountDetails = {};
+    for (final e in _defaults.entries) {
+      _accountDetails![e.key] = AppAccount(
+        username: e.key,
+        password: e.value,
+        role: e.key,
+        displayName: defaultDisplayNames[e.key] ?? e.key,
+      );
+    }
     await _saveAccountsToCache();
 
     try {
@@ -267,7 +438,7 @@ class AuthService {
           'username': e.key,
           'password': e.value,
           'role': e.key,
-          'display_name': e.key,
+          'display_name': defaultDisplayNames[e.key] ?? e.key,
           'updated_at': DateTime.now().toIso8601String(),
         }).toList();
         await client.from('accounts').upsert(seedData, onConflict: 'username');
@@ -278,12 +449,15 @@ class AuthService {
     }
   }
 
-  // Simpan sesi di background, tidak blocking navigasi
-  static void saveSession(String uname) {
+  static void saveSession(String uname, {String? displayName, String? role}) {
     final normalized = normalizeUsername(uname);
+    final dName = displayName ?? getDisplayName(normalized);
+    final r = role ?? getRole(normalized);
     _sp.then((p) => Future.wait([
       p.setBool(_keyLoggedIn, true),
       p.setString(_keyUserName, normalized),
+      p.setString(_keyDisplayName, dName),
+      p.setString(_keyUserRole, r),
     ]));
   }
 
@@ -294,11 +468,42 @@ class AuthService {
 
   static Future<void> logout() async {
     final p = await _sp;
-    await Future.wait([p.remove(_keyLoggedIn), p.remove(_keyUserName)]);
+    await Future.wait([
+      p.remove(_keyLoggedIn),
+      p.remove(_keyUserName),
+      p.remove(_keyDisplayName),
+      p.remove(_keyUserRole),
+    ]);
   }
 
   static Future<String?> getUserName() async {
     final p = await _sp;
     return p.getString(_keyUserName);
+  }
+
+  static Future<String> getCurrentDisplayName() async {
+    final p = await _sp;
+    final saved = p.getString(_keyDisplayName);
+    if (saved != null && saved.trim().isNotEmpty) {
+      return saved;
+    }
+    final uname = p.getString(_keyUserName);
+    if (uname != null && uname.isNotEmpty) {
+      return getDisplayName(uname);
+    }
+    return '';
+  }
+
+  static Future<String> getCurrentUserRole() async {
+    final p = await _sp;
+    final saved = p.getString(_keyUserRole);
+    if (saved != null && saved.trim().isNotEmpty) {
+      return saved;
+    }
+    final uname = p.getString(_keyUserName);
+    if (uname != null && uname.isNotEmpty) {
+      return getRole(uname);
+    }
+    return 'SEKBID';
   }
 }

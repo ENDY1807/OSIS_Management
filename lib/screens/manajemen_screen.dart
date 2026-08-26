@@ -7,6 +7,8 @@ import '../services/auth_service.dart';
 import '../services/notification_service.dart';
 import '../app_theme.dart';
 
+import 'admin_settings_screen.dart';
+
 class ManajemenScreen extends StatefulWidget {
   const ManajemenScreen({super.key});
   @override
@@ -23,8 +25,9 @@ class _ManajemenScreenState extends State<ManajemenScreen> with SingleTickerProv
   StreamSubscription<String>? _dataSub;
 
   static const _superUsers = ['KETUA', 'WAKIL', 'SEKRETARIS', 'BENDAHARA'];
-  bool get _isPembina   => _username == 'PEMBINA';
-  bool get _isSuperUser => _superUsers.contains(_username);
+  bool get _isAdmin     => _username == 'ADMIN' || AuthService.getRole(_username) == 'ADMIN';
+  bool get _isPembina   => _isAdmin || _username == 'PEMBINA' || _username == 'KESISWAAN' || AuthService.getRole(_username) == 'PEMBINA' || AuthService.getRole(_username) == 'KESISWAAN';
+  bool get _isSuperUser => _isAdmin || _isPembina || _superUsers.contains(_username);
   bool get _canSeeJenis => _isSuperUser || _username == 'SEKBID2' || _isPembina;
   bool get _canEditJenis => _isSuperUser || _username == 'SEKBID2' || _isPembina;
   bool get _canSeeSiswa => _isSuperUser || _isPembina;
@@ -507,6 +510,17 @@ class _ManajemenScreenState extends State<ManajemenScreen> with SingleTickerProv
       backgroundColor: kBg,
       appBar: AppBar(
         title: const Text('Manajemen'),
+        actions: [
+          if (_isAdmin)
+            IconButton(
+              icon: const Icon(Icons.admin_panel_settings_rounded, color: Colors.amber),
+              tooltip: 'Panel Super Admin',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AdminSettingsScreen()),
+              ),
+            ),
+        ],
         bottom: _tab == null ? null : TabBar(
           controller: _tab!,
           tabs: [

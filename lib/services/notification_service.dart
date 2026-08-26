@@ -13,6 +13,7 @@ const _uuid = Uuid();
 class NotificationService {
   static const _keyNotifications = 'app_notifications_v1';
   static const targetStakeholders = [
+    'ADMIN',
     'KETUA',
     'WAKIL',
     'SEKRETARIS',
