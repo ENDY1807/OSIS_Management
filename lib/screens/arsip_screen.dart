@@ -28,10 +28,13 @@ class ArsipScreen extends StatefulWidget {
   const ArsipScreen({super.key, this.username = ''});
 
   @override
-  State<ArsipScreen> createState() => _ArsipScreenState();
+  State<ArsipScreen> createState() => ArsipScreenState();
 }
 
-class _ArsipScreenState extends State<ArsipScreen> {
+class ArsipScreenState extends State<ArsipScreen> {
+  bool get canGoUp => _currentPath.isNotEmpty;
+  void goUp() => _goUp();
+
   List<Arsip> _allArsip = [];
   List<String> _allFolders = [];
   String _currentPath = ''; // '' represents Root (/)
@@ -945,14 +948,16 @@ class _ArsipScreenState extends State<ArsipScreen> {
   // ── Create New Folder Modal ────────────────────────────────────────────────
   void _showCreateFolderDialog() {
     final namaC = TextEditingController();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF131A26) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: isDark ? const Border(top: BorderSide(color: Color(0xFF263348), width: 1)) : null,
         ),
         padding: EdgeInsets.only(
           left: 20, right: 20, top: 20,
@@ -962,20 +967,22 @@ class _ArsipScreenState extends State<ArsipScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(2)))),
+            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: isDark ? const Color(0xFF263348) : kPrimary, borderRadius: BorderRadius.circular(2)))),
             const SizedBox(height: 16),
-            const Text('Buat Folder Baru', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kTextDark)),
+            Text('Buat Folder Baru', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
             const SizedBox(height: 4),
             Text(_currentPath.isEmpty ? 'Folder akan dibuat di Root (/)' : 'Folder dibuat di: $_currentPath',
-                style: const TextStyle(fontSize: 12, color: kTextMid)),
+                style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : kTextMid)),
             const SizedBox(height: 16),
             TextField(
               controller: namaC,
               autofocus: true,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(
+              style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+              decoration: InputDecoration(
                 labelText: 'Nama Folder *',
-                prefixIcon: Icon(Icons.create_new_folder_outlined, color: kAccent),
+                labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                prefixIcon: const Icon(Icons.create_new_folder_outlined, color: kAccent),
                 hintText: 'Masukan Nama Folder',
               ),
             ),
@@ -1022,14 +1029,16 @@ class _ArsipScreenState extends State<ArsipScreen> {
   void _showRenameFolderDialog(String oldPath) {
     final oldName = oldPath.split('/').last;
     final nameC = TextEditingController(text: oldName);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF131A26) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: isDark ? const Border(top: BorderSide(color: Color(0xFF263348), width: 1)) : null,
         ),
         padding: EdgeInsets.only(
           left: 20, right: 20, top: 20,
@@ -1039,17 +1048,19 @@ class _ArsipScreenState extends State<ArsipScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(2)))),
+            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: isDark ? const Color(0xFF263348) : kPrimary, borderRadius: BorderRadius.circular(2)))),
             const SizedBox(height: 16),
-            const Text('Ganti Nama Folder', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kTextDark)),
+            Text('Ganti Nama Folder', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
             const SizedBox(height: 16),
             TextField(
               controller: nameC,
               autofocus: true,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(
+              style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+              decoration: InputDecoration(
                 labelText: 'Nama Baru *',
-                prefixIcon: Icon(Icons.edit_outlined, color: kAccent),
+                labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                prefixIcon: const Icon(Icons.edit_outlined, color: kAccent),
               ),
             ),
             const SizedBox(height: 20),
@@ -1100,6 +1111,7 @@ class _ArsipScreenState extends State<ArsipScreen> {
     Uint8List? pickedFileBytes;
     bool uploading = false;
     final sekbid = await AuthService.getUserName() ?? '';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (!mounted) return;
     showModalBottomSheet(
@@ -1108,9 +1120,10 @@ class _ArsipScreenState extends State<ArsipScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModal) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF131A26) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: isDark ? const Border(top: BorderSide(color: Color(0xFF263348), width: 1)) : null,
           ),
           padding: EdgeInsets.only(
             left: 20, right: 20, top: 20,
@@ -1121,32 +1134,36 @@ class _ArsipScreenState extends State<ArsipScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(2)))),
+                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: isDark ? const Color(0xFF263348) : kPrimary, borderRadius: BorderRadius.circular(2)))),
                 const SizedBox(height: 16),
                 Text(existing == null ? 'Tambah File Baru' : 'Edit Informasi File',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kTextDark)),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
                 const SizedBox(height: 4),
                 Row(children: [
                   const Icon(Icons.folder_rounded, size: 16, color: kAccent),
                   const SizedBox(width: 6),
                   Text(_currentPath.isEmpty ? 'Lokasi: Root (/)' : 'Lokasi: $_currentPath',
-                      style: const TextStyle(fontSize: 12, color: kTextMid)),
+                      style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : kTextMid)),
                 ]),
                 const SizedBox(height: 16),
                 TextField(
                   controller: judulC,
                   autofocus: existing == null,
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                  decoration: InputDecoration(
                     labelText: 'Nama File / Judul Dokumen *',
-                    prefixIcon: Icon(Icons.insert_drive_file_outlined, color: kAccent),
+                    labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                    prefixIcon: const Icon(Icons.insert_drive_file_outlined, color: kAccent),
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: nomorC,
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                  decoration: InputDecoration(
                     labelText: 'Nomor Surat / Dokumen (opsional)',
-                    prefixIcon: Icon(Icons.tag, color: kAccent),
+                    labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                    prefixIcon: const Icon(Icons.tag, color: kAccent),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -1159,21 +1176,24 @@ class _ArsipScreenState extends State<ArsipScreen> {
                     if (picked != null) setModal(() => tanggal = picked);
                   },
                   child: InputDecorator(
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Tanggal Dokumen',
-                      prefixIcon: Icon(Icons.calendar_month_outlined, color: kAccent),
+                      labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                      prefixIcon: const Icon(Icons.calendar_month_outlined, color: kAccent),
                     ),
                     child: Text(DateFormat('dd MMMM yyyy', 'id').format(tanggal),
-                        style: const TextStyle(fontSize: 14, color: kTextDark)),
+                        style: TextStyle(fontSize: 14, color: isDark ? Colors.white : kTextDark)),
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: deskC,
                   maxLines: 2,
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                  decoration: InputDecoration(
                     labelText: 'Deskripsi Singkat',
-                    prefixIcon: Icon(Icons.description_outlined, color: kAccent),
+                    labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                    prefixIcon: const Icon(Icons.description_outlined, color: kAccent),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -1198,10 +1218,11 @@ class _ArsipScreenState extends State<ArsipScreen> {
                   child: InputDecorator(
                     decoration: InputDecoration(
                       labelText: 'Upload File dari HP / Komputer',
+                      labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
                       prefixIcon: const Icon(Icons.upload_file_outlined, color: kAccent),
                       suffixIcon: pickedFileName != null
                           ? IconButton(
-                              icon: const Icon(Icons.close, size: 18, color: kTextLight),
+                              icon: Icon(Icons.close, size: 18, color: isDark ? Colors.white70 : kTextLight),
                               onPressed: () => setModal(() {
                                 pickedFileName = null;
                                 pickedFileBytes = null;
@@ -1213,7 +1234,9 @@ class _ArsipScreenState extends State<ArsipScreen> {
                       pickedFileName ?? (fileUrl.isNotEmpty ? '(File tersimpan di cloud, tap untuk ganti)' : 'Pilih file...'),
                       style: TextStyle(
                         fontSize: 13,
-                        color: pickedFileName != null ? kTextDark : kTextLight,
+                        color: pickedFileName != null
+                            ? (isDark ? Colors.white : kTextDark)
+                            : (isDark ? const Color(0xFF94A3B8) : kTextLight),
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -1222,9 +1245,11 @@ class _ArsipScreenState extends State<ArsipScreen> {
                 const SizedBox(height: 12),
                 TextField(
                   controller: ketC,
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                  decoration: InputDecoration(
                     labelText: 'Keterangan Tambahan',
-                    prefixIcon: Icon(Icons.notes_outlined, color: kAccent),
+                    labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                    prefixIcon: const Icon(Icons.notes_outlined, color: kAccent),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -1290,7 +1315,7 @@ class _ArsipScreenState extends State<ArsipScreen> {
                   child: uploading
                       ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                       : Text(existing == null ? 'Simpan File' : 'Perbarui File',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
                 ),
               ],
             ),
@@ -1304,29 +1329,31 @@ class _ArsipScreenState extends State<ArsipScreen> {
   void _showFileDetail(Arsip a) {
     bool loading = false;
     bool downloading = false;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModal) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF131A26) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: isDark ? const Border(top: BorderSide(color: Color(0xFF263348), width: 1)) : null,
           ),
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(2)))),
+              Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: isDark ? const Color(0xFF263348) : kPrimary, borderRadius: BorderRadius.circular(2)))),
               const SizedBox(height: 16),
               Row(children: [
                 _fileFormatBadge(a.fileUrl, a.judul),
                 const SizedBox(width: 10),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(a.judul, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kTextDark)),
-                  Text('Lokasi: ${a.kategori.isEmpty ? "Root (/)" : a.kategori}', style: const TextStyle(fontSize: 11, color: kTextMid)),
+                  Text(a.judul, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
+                  Text('Lokasi: ${a.kategori.isEmpty ? "Root (/)" : a.kategori}', style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : kTextMid)),
                 ])),
               ]),
               const SizedBox(height: 12),

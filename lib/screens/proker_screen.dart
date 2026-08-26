@@ -150,12 +150,15 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
                 else
                   InputDecorator(
                     decoration: const InputDecoration(labelText: 'Sekbid', prefixIcon: Icon(Icons.group, color: kAccent)),
-                    child: Text(selectedSekbid, style: const TextStyle(fontSize: 14, color: kTextDark)),
+                    child: Text(selectedSekbid, style: TextStyle(fontSize: 14, color: isDark ? Colors.white : kTextDark)),
                   ),
                 const SizedBox(height: 12),
 
-                TextField(controller: pjC,
-                    decoration: const InputDecoration(labelText: 'Penanggung Jawab', prefixIcon: Icon(Icons.person, color: kAccent))),
+                TextField(
+                  controller: pjC,
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                  decoration: const InputDecoration(labelText: 'Penanggung Jawab', prefixIcon: Icon(Icons.person, color: kAccent)),
+                ),
                 const SizedBox(height: 12),
 
                 // Tanggal Rencana
@@ -170,7 +173,7 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
                   child: InputDecorator(
                     decoration: const InputDecoration(labelText: 'Tanggal Rencana', prefixIcon: Icon(Icons.event, color: kAccent)),
                     child: Text(DateFormat('dd MMMM yyyy', 'id').format(tanggalRencana),
-                        style: const TextStyle(fontSize: 14, color: kTextDark)),
+                        style: TextStyle(fontSize: 14, color: isDark ? Colors.white : kTextDark)),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -196,7 +199,7 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
                       decoration: const InputDecoration(labelText: 'Tanggal Realisasi', prefixIcon: Icon(Icons.event_available, color: Colors.green)),
                       child: Text(
                         tanggalRealisasi != null ? DateFormat('dd MMMM yyyy', 'id').format(tanggalRealisasi!) : 'Tap untuk pilih tanggal',
-                        style: TextStyle(fontSize: 14, color: tanggalRealisasi != null ? kTextDark : kTextLight),
+                        style: TextStyle(fontSize: 14, color: tanggalRealisasi != null ? (isDark ? Colors.white : kTextDark) : (isDark ? Colors.white60 : kTextLight)),
                       ),
                     ),
                   ),

@@ -143,6 +143,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     });
   }
 
+  final GlobalKey<ArsipScreenState> _arsipKey = GlobalKey<ArsipScreenState>();
+
   Future<void> _refreshUser() async {
     final u = await AuthService.getUserName() ?? '';
     final d = await AuthService.getCurrentDisplayName();
@@ -153,7 +155,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         _cachedScreens = [
           ProkerScreen(username: _username),
           LaporanScreen(username: _username),
-          ArsipScreen(username: _username),
+          ArsipScreen(key: _arsipKey, username: _username),
           PelanggaranScreen(username: _username),
           const RekapScreen(),
         ];
@@ -172,6 +174,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   void _handleBackPress() {
+    // 1. If on Arsip tab and inside a subfolder, go up one folder level first
+    if (_idx == 2 && _arsipKey.currentState?.canGoUp == true) {
+      _arsipKey.currentState?.goUp();
+      return;
+    }
+
+    // 2. Navigate back to previous tab if any in history
     if (_tabHistory.length > 1) {
       setState(() {
         _tabHistory.removeLast();
@@ -230,7 +239,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   List<Widget> get _screens => _cachedScreens ?? [
     ProkerScreen(username: _username),
     LaporanScreen(username: _username),
-    ArsipScreen(username: _username),
+    ArsipScreen(key: _arsipKey, username: _username),
     PelanggaranScreen(username: _username),
     const RekapScreen(),
   ];

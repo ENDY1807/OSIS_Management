@@ -120,10 +120,13 @@ class _LaporanScreenState extends State<LaporanScreen> {
                     if (picked != null) setModal(() => tanggal = picked);
                   },
                   child: InputDecorator(
-                    decoration: const InputDecoration(labelText: 'Tanggal Kegiatan',
-                        prefixIcon: Icon(Icons.calendar_month_outlined, color: kAccent)),
+                    decoration: InputDecoration(
+                      labelText: 'Tanggal Kegiatan',
+                      labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                      prefixIcon: const Icon(Icons.calendar_month_outlined, color: kAccent),
+                    ),
                     child: Text(DateFormat('dd MMMM yyyy', 'id').format(tanggal),
-                        style: const TextStyle(fontSize: 14, color: kTextDark)),
+                        style: TextStyle(fontSize: 14, color: isDark ? Colors.white : kTextDark)),
                   ),
                 ),
                 const SizedBox(height: 12),

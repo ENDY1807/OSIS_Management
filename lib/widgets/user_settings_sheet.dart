@@ -233,68 +233,83 @@ class _UserSettingsSheetState extends State<UserSettingsSheet> {
                     ),
                     const SizedBox(height: 20),
 
-                    // SECTION: WARNA AKSEN TEMA
-                    ValueListenableBuilder<Color>(
-                      valueListenable: AppSettingsService.accentColorNotifier,
-                      builder: (context, currentAccent, _) {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              LocalizationService.tr('theme_color').toUpperCase(),
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.8,
-                                color: currentAccent,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            SizedBox(
-                              height: 48,
-                              child: ListView.separated(
-                                scrollDirection: Axis.horizontal,
-                                itemCount: AppSettingsService.presets.length,
-                                separatorBuilder: (_, __) => const SizedBox(width: 8),
-                                itemBuilder: (context, i) {
-                                  final p = AppSettingsService.presets[i];
-                                  final isSel = currentAccent.toARGB32() == p.color.toARGB32();
-                                  return InkWell(
-                                    onTap: () => AppSettingsService.setAccentColor(p.color),
-                                    borderRadius: BorderRadius.circular(24),
-                                    child: Container(
-                                      width: 44,
-                                      height: 44,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        gradient: LinearGradient(
-                                          colors: [p.color, p.darkColor],
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
-                                        ),
-                                        border: Border.all(
-                                          color: isSel ? Colors.white : Colors.transparent,
-                                          width: 2.5,
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: p.color.withAlpha(isSel ? 140 : 60),
-                                            blurRadius: isSel ? 10 : 4,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                        ],
-                                      ),
-                                      child: isSel ? const Icon(Icons.check_rounded, color: Colors.white, size: 20) : null,
+                    if (isAdmin) ...[
+                      // SECTION: WARNA AKSEN TEMA (HANYA ADMIN)
+                      ValueListenableBuilder<Color>(
+                        valueListenable: AppSettingsService.accentColorNotifier,
+                        builder: (context, currentAccent, _) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    LocalizationService.tr('theme_color').toUpperCase(),
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 0.8,
+                                      color: currentAccent,
                                     ),
-                                  );
-                                },
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: currentAccent.withAlpha(30),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: const Text('Admin Saja', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold)),
+                                  ),
+                                ],
                               ),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 20),
+                              const SizedBox(height: 10),
+                              SizedBox(
+                                height: 48,
+                                child: ListView.separated(
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: AppSettingsService.presets.length,
+                                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                                  itemBuilder: (context, i) {
+                                    final p = AppSettingsService.presets[i];
+                                    final isSel = currentAccent.toARGB32() == p.color.toARGB32();
+                                    return InkWell(
+                                      onTap: () => AppSettingsService.setAccentColor(p.color),
+                                      borderRadius: BorderRadius.circular(24),
+                                      child: Container(
+                                        width: 44,
+                                        height: 44,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          gradient: LinearGradient(
+                                            colors: [p.color, p.darkColor],
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                          ),
+                                          border: Border.all(
+                                            color: isSel ? Colors.white : Colors.transparent,
+                                            width: 2.5,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: p.color.withAlpha(isSel ? 140 : 60),
+                                              blurRadius: isSel ? 10 : 4,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        child: isSel ? const Icon(Icons.check_rounded, color: Colors.white, size: 20) : null,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                            ],
+                          );
+                        },
+                      ),
+                    ],
 
                     // SECTION 2: BAHASA (DYNAMIC MULTI-LANGUAGE DARI ADMIN)
                     Text(

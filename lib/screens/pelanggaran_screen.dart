@@ -227,17 +227,18 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
 
                 // ── Tanggal (dari header) ──
                 InputDecorator(
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Tanggal',
-                    prefixIcon: Icon(Icons.calendar_month_outlined, color: kAccent)),
+                    labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                    prefixIcon: const Icon(Icons.calendar_month_outlined, color: kAccent)),
                   child: Text(DateFormat('dd MMMM yyyy (EEEE)', 'id').format(selectedTanggal),
-                      style: const TextStyle(fontSize: 14, color: kTextDark)),
+                      style: TextStyle(fontSize: 14, color: isDark ? Colors.white : kTextDark)),
                 ),
 
                 const SizedBox(height: 16),
                 Row(children: [
-                  const Text('Jenis Pelanggaran:',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: kTextDark)),
+                  Text('Jenis Pelanggaran:',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
                   const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -265,13 +266,15 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
                   ...jenisHariIni.map((j) => Container(
                     margin: const EdgeInsets.only(bottom: 6),
                     decoration: BoxDecoration(
-                      color: checkedJenis.contains(j.id) ? kPrimary.withAlpha(80) : kBg,
+                      color: checkedJenis.contains(j.id)
+                          ? (isDark ? kAccent.withAlpha(50) : kPrimary.withAlpha(80))
+                          : (isDark ? const Color(0xFF1B2433) : kBg),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: checkedJenis.contains(j.id) ? kAccent : kPrimary),
+                      border: Border.all(color: checkedJenis.contains(j.id) ? kAccent : (isDark ? const Color(0xFF263348) : kPrimary)),
                     ),
                     child: CheckboxListTile(
                       title: Text(j.nama,
-                          style: const TextStyle(fontSize: 13, color: kTextDark)),
+                          style: TextStyle(fontSize: 13, color: isDark ? Colors.white : kTextDark)),
                       value: checkedJenis.contains(j.id),
                       activeColor: kAccent,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -287,9 +290,11 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
                 const SizedBox(height: 12),
                 TextField(
                   controller: ketC,
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                  decoration: InputDecoration(
                     labelText: 'Keterangan (opsional)',
-                    prefixIcon: Icon(Icons.notes_outlined, color: kAccent),
+                    labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                    prefixIcon: const Icon(Icons.notes_outlined, color: kAccent),
                   ),
                 ),
                 const SizedBox(height: 20),
