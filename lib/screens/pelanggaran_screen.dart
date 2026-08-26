@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/models.dart';
 import '../services/data_service.dart';
+import '../services/auth_service.dart';
 import '../services/notification_service.dart';
 import '../app_theme.dart';
 

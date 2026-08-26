@@ -61,8 +61,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       AuthService.saveSession(uname);
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
-          pageBuilder: (_, _, _) => const HomeScreen(),
-          transitionsBuilder: (_, anim, _, child) =>
+          pageBuilder: (context, anim1, anim2) => const HomeScreen(),
+          transitionsBuilder: (context, anim, secondaryAnimation, child) =>
               FadeTransition(opacity: anim, child: child),
           transitionDuration: const Duration(milliseconds: 300),
         ),
@@ -310,7 +310,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             const SizedBox(height: 24),
                             ValueListenableBuilder<String>(
                               valueListenable: AppSettingsService.appNameNotifier,
-                              builder: (_, appName, _) => Center(
+                              builder: (context, appName, child) => Center(
                                 child: Text('$appName © ${DateTime.now().year}',
                                     style: TextStyle(fontSize: 11, color: isDark ? Colors.white38 : Colors.grey.shade400)),
                               ),

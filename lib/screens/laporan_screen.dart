@@ -6,6 +6,7 @@ import 'package:printing/printing.dart';
 import 'package:uuid/uuid.dart';
 import '../models/models.dart';
 import '../services/data_service.dart';
+import '../services/auth_service.dart';
 import '../services/pdf_service.dart';
 import '../services/notification_service.dart';
 import '../app_theme.dart';

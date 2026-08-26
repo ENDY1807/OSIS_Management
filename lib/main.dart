@@ -655,7 +655,7 @@ class _SplashScreenState extends State<_SplashScreen> with SingleTickerProviderS
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _ctrl,
-      builder: (_, _) => Container(
+      builder: (context, child) => Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [

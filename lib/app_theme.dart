@@ -56,7 +56,7 @@ ThemeData buildAppTheme({
           letterSpacing: 0.3,
         ),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: darkCard,
         elevation: 0,
         shape: RoundedRectangleBorder(
@@ -64,7 +64,7 @@ ThemeData buildAppTheme({
           side: BorderSide(color: darkBorder),
         ),
       ),
-      dialogTheme: DialogTheme(
+      dialogTheme: DialogThemeData(
         backgroundColor: darkSurface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
@@ -174,7 +174,7 @@ ThemeData buildAppTheme({
         letterSpacing: 0.3,
       ),
     ),
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       color: lightSurface,
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -182,7 +182,7 @@ ThemeData buildAppTheme({
         side: BorderSide(color: lightBorder),
       ),
     ),
-    dialogTheme: DialogTheme(
+    dialogTheme: DialogThemeData(
       backgroundColor: lightSurface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
