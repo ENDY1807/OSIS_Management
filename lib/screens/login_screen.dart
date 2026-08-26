@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../services/app_settings_service.dart';
 import '../services/localization_service.dart';
+import '../app_theme.dart';
 import '../main.dart';
-
-const _grad1 = Color(0xFF67F3CE);
-const _grad2 = Color(0xFF4899EA);
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -79,6 +77,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final primary = theme.colorScheme.primary;
     final h = MediaQuery.of(context).size.height;
 
     return Scaffold(
@@ -86,8 +85,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: isDark
-                ? [const Color(0xFF0F172A), const Color(0xFF1E293B)]
-                : [_grad1, _grad2],
+                ? [const Color(0xFF0B0F17), const Color(0xFF131A26)]
+                : [primary, primary.withAlpha(200)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -274,14 +273,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                               child: DecoratedBox(
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
-                                    colors: isDark
-                                        ? [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.primary.withAlpha(180)]
-                                        : [_grad1, _grad2],
+                                    colors: [primary, primary.withAlpha(200)],
                                   ),
                                   borderRadius: BorderRadius.circular(14),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: _grad2.withAlpha(80),
+                                      color: primary.withAlpha(80),
                                       blurRadius: 12,
                                       offset: const Offset(0, 4),
                                     ),

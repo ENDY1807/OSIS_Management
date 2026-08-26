@@ -261,14 +261,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: isDark
-                    ? [const Color(0xFF0A0E1A), const Color(0xFF141D2E)]
-                    : [const Color(0xFF03045E), const Color(0xFF0077B6)],
+                    ? [const Color(0xFF0B0F17), const Color(0xFF131A26)]
+                    : [primary, primary.withAlpha(210)],
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
               ),
               border: Border(
                 bottom: BorderSide(
-                  color: isDark ? const Color(0xFF243452) : Colors.transparent,
+                  color: isDark ? const Color(0xFF263348) : Colors.transparent,
                   width: 1,
                 ),
               ),

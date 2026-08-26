@@ -4,6 +4,7 @@ import '../services/app_settings_service.dart';
 import '../services/auth_service.dart';
 import '../services/localization_service.dart';
 import '../services/data_service.dart';
+import '../widgets/color_wheel_picker.dart';
 
 class AdminSettingsScreen extends StatefulWidget {
   const AdminSettingsScreen({super.key});
@@ -21,7 +22,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
   final _logoUrlCtrl = TextEditingController();
   Color _selectedAccent = const Color(0xFF00B4D8);
   final _hexColorCtrl = TextEditingController();
-  List<String> _selectedLanguages = ['id', 'en', 'su', 'jv', 'ar', 'ja'];
+  List<String> _selectedLanguages = ['id', 'en'];
 
   // Module Config Controllers
   final _sp1Ctrl = TextEditingController();
@@ -525,7 +526,32 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
           ),
           const SizedBox(height: 24),
 
-          // 2. PALET PRESET GRIDS DENGAN CARD GLOW & DESKRIPSI
+          // 2. RODA WARNA INTERAKTIF (COLOR WHEEL PICKER)
+          Text(
+            LocalizationService.tr('palette_wheel_title').toUpperCase(),
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.0, color: _selectedAccent),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: theme.cardTheme.color,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: isDark ? const Color(0xFF263348) : const Color(0xFFE2E8F0)),
+            ),
+            child: ColorWheelPicker(
+              initialColor: _selectedAccent,
+              onColorChanged: (newColor) {
+                setState(() {
+                  _selectedAccent = newColor;
+                  _hexColorCtrl.text = '#${newColor.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
+                });
+              },
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // 3. PALET PRESET GRIDS
           Text(
             LocalizationService.tr('palette_presets').toUpperCase(),
             style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.0, color: primary),
@@ -536,9 +562,9 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
             physics: const NeverScrollableScrollExceptionScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              mainAxisExtent: 80,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
+              mainAxisExtent: 74,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
             ),
             itemCount: AppSettingsService.presets.length,
             itemBuilder: (context, i) {
@@ -562,21 +588,12 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
                       color: isSelected ? preset.color : (isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0)),
                       width: isSelected ? 2.2 : 1,
                     ),
-                    boxShadow: isSelected
-                        ? [
-                            BoxShadow(
-                              color: preset.color.withAlpha(70),
-                              blurRadius: 10,
-                              offset: const Offset(0, 2),
-                            ),
-                          ]
-                        : null,
                   ),
                   child: Row(
                     children: [
                       Container(
-                        width: 32,
-                        height: 32,
+                        width: 28,
+                        height: 28,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           gradient: LinearGradient(
@@ -584,74 +601,26 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
-                          boxShadow: [
-                            BoxShadow(color: preset.color.withAlpha(100), blurRadius: 6, offset: const Offset(0, 2)),
-                          ],
                         ),
-                        child: isSelected ? const Icon(Icons.check_rounded, color: Colors.white, size: 18) : null,
+                        child: isSelected ? const Icon(Icons.check_rounded, color: Colors.white, size: 16) : null,
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 8),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              preset.name,
-                              style: TextStyle(
-                                fontSize: 11.5,
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                                color: isSelected ? preset.color : theme.colorScheme.onSurface,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              preset.description,
-                              style: TextStyle(fontSize: 9.5, color: isDark ? Colors.white54 : Colors.black45),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
+                        child: Text(
+                          preset.name,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                            color: isSelected ? preset.color : theme.colorScheme.onSurface,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
                 ),
               );
-            },
-          ),
-          const SizedBox(height: 16),
-
-          // 3. KUSTOM HEX COLOR INPUT
-          TextField(
-            controller: _hexColorCtrl,
-            decoration: InputDecoration(
-              labelText: LocalizationService.tr('palette_custom_hex'),
-              prefixIcon: Container(
-                margin: const EdgeInsets.all(10),
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  color: _selectedAccent,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
-                  boxShadow: [
-                    BoxShadow(color: _selectedAccent.withAlpha(120), blurRadius: 6),
-                  ],
-                ),
-              ),
-              hintText: '#00B4D8',
-            ),
-            onChanged: (val) {
-              String clean = val.trim().replaceAll('#', '');
-              if (clean.length == 6) {
-                try {
-                  final valInt = int.parse('0xFF$clean');
-                  setState(() => _selectedAccent = Color(valInt));
-                } catch (_) {}
-              }
             },
           ),
           const SizedBox(height: 24),

@@ -1,22 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'services/app_settings_service.dart';
 
-const kDefaultPrimary     = Color(0xFFA2EBFB);
-const kDefaultAccent      = Color(0xFF00B4D8);
-const kDefaultDark        = Color(0xFF03045E);
-const kDefaultPrimaryDark = Color(0xFF0077B6);
+// Dynamic color helpers that read the current active theme color
+Color get appPrimary => AppSettingsService.accentColorNotifier.value;
+Color get appPrimaryDark {
+  final hsv = HSVColor.fromColor(appPrimary);
+  return hsv.withValue((hsv.value * 0.75).clamp(0.0, 1.0)).toColor();
+}
+Color get appPrimaryLight {
+  final hsv = HSVColor.fromColor(appPrimary);
+  return hsv.withSaturation((hsv.saturation * 0.35).clamp(0.0, 1.0)).toColor();
+}
 
 ThemeData buildAppTheme({
   bool isDark = false,
   Color? primaryColor,
   Color? darkAccentColor,
 }) {
-  final accent = primaryColor ?? kDefaultAccent;
-  final darkBg = const Color(0xFF0A0E1A);
-  final darkSurface = const Color(0xFF141D2E);
-  final darkElevated = const Color(0xFF1A263D);
-  final darkInput = const Color(0xFF0E1626);
-  final darkBorder = const Color(0xFF243452);
+  final accent = primaryColor ?? AppSettingsService.accentColorNotifier.value;
+
+  // Modern Discord / Linear / Spotify style dark mode palette
+  final darkBg = const Color(0xFF0B0F17);
+  final darkSurface = const Color(0xFF131A26);
+  final darkElevated = const Color(0xFF1B2433);
+  final darkInput = const Color(0xFF0F1521);
+  final darkBorder = const Color(0xFF263348);
+  final darkTextPrimary = const Color(0xFFF8FAFC);
+  final darkTextSecondary = const Color(0xFF94A3B8);
 
   final lightBg = const Color(0xFFF8FAFC);
   final lightSurface = Colors.white;
@@ -36,32 +47,32 @@ ThemeData buildAppTheme({
         primaryContainer: accent.withAlpha(45),
         onPrimaryContainer: const Color(0xFFE0F7FA),
         secondaryContainer: darkElevated,
-        onSecondaryContainer: const Color(0xFFF1F5F9),
+        onSecondaryContainer: darkTextPrimary,
         surface: darkSurface,
-        onSurface: const Color(0xFFF1F5F9),
+        onSurface: darkTextPrimary,
         surfaceContainerLowest: darkBg,
         surfaceContainerLow: darkInput,
         surfaceContainer: darkSurface,
         surfaceContainerHigh: darkElevated,
-        surfaceContainerHighest: const Color(0xFF22324E),
+        surfaceContainerHighest: const Color(0xFF222E40),
         outline: darkBorder,
-        outlineVariant: const Color(0xFF1A263D),
+        outlineVariant: const Color(0xFF1A2436),
         error: const Color(0xFFEF4444),
         onError: Colors.white,
       ),
       scaffoldBackgroundColor: darkBg,
       appBarTheme: AppBarTheme(
-        backgroundColor: const Color(0xFF0D1424),
-        foregroundColor: const Color(0xFFF1F5F9),
+        backgroundColor: darkSurface,
+        foregroundColor: darkTextPrimary,
         elevation: 0,
         centerTitle: false,
         surfaceTintColor: Colors.transparent,
         systemOverlayStyle: SystemUiOverlayStyle.light,
-        titleTextStyle: const TextStyle(
+        titleTextStyle: TextStyle(
           fontFamily: 'Roboto',
           fontSize: 17,
           fontWeight: FontWeight.w600,
-          color: Color(0xFFF1F5F9),
+          color: darkTextPrimary,
           letterSpacing: 0.3,
         ),
       ),
@@ -90,7 +101,7 @@ ThemeData buildAppTheme({
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: accent,
-          foregroundColor: Colors.black,
+          foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           elevation: 0,
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
@@ -113,17 +124,17 @@ ThemeData buildAppTheme({
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: accent, width: 1.8),
         ),
-        labelStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
+        labelStyle: TextStyle(color: darkTextSecondary, fontSize: 14),
         hintStyle: const TextStyle(color: Color(0xFF64748B), fontSize: 14, fontWeight: FontWeight.normal),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: accent,
-        foregroundColor: Colors.black,
+        foregroundColor: Colors.white,
         elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: const Color(0xFF0A0E1A),
+        backgroundColor: darkBg,
         indicatorColor: accent.withAlpha(45),
         surfaceTintColor: Colors.transparent,
         iconTheme: WidgetStateProperty.resolveWith((states) {
@@ -155,14 +166,14 @@ ThemeData buildAppTheme({
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: darkSurface,
-        contentTextStyle: const TextStyle(color: Color(0xFFF1F5F9), fontSize: 13),
+        contentTextStyle: TextStyle(color: darkTextPrimary, fontSize: 13),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         behavior: SnackBarBehavior.floating,
       ),
       dividerTheme: DividerThemeData(color: darkBorder, thickness: 1, space: 1),
       chipTheme: ChipThemeData(
         backgroundColor: darkElevated,
-        labelStyle: const TextStyle(color: Color(0xFFF1F5F9), fontSize: 12, fontWeight: FontWeight.w500),
+        labelStyle: TextStyle(color: darkTextPrimary, fontSize: 12, fontWeight: FontWeight.w500),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         side: BorderSide(color: darkBorder, width: 1),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -180,24 +191,24 @@ ThemeData buildAppTheme({
       primary: accent,
       onPrimary: Colors.white,
       secondary: accent.withAlpha(200),
-      onSecondary: const Color(0xFF03045E),
+      onSecondary: Colors.white,
       primaryContainer: accent.withAlpha(35),
-      onPrimaryContainer: const Color(0xFF03045E),
+      onPrimaryContainer: const Color(0xFF0F172A),
       secondaryContainer: const Color(0xFFF1F5F9),
-      onSecondaryContainer: const Color(0xFF03045E),
+      onSecondaryContainer: const Color(0xFF0F172A),
       surface: lightSurface,
       onSurface: const Color(0xFF0F172A),
       error: const Color(0xFFD62828),
       onError: Colors.white,
     ),
     scaffoldBackgroundColor: lightBg,
-    appBarTheme: const AppBarTheme(
-      backgroundColor: Color(0xFF03045E),
+    appBarTheme: AppBarTheme(
+      backgroundColor: accent,
       foregroundColor: Colors.white,
       elevation: 0,
       centerTitle: false,
       systemOverlayStyle: SystemUiOverlayStyle.light,
-      titleTextStyle: TextStyle(
+      titleTextStyle: const TextStyle(
         fontFamily: 'Roboto',
         fontSize: 17,
         fontWeight: FontWeight.w600,
@@ -252,7 +263,7 @@ ThemeData buildAppTheme({
         borderRadius: BorderRadius.circular(10),
         borderSide: BorderSide(color: accent, width: 1.5),
       ),
-      labelStyle: const TextStyle(color: Color(0xFF0077B6), fontSize: 14),
+      labelStyle: TextStyle(color: accent, fontSize: 14),
       hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14, fontWeight: FontWeight.normal),
     ),
     floatingActionButtonTheme: FloatingActionButtonThemeData(
@@ -266,13 +277,13 @@ ThemeData buildAppTheme({
       surfaceTintColor: Colors.transparent,
       iconTheme: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) return IconThemeData(color: accent, size: 22);
-        return const IconThemeData(color: Color(0xFFCFD8DC), size: 22);
+        return const IconThemeData(color: Color(0xFF94A3B8), size: 22);
       }),
       labelTextStyle: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
           return TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: accent, letterSpacing: 0.2);
         }
-        return const TextStyle(fontSize: 11, fontWeight: FontWeight.w400, color: Color(0xFFB0BEC5), letterSpacing: 0.2);
+        return const TextStyle(fontSize: 11, fontWeight: FontWeight.w400, color: Color(0xFF94A3B8), letterSpacing: 0.2);
       }),
       height: 64,
     ),
@@ -286,8 +297,8 @@ ThemeData buildAppTheme({
     ),
     dividerTheme: DividerThemeData(color: lightBorder, thickness: 1, space: 1),
     chipTheme: ChipThemeData(
-      backgroundColor: const Color(0xFFE8FAFF),
-      labelStyle: const TextStyle(color: Color(0xFF0077B6), fontSize: 12, fontWeight: FontWeight.w500),
+      backgroundColor: const Color(0xFFF1F5F9),
+      labelStyle: TextStyle(color: accent, fontSize: 12, fontWeight: FontWeight.w500),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
       side: BorderSide.none,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -295,14 +306,14 @@ ThemeData buildAppTheme({
   );
 }
 
-// Backward compatibility constants
-const kPrimary     = Color(0xFFA2EBFB);
-const kAccent      = Color(0xFF00B4D8);
-const kDark        = Color(0xFF03045E);
-const kPrimaryDark = Color(0xFF0077B6);
-const kBg          = Color(0xFFF4FEFF);
+// Backward compatibility constants (now dynamically linked to app settings)
+Color get kPrimary     => appPrimaryLight;
+Color get kAccent      => appPrimary;
+Color get kDark        => const Color(0xFF0F172A);
+Color get kPrimaryDark => appPrimaryDark;
+const kBg          = Color(0xFFF8FAFC);
 const kSurface     = Colors.white;
-const kTextDark    = Color(0xFF03045E);
-const kTextMid     = Color(0xFF0077B6);
-const kTextLight   = Color(0xFF90E0EF);
-const kDivider     = Color(0xFFCAF0F8);
+const kTextDark    = Color(0xFF0F172A);
+Color get kTextMid     => appPrimary;
+Color get kTextLight   => appPrimaryLight;
+const kDivider     = Color(0xFFE2E8F0);
