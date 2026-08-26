@@ -112,6 +112,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   int _idx = 0;
+  final List<int> _tabHistory = [0];
+  DateTime? _lastBackPressTime;
   String _username = '';
   List<Widget>? _cachedScreens;
 
@@ -159,6 +161,58 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
+  void _onTabSelected(int index) {
+    if (_idx != index) {
+      setState(() {
+        _tabHistory.remove(index);
+        _tabHistory.add(index);
+        _idx = index;
+      });
+    }
+  }
+
+  void _handleBackPress() {
+    if (_tabHistory.length > 1) {
+      setState(() {
+        _tabHistory.removeLast();
+        _idx = _tabHistory.last;
+      });
+    } else if (_idx != 0) {
+      setState(() {
+        _idx = 0;
+        _tabHistory.clear();
+        _tabHistory.add(0);
+      });
+    } else {
+      final now = DateTime.now();
+      if (_lastBackPressTime == null || now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
+        _lastBackPressTime = now;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.info_outline_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    LocalizationService.tr('press_back_again_to_exit'),
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
+            ),
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: const Color(0xFF1E293B),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      } else {
+        Navigator.of(context).pop();
+      }
+    }
+  }
+
   @override
   void dispose() {
     _dataSub?.cancel();
@@ -195,219 +249,226 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       (title: LocalizationService.tr('nav_rekap'),       icon: Icons.bar_chart_outlined,     activeIcon: Icons.bar_chart_rounded),
     ];
 
-    return Scaffold(
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: isDark
-                  ? [const Color(0xFF0A0E1A), const Color(0xFF141D2E)]
-                  : [const Color(0xFF03045E), const Color(0xFF0077B6)],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _handleBackPress();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          flexibleSpace: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: isDark
+                    ? [const Color(0xFF0A0E1A), const Color(0xFF141D2E)]
+                    : [const Color(0xFF03045E), const Color(0xFF0077B6)],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+              border: Border(
+                bottom: BorderSide(
+                  color: isDark ? const Color(0xFF243452) : Colors.transparent,
+                  width: 1,
+                ),
+              ),
             ),
+          ),
+          title: Row(
+            children: [
+              ValueListenableBuilder<String>(
+                valueListenable: AppSettingsService.logoUrlNotifier,
+                builder: (context, logoUrl, _) {
+                  if (logoUrl.isNotEmpty && Uri.tryParse(logoUrl)?.hasScheme == true) {
+                    return ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: Image.network(
+                        logoUrl,
+                        width: 32,
+                        height: 32,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => Image.asset('assets/logo.png', width: 32, height: 32, fit: BoxFit.contain),
+                      ),
+                    );
+                  }
+                  return Image.asset('assets/logo.png', width: 32, height: 32, fit: BoxFit.contain);
+                },
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ValueListenableBuilder<String>(
+                      valueListenable: AppSettingsService.appNameNotifier,
+                      builder: (context, appName, _) {
+                        return Text(
+                          appName,
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white, letterSpacing: 0.3),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        );
+                      },
+                    ),
+                    if (_username.isNotEmpty)
+                      Text(
+                        _roleDisplay,
+                        style: const TextStyle(fontSize: 10, color: Colors.white70, letterSpacing: 0.2),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            // Quick Toggle Theme Mode (Light / Dark)
+            IconButton(
+              icon: Icon(
+                isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                color: isDark ? Colors.amberAccent : Colors.white70,
+                size: 20,
+              ),
+              tooltip: isDark ? 'White Mode' : 'Dark Mode',
+              onPressed: () {
+                final newMode = isDark ? ThemeMode.light : ThemeMode.dark;
+                AppSettingsService.setThemeMode(newMode);
+              },
+            ),
+
+            // Notification Bell
+            if (_canReceiveNotifications)
+              FutureBuilder<int>(
+                future: NotificationService.getUnreadCount(forUser: _username),
+                builder: (context, snap) {
+                  final unread = snap.data ?? 0;
+                  return Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      IconButton(
+                        icon: Icon(
+                          unread > 0 ? Icons.notifications_active_rounded : Icons.notifications_outlined,
+                          color: unread > 0 ? Colors.amberAccent : Colors.white70,
+                          size: 22,
+                        ),
+                        tooltip: LocalizationService.tr('notifications'),
+                        onPressed: _showNotificationCenter,
+                      ),
+                      if (unread > 0)
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: Container(
+                            padding: const EdgeInsets.all(3),
+                            decoration: const BoxDecoration(
+                              color: Colors.redAccent,
+                              shape: BoxShape.circle,
+                            ),
+                            constraints: const BoxConstraints(minWidth: 14, minHeight: 14),
+                            child: Text(
+                              unread > 9 ? '9+' : '$unread',
+                              style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
+
+            // Tombol Manajemen untuk superUser, Pembina, Kesiswaan, Admin, dan SEKBID2
+            if (_canAccessManajemen)
+              IconButton(
+                icon: const Icon(Icons.tune_rounded, color: Colors.white70, size: 21),
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ManajemenScreen())),
+                tooltip: LocalizationService.tr('nav_manajemen'),
+              ),
+
+            // Tombol Super Admin Panel (jika Admin)
+            if (_isAdmin)
+              IconButton(
+                icon: const Icon(Icons.admin_panel_settings_rounded, color: Colors.amber, size: 22),
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminSettingsScreen())),
+                tooltip: LocalizationService.tr('nav_admin'),
+              ),
+
+            // Settings Sheet Toggle untuk semua user
+            IconButton(
+              icon: const Icon(Icons.settings_outlined, color: Colors.white70, size: 21),
+              tooltip: LocalizationService.tr('nav_settings'),
+              onPressed: () => UserSettingsSheet.show(context, username: _username),
+            ),
+
+            // Logout Button
+            IconButton(
+              icon: const Icon(Icons.logout_rounded, color: Colors.white70, size: 21),
+              tooltip: LocalizationService.tr('btn_logout'),
+              onPressed: () async {
+                final ok = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: Text(LocalizationService.tr('confirm_logout')),
+                    content: Text('${LocalizationService.tr('logout_prompt')} ($_username)'),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(LocalizationService.tr('btn_cancel'))),
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                        child: Text(LocalizationService.tr('btn_logout')),
+                      ),
+                    ],
+                  ),
+                );
+                if (ok == true) {
+                  await AuthService.logout();
+                  if (mounted) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                      (_) => false,
+                    );
+                  }
+                }
+              },
+            ),
+            const SizedBox(width: 4),
+          ],
+        ),
+        body: IndexedStack(index: _idx, children: _screens),
+        bottomNavigationBar: Container(
+          decoration: BoxDecoration(
+            color: theme.navigationBarTheme.backgroundColor,
             border: Border(
-              bottom: BorderSide(
-                color: isDark ? const Color(0xFF243452) : Colors.transparent,
+              top: BorderSide(
+                color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0),
                 width: 1,
               ),
             ),
-          ),
-        ),
-        title: Row(
-          children: [
-            ValueListenableBuilder<String>(
-              valueListenable: AppSettingsService.logoUrlNotifier,
-              builder: (context, logoUrl, _) {
-                if (logoUrl.isNotEmpty && Uri.tryParse(logoUrl)?.hasScheme == true) {
-                  return ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
-                    child: Image.network(
-                      logoUrl,
-                      width: 32,
-                      height: 32,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => Image.asset('assets/logo.png', width: 32, height: 32, fit: BoxFit.contain),
-                    ),
-                  );
-                }
-                return Image.asset('assets/logo.png', width: 32, height: 32, fit: BoxFit.contain);
-              },
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ValueListenableBuilder<String>(
-                    valueListenable: AppSettingsService.appNameNotifier,
-                    builder: (context, appName, _) {
-                      return Text(
-                        appName,
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white, letterSpacing: 0.3),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      );
-                    },
-                  ),
-                  if (_username.isNotEmpty)
-                    Text(
-                      _roleDisplay,
-                      style: const TextStyle(fontSize: 10, color: Colors.white70, letterSpacing: 0.2),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                ],
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withAlpha(isDark ? 50 : 15),
+                blurRadius: 16,
+                offset: const Offset(0, -2),
               ),
-            ),
-          ],
-        ),
-        actions: [
-          // Quick Toggle Theme Mode (Light / Dark)
-          IconButton(
-            icon: Icon(
-              isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-              color: isDark ? Colors.amberAccent : Colors.white70,
-              size: 20,
-            ),
-            tooltip: isDark ? 'White Mode' : 'Dark Mode',
-            onPressed: () {
-              final newMode = isDark ? ThemeMode.light : ThemeMode.dark;
-              AppSettingsService.setThemeMode(newMode);
+            ],
+          ),
+          child: NavigationBar(
+            selectedIndex: _idx,
+            onDestinationSelected: (i) {
+              _onTabSelected(i);
+              DataService.notifyDataChanged('all');
             },
+            backgroundColor: Colors.transparent,
+            indicatorColor: primary.withAlpha(isDark ? 50 : 35),
+            elevation: 0,
+            destinations: navItems.map((item) => NavigationDestination(
+              icon: Icon(item.icon, size: 22, color: isDark ? const Color(0xFF64748B) : Colors.grey),
+              selectedIcon: Icon(item.activeIcon, size: 22, color: primary),
+              label: item.title,
+            )).toList(),
           ),
-
-          // Notification Bell
-          if (_canReceiveNotifications)
-            FutureBuilder<int>(
-              future: NotificationService.getUnreadCount(forUser: _username),
-              builder: (context, snap) {
-                final unread = snap.data ?? 0;
-                return Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    IconButton(
-                      icon: Icon(
-                        unread > 0 ? Icons.notifications_active_rounded : Icons.notifications_outlined,
-                        color: unread > 0 ? Colors.amberAccent : Colors.white70,
-                        size: 22,
-                      ),
-                      tooltip: LocalizationService.tr('notifications'),
-                      onPressed: _showNotificationCenter,
-                    ),
-                    if (unread > 0)
-                      Positioned(
-                        top: 8,
-                        right: 8,
-                        child: Container(
-                          padding: const EdgeInsets.all(3),
-                          decoration: const BoxDecoration(
-                            color: Colors.redAccent,
-                            shape: BoxShape.circle,
-                          ),
-                          constraints: const BoxConstraints(minWidth: 14, minHeight: 14),
-                          child: Text(
-                            unread > 9 ? '9+' : '$unread',
-                            style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                  ],
-                );
-              },
-            ),
-
-          // Tombol Manajemen untuk superUser, Pembina, Kesiswaan, Admin, dan SEKBID2
-          if (_canAccessManajemen)
-            IconButton(
-              icon: const Icon(Icons.tune_rounded, color: Colors.white70, size: 21),
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ManajemenScreen())),
-              tooltip: LocalizationService.tr('nav_manajemen'),
-            ),
-
-          // Tombol Super Admin Panel (jika Admin)
-          if (_isAdmin)
-            IconButton(
-              icon: const Icon(Icons.admin_panel_settings_rounded, color: Colors.amber, size: 22),
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminSettingsScreen())),
-              tooltip: LocalizationService.tr('nav_admin'),
-            ),
-
-          // Settings Sheet Toggle untuk semua user
-          IconButton(
-            icon: const Icon(Icons.settings_outlined, color: Colors.white70, size: 21),
-            tooltip: LocalizationService.tr('nav_settings'),
-            onPressed: () => UserSettingsSheet.show(context, username: _username),
-          ),
-
-          // Logout Button
-          IconButton(
-            icon: const Icon(Icons.logout_rounded, color: Colors.white70, size: 21),
-            tooltip: LocalizationService.tr('btn_logout'),
-            onPressed: () async {
-              final ok = await showDialog<bool>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: Text(LocalizationService.tr('confirm_logout')),
-                  content: Text('${LocalizationService.tr('logout_prompt')} ($_username)'),
-                  actions: [
-                    TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(LocalizationService.tr('btn_cancel'))),
-                    ElevatedButton(
-                      onPressed: () => Navigator.pop(ctx, true),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                      child: Text(LocalizationService.tr('btn_logout')),
-                    ),
-                  ],
-                ),
-              );
-              if (ok == true) {
-                await AuthService.logout();
-                if (mounted) {
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => const LoginScreen()),
-                    (_) => false,
-                  );
-                }
-              }
-            },
-          ),
-          const SizedBox(width: 4),
-        ],
-      ),
-      body: IndexedStack(index: _idx, children: _screens),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: theme.navigationBarTheme.backgroundColor,
-          border: Border(
-            top: BorderSide(
-              color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0),
-              width: 1,
-            ),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(isDark ? 50 : 15),
-              blurRadius: 16,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: NavigationBar(
-          selectedIndex: _idx,
-          onDestinationSelected: (i) {
-            setState(() => _idx = i);
-            DataService.notifyDataChanged('all');
-          },
-          backgroundColor: Colors.transparent,
-          indicatorColor: primary.withAlpha(isDark ? 50 : 35),
-          elevation: 0,
-          destinations: navItems.map((item) => NavigationDestination(
-            icon: Icon(item.icon, size: 22, color: isDark ? const Color(0xFF64748B) : Colors.grey),
-            selectedIcon: Icon(item.activeIcon, size: 22, color: primary),
-            label: item.title,
-          )).toList(),
         ),
       ),
     );

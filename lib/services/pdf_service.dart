@@ -7,6 +7,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/models.dart';
+import 'app_settings_service.dart';
 
 class PdfService {
   static final _primaryColor = PdfColor.fromHex('#2F3E46');
@@ -18,13 +19,70 @@ class PdfService {
         pw.Row(
           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
           children: [
-            pw.Text('Dokumen ini dihasilkan secara digital oleh OSIS Jurnal Disiplin Siswa.',
+            pw.Text('Dokumen ini dihasilkan secara digital oleh ${AppSettingsService.appNameNotifier.value}.',
                 style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey500)),
             pw.Text('Halaman ${context.pageNumber} dari ${context.pagesCount}',
                 style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey500)),
           ],
         ),
       ]);
+
+  static pw.Widget _signatureBlock({required String tanggal}) {
+    final city = AppSettingsService.cityNotifier.value;
+    final kepsek = AppSettingsService.kepsekNameNotifier.value;
+    final kepsekNip = AppSettingsService.kepsekNipNotifier.value;
+    final pembina = AppSettingsService.pembinaNameNotifier.value;
+    final pembinaNip = AppSettingsService.pembinaNipNotifier.value;
+    final ketos = AppSettingsService.ketosNameNotifier.value;
+    final ketosNis = AppSettingsService.ketosNisNotifier.value;
+
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+      children: [
+        pw.SizedBox(height: 20),
+        pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.end,
+          children: [
+            pw.Text('$city, $tanggal', style: const pw.TextStyle(fontSize: 9)),
+          ],
+        ),
+        pw.SizedBox(height: 12),
+        pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.center,
+              children: [
+                pw.Text('Mengetahui,\nPembina OSIS', textAlign: pw.TextAlign.center, style: const pw.TextStyle(fontSize: 8.5)),
+                pw.SizedBox(height: 38),
+                pw.Text(pembina, style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, decoration: pw.TextDecoration.underline)),
+                pw.Text('NIP. $pembinaNip', style: const pw.TextStyle(fontSize: 7.5)),
+              ],
+            ),
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.center,
+              children: [
+                pw.Text('Ketua OSIS', textAlign: pw.TextAlign.center, style: const pw.TextStyle(fontSize: 8.5)),
+                pw.SizedBox(height: 38),
+                pw.Text(ketos, style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, decoration: pw.TextDecoration.underline)),
+                pw.Text('NIS. $ketosNis', style: const pw.TextStyle(fontSize: 7.5)),
+              ],
+            ),
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.center,
+              children: [
+                pw.Text('Menyetujui,\nKepala Sekolah', textAlign: pw.TextAlign.center, style: const pw.TextStyle(fontSize: 8.5)),
+                pw.SizedBox(height: 38),
+                pw.Text(kepsek, style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, decoration: pw.TextDecoration.underline)),
+                pw.Text('NIP. $kepsekNip', style: const pw.TextStyle(fontSize: 7.5)),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+  }
 
   static pw.TableBorder _tableBorder() => pw.TableBorder(
         bottom: const pw.BorderSide(color: PdfColors.grey300, width: 0.5),
@@ -205,20 +263,7 @@ class PdfService {
             return ['${e.key + 1}', 'Kelas ${e.value.key}', '$count kali', status];
           }).toList(),
         ),
-        pw.SizedBox(height: 32),
-        pw.Row(
-          mainAxisAlignment: pw.MainAxisAlignment.end,
-          children: [
-            pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.center, children: [
-              pw.Text('Pengurus OSIS / Staf Kesiswaan', style: const pw.TextStyle(fontSize: 9)),
-              pw.SizedBox(height: 45),
-              pw.Container(width: 120, height: 0.5, color: PdfColors.black),
-              pw.SizedBox(height: 2),
-              pw.Text('Tim Penilai Disiplin Sekolah',
-                  style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
-            ]),
-          ],
-        ),
+        _signatureBlock(tanggal: tanggal),
       ],
       footer: _footer,
     ));
@@ -362,20 +407,7 @@ class PdfService {
             }).toList(),
           ),
 
-        pw.SizedBox(height: 32),
-        pw.Row(
-          mainAxisAlignment: pw.MainAxisAlignment.end,
-          children: [
-            pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.center, children: [
-              pw.Text('Pengurus OSIS / Staf Kesiswaan', style: const pw.TextStyle(fontSize: 9)),
-              pw.SizedBox(height: 45),
-              pw.Container(width: 120, height: 0.5, color: PdfColors.black),
-              pw.SizedBox(height: 2),
-              pw.Text('Tim Penilai Disiplin Sekolah',
-                  style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
-            ]),
-          ],
-        ),
+        _signatureBlock(tanggal: tanggal),
       ],
       footer: _footer,
     ));

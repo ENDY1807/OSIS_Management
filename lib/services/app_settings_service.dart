@@ -8,10 +8,17 @@ class ThemePreset {
   final String name;
   final Color color;
   final Color darkColor;
-  const ThemePreset({required this.name, required this.color, required this.darkColor});
+  final String description;
+  const ThemePreset({
+    required this.name,
+    required this.color,
+    required this.darkColor,
+    required this.description,
+  });
 }
 
 class AppSettingsService {
+  // SharedPreferences Keys
   static const _keyThemeMode = 'app_theme_mode';
   static const _keyAccentColor = 'app_accent_color';
   static const _keyAppName = 'app_custom_name';
@@ -19,26 +26,102 @@ class AppSettingsService {
   static const _keyLogoUrl = 'app_logo_url';
   static const _keyEnabledLanguages = 'app_enabled_languages';
 
+  // Admin Config Keys
+  static const _keySchoolName = 'cfg_school_name';
+  static const _keyCity = 'cfg_city';
+  static const _keyAcademicYear = 'cfg_academic_year';
+  static const _keyKepsekName = 'cfg_kepsek_name';
+  static const _keyKepsekNip = 'cfg_kepsek_nip';
+  static const _keyPembinaName = 'cfg_pembina_name';
+  static const _keyPembinaNip = 'cfg_pembina_nip';
+  static const _keyKetosName = 'cfg_ketos_name';
+  static const _keyKetosNis = 'cfg_ketos_nis';
+  static const _keySekretarisName = 'cfg_sekretaris_name';
+  static const _keySekretarisNis = 'cfg_sekretaris_nis';
+  static const _keySp1Threshold = 'cfg_sp1_threshold';
+  static const _keySp2Threshold = 'cfg_sp2_threshold';
+  static const _keySp3Threshold = 'cfg_sp3_threshold';
+  static const _keySkorsingThreshold = 'cfg_skorsing_threshold';
+  static const _keyArsipMaxMb = 'cfg_arsip_max_mb';
+  static const _keyArsipFolders = 'cfg_arsip_folders';
+  static const _keySekbidList = 'cfg_sekbid_list';
+  static const _keyLaporanCategories = 'cfg_laporan_categories';
+
+  // Rich, curated modern presets
   static const List<ThemePreset> presets = [
-    ThemePreset(name: 'Cyan Sky (Bawaan)', color: Color(0xFF00B4D8), darkColor: Color(0xFF03045E)),
-    ThemePreset(name: 'Royal Indigo', color: Color(0xFF4F46E5), darkColor: Color(0xFF1E1B4B)),
-    ThemePreset(name: 'Emerald Forest', color: Color(0xFF10B981), darkColor: Color(0xFF064E3B)),
-    ThemePreset(name: 'Deep Purple', color: Color(0xFF8B5CF6), darkColor: Color(0xFF4C1D95)),
-    ThemePreset(name: 'Sunset Orange', color: Color(0xFFF97316), darkColor: Color(0xFF7C2D12)),
-    ThemePreset(name: 'Crimson Rose', color: Color(0xFFE11D48), darkColor: Color(0xFF881337)),
-    ThemePreset(name: 'Teal Ocean', color: Color(0xFF0D9488), darkColor: Color(0xFF134E4A)),
-    ThemePreset(name: 'Midnight Blue', color: Color(0xFF2563EB), darkColor: Color(0xFF1E3A8A)),
-    ThemePreset(name: 'Golden Sun', color: Color(0xFFEAB308), darkColor: Color(0xFF713F12)),
-    ThemePreset(name: 'Cyberpunk Pink', color: Color(0xFFEC4899), darkColor: Color(0xFF831843)),
-    ThemePreset(name: 'Slate Monochrome', color: Color(0xFF64748B), darkColor: Color(0xFF0F172A)),
+    ThemePreset(name: 'Cyan Electric (Bawaan)', color: Color(0xFF00B4D8), darkColor: Color(0xFF03045E), description: 'Segar, energik, & modern'),
+    ThemePreset(name: 'Royal Sapphire', color: Color(0xFF2563EB), darkColor: Color(0xFF1E3A8A), description: 'Elegan, profesional, & berwibawa'),
+    ThemePreset(name: 'Deep Indigo', color: Color(0xFF4F46E5), darkColor: Color(0xFF1E1B4B), description: 'Mewah, tenang, & futuristik'),
+    ThemePreset(name: 'Emerald Aurora', color: Color(0xFF10B981), darkColor: Color(0xFF064E3B), description: 'Natural, harmonis, & sejuk'),
+    ThemePreset(name: 'Teal Oceanic', color: Color(0xFF0D9488), darkColor: Color(0xFF134E4A), description: 'Modern, tenang, & stabil'),
+    ThemePreset(name: 'Amethyst Purple', color: Color(0xFF8B5CF6), darkColor: Color(0xFF4C1D95), description: 'Kreatif, premium, & artistik'),
+    ThemePreset(name: 'Crimson Velvet', color: Color(0xFFE11D48), darkColor: Color(0xFF881337), description: 'Tegas, berani, & dinamis'),
+    ThemePreset(name: 'Sunset Coral', color: Color(0xFFF97316), darkColor: Color(0xFF7C2D12), description: 'Hangat, antusias, & ramah'),
+    ThemePreset(name: 'Golden Amber', color: Color(0xFFF59E0B), darkColor: Color(0xFF78350F), description: 'Emas berkelas, bercahaya, & prestisius'),
+    ThemePreset(name: 'Cyber Magenta', color: Color(0xFFEC4899), darkColor: Color(0xFF831843), description: 'Vibrant, stylish, & berkarakter'),
+    ThemePreset(name: 'Slate Titanium', color: Color(0xFF64748B), darkColor: Color(0xFF0F172A), description: 'Minimalis monokrom & bersih'),
   ];
 
+  // Core Value Notifiers
   static final ValueNotifier<ThemeMode> themeModeNotifier = ValueNotifier(ThemeMode.system);
   static final ValueNotifier<Color> accentColorNotifier = ValueNotifier(const Color(0xFF00B4D8));
   static final ValueNotifier<String> appNameNotifier = ValueNotifier('OSIS Management');
   static final ValueNotifier<String> appSubtitleNotifier = ValueNotifier('Sistem Manajemen OSIS Digital');
   static final ValueNotifier<String> logoUrlNotifier = ValueNotifier('');
   static final ValueNotifier<List<String>> enabledLanguagesNotifier = ValueNotifier(['id', 'en', 'su', 'jv', 'ar', 'ja']);
+
+  // Admin Config Value Notifiers
+  static final ValueNotifier<String> schoolNameNotifier = ValueNotifier('SMK Bakti Nusantara 666');
+  static final ValueNotifier<String> cityNotifier = ValueNotifier('Bandung');
+  static final ValueNotifier<String> academicYearNotifier = ValueNotifier('2026/2027');
+
+  static final ValueNotifier<String> kepsekNameNotifier = ValueNotifier('Drs. H. Ahmad Sudrajat, M.M.');
+  static final ValueNotifier<String> kepsekNipNotifier = ValueNotifier('19750815 199903 1 004');
+  static final ValueNotifier<String> pembinaNameNotifier = ValueNotifier('Rina Marlina, S.Pd.');
+  static final ValueNotifier<String> pembinaNipNotifier = ValueNotifier('19880210 201502 2 001');
+  static final ValueNotifier<String> ketosNameNotifier = ValueNotifier('Endy Mahavira');
+  static final ValueNotifier<String> ketosNisNotifier = ValueNotifier('22231001');
+  static final ValueNotifier<String> sekretarisNameNotifier = ValueNotifier('Siti Nurhaliza');
+  static final ValueNotifier<String> sekretarisNisNotifier = ValueNotifier('22231045');
+
+  static final ValueNotifier<int> sp1ThresholdNotifier = ValueNotifier(20);
+  static final ValueNotifier<int> sp2ThresholdNotifier = ValueNotifier(50);
+  static final ValueNotifier<int> sp3ThresholdNotifier = ValueNotifier(75);
+  static final ValueNotifier<int> skorsingThresholdNotifier = ValueNotifier(100);
+
+  static final ValueNotifier<int> arsipMaxMbNotifier = ValueNotifier(25);
+  static final ValueNotifier<List<String>> arsipFoldersNotifier = ValueNotifier([
+    'Surat Masuk',
+    'Surat Keluar',
+    'Proposal Kegiatan',
+    'LPJ Kegiatan',
+    'Dokumentasi',
+    'SK & Sertifikat',
+  ]);
+
+  static final ValueNotifier<List<String>> sekbidListNotifier = ValueNotifier([
+    'BPH (Inti)',
+    'SEKBID 1 (Keagamaan & Ketaqwaan)',
+    'SEKBID 2 (Budi Pekerti & Ketertiban)',
+    'SEKBID 3 (Wawasan Kebangsaan & Bela Negara)',
+    'SEKBID 4 (Prestasi Akademik, Seni, Olahraga)',
+    'SEKBID 5 (Demokrasi, HAM & Pendidikan Politik)',
+    'SEKBID 6 (Kreativitas, Keterampilan & Kewirausahaan)',
+    'SEKBID 7 (Kualitas Jasmani, Kesehatan & Gizi)',
+    'SEKBID 8 (Sastra & Budaya)',
+    'SEKBID 9 (Teknologi Informasi & Komunikasi)',
+    'SEKBID 10 (Komunikasi Bahasa Asing)',
+  ]);
+
+  static final ValueNotifier<List<String>> laporanCategoriesNotifier = ValueNotifier([
+    'Kegiatan Rutin',
+    'Program Unggulan',
+    'Peringatan Hari Besar',
+    'Lomba & Kompetisi',
+    'Bakti Sosial',
+    'Rapat Kerja & Pleno',
+    'Lainnya',
+  ]);
 
   static SupabaseClient? get _supabase {
     try {
@@ -83,10 +166,46 @@ class AppSettingsService {
       enabledLanguagesNotifier.value = savedLangs;
     }
 
-    // 5. Initialize Localization
+    // 5. Load Admin Configs
+    schoolNameNotifier.value = prefs.getString(_keySchoolName) ?? schoolNameNotifier.value;
+    cityNotifier.value = prefs.getString(_keyCity) ?? cityNotifier.value;
+    academicYearNotifier.value = prefs.getString(_keyAcademicYear) ?? academicYearNotifier.value;
+
+    kepsekNameNotifier.value = prefs.getString(_keyKepsekName) ?? kepsekNameNotifier.value;
+    kepsekNipNotifier.value = prefs.getString(_keyKepsekNip) ?? kepsekNipNotifier.value;
+    pembinaNameNotifier.value = prefs.getString(_keyPembinaName) ?? pembinaNameNotifier.value;
+    pembinaNipNotifier.value = prefs.getString(_keyPembinaNip) ?? pembinaNipNotifier.value;
+    ketosNameNotifier.value = prefs.getString(_keyKetosName) ?? ketosNameNotifier.value;
+    ketosNisNotifier.value = prefs.getString(_keyKetosNis) ?? ketosNisNotifier.value;
+    sekretarisNameNotifier.value = prefs.getString(_keySekretarisName) ?? sekretarisNameNotifier.value;
+    sekretarisNisNotifier.value = prefs.getString(_keySekretarisNis) ?? sekretarisNisNotifier.value;
+
+    sp1ThresholdNotifier.value = prefs.getInt(_keySp1Threshold) ?? sp1ThresholdNotifier.value;
+    sp2ThresholdNotifier.value = prefs.getInt(_keySp2Threshold) ?? sp2ThresholdNotifier.value;
+    sp3ThresholdNotifier.value = prefs.getInt(_keySp3Threshold) ?? sp3ThresholdNotifier.value;
+    skorsingThresholdNotifier.value = prefs.getInt(_keySkorsingThreshold) ?? skorsingThresholdNotifier.value;
+
+    arsipMaxMbNotifier.value = prefs.getInt(_keyArsipMaxMb) ?? arsipMaxMbNotifier.value;
+
+    final savedArsipFolders = prefs.getStringList(_keyArsipFolders);
+    if (savedArsipFolders != null && savedArsipFolders.isNotEmpty) {
+      arsipFoldersNotifier.value = savedArsipFolders;
+    }
+
+    final savedSekbidList = prefs.getStringList(_keySekbidList);
+    if (savedSekbidList != null && savedSekbidList.isNotEmpty) {
+      sekbidListNotifier.value = savedSekbidList;
+    }
+
+    final savedLaporanCats = prefs.getStringList(_keyLaporanCategories);
+    if (savedLaporanCats != null && savedLaporanCats.isNotEmpty) {
+      laporanCategoriesNotifier.value = savedLaporanCats;
+    }
+
+    // 6. Initialize Localization
     await LocalizationService.init();
 
-    // 6. Sync from Cloud
+    // 7. Sync from Cloud
     syncFromSupabase();
   }
 
@@ -160,23 +279,148 @@ class AppSettingsService {
       await prefs.setStringList(_keyEnabledLanguages, enabledLanguages);
     }
 
-    // Save to Supabase Cloud if online
+    await _saveToSupabase();
+  }
+
+  static Future<void> saveAdminConfigs({
+    String? schoolName,
+    String? city,
+    String? academicYear,
+    String? kepsekName,
+    String? kepsekNip,
+    String? pembinaName,
+    String? pembinaNip,
+    String? ketosName,
+    String? ketosNis,
+    String? sekretarisName,
+    String? sekretarisNis,
+    int? sp1,
+    int? sp2,
+    int? sp3,
+    int? skorsing,
+    int? arsipMaxMb,
+    List<String>? arsipFolders,
+    List<String>? sekbidList,
+    List<String>? laporanCategories,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    if (schoolName != null) {
+      schoolNameNotifier.value = schoolName;
+      await prefs.setString(_keySchoolName, schoolName);
+    }
+    if (city != null) {
+      cityNotifier.value = city;
+      await prefs.setString(_keyCity, city);
+    }
+    if (academicYear != null) {
+      academicYearNotifier.value = academicYear;
+      await prefs.setString(_keyAcademicYear, academicYear);
+    }
+
+    if (kepsekName != null) {
+      kepsekNameNotifier.value = kepsekName;
+      await prefs.setString(_keyKepsekName, kepsekName);
+    }
+    if (kepsekNip != null) {
+      kepsekNipNotifier.value = kepsekNip;
+      await prefs.setString(_keyKepsekNip, kepsekNip);
+    }
+    if (pembinaName != null) {
+      pembinaNameNotifier.value = pembinaName;
+      await prefs.setString(_keyPembinaName, pembinaName);
+    }
+    if (pembinaNip != null) {
+      pembinaNipNotifier.value = pembinaNip;
+      await prefs.setString(_keyPembinaNip, pembinaNip);
+    }
+    if (ketosName != null) {
+      ketosNameNotifier.value = ketosName;
+      await prefs.setString(_keyKetosName, ketosName);
+    }
+    if (ketosNis != null) {
+      ketosNisNotifier.value = ketosNis;
+      await prefs.setString(_keyKetosNis, ketosNis);
+    }
+    if (sekretarisName != null) {
+      sekretarisNameNotifier.value = sekretarisName;
+      await prefs.setString(_keySekretarisName, sekretarisName);
+    }
+    if (sekretarisNis != null) {
+      sekretarisNisNotifier.value = sekretarisNis;
+      await prefs.setString(_keySekretarisNis, sekretarisNis);
+    }
+
+    if (sp1 != null) {
+      sp1ThresholdNotifier.value = sp1;
+      await prefs.setInt(_keySp1Threshold, sp1);
+    }
+    if (sp2 != null) {
+      sp2ThresholdNotifier.value = sp2;
+      await prefs.setInt(_keySp2Threshold, sp2);
+    }
+    if (sp3 != null) {
+      sp3ThresholdNotifier.value = sp3;
+      await prefs.setInt(_keySp3Threshold, sp3);
+    }
+    if (skorsing != null) {
+      skorsingThresholdNotifier.value = skorsing;
+      await prefs.setInt(_keySkorsingThreshold, skorsing);
+    }
+
+    if (arsipMaxMb != null) {
+      arsipMaxMbNotifier.value = arsipMaxMb;
+      await prefs.setInt(_keyArsipMaxMb, arsipMaxMb);
+    }
+    if (arsipFolders != null) {
+      arsipFoldersNotifier.value = arsipFolders;
+      await prefs.setStringList(_keyArsipFolders, arsipFolders);
+    }
+    if (sekbidList != null) {
+      sekbidListNotifier.value = sekbidList;
+      await prefs.setStringList(_keySekbidList, sekbidList);
+    }
+    if (laporanCategories != null) {
+      laporanCategoriesNotifier.value = laporanCategories;
+      await prefs.setStringList(_keyLaporanCategories, laporanCategories);
+    }
+
+    await _saveToSupabase();
+  }
+
+  static Future<void> _saveToSupabase() async {
     try {
       final client = _supabase;
       if (client != null) {
-        final colorHex = '0x${(globalColor ?? accentColorNotifier.value).toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase()}';
+        final colorHex = '0x${accentColorNotifier.value.toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase()}';
         await client.from('app_settings').upsert({
           'id': 'global_config',
           'app_name': appNameNotifier.value,
           'app_subtitle': appSubtitleNotifier.value,
           'logo_url': logoUrlNotifier.value,
           'primary_color': colorHex,
+          'school_name': schoolNameNotifier.value,
+          'city': cityNotifier.value,
+          'academic_year': academicYearNotifier.value,
+          'kepsek_name': kepsekNameNotifier.value,
+          'kepsek_nip': kepsekNipNotifier.value,
+          'pembina_name': pembinaNameNotifier.value,
+          'pembina_nip': pembinaNipNotifier.value,
+          'ketos_name': ketosNameNotifier.value,
+          'ketos_nis': ketosNisNotifier.value,
+          'sekretaris_name': sekretarisNameNotifier.value,
+          'sekretaris_nis': sekretarisNisNotifier.value,
+          'sp1_threshold': sp1ThresholdNotifier.value,
+          'sp2_threshold': sp2ThresholdNotifier.value,
+          'sp3_threshold': sp3ThresholdNotifier.value,
+          'skorsing_threshold': skorsingThresholdNotifier.value,
+          'arsip_max_mb': arsipMaxMbNotifier.value,
           'updated_at': DateTime.now().toIso8601String(),
         }, onConflict: 'id');
         await DataService.broadcastDataChange('app_settings');
       }
     } catch (e) {
-      debugPrint('AppSettingsService saveToSupabase warning: $e');
+      debugPrint('AppSettingsService _saveToSupabase warning: $e');
     }
   }
 
@@ -204,6 +448,25 @@ class AppSettingsService {
             accentColorNotifier.value = Color(fullColor);
           } catch (_) {}
         }
+
+        if (data['school_name'] != null) schoolNameNotifier.value = data['school_name'].toString();
+        if (data['city'] != null) cityNotifier.value = data['city'].toString();
+        if (data['academic_year'] != null) academicYearNotifier.value = data['academic_year'].toString();
+
+        if (data['kepsek_name'] != null) kepsekNameNotifier.value = data['kepsek_name'].toString();
+        if (data['kepsek_nip'] != null) kepsekNipNotifier.value = data['kepsek_nip'].toString();
+        if (data['pembina_name'] != null) pembinaNameNotifier.value = data['pembina_name'].toString();
+        if (data['pembina_nip'] != null) pembinaNipNotifier.value = data['pembina_nip'].toString();
+        if (data['ketos_name'] != null) ketosNameNotifier.value = data['ketos_name'].toString();
+        if (data['ketos_nis'] != null) ketosNisNotifier.value = data['ketos_nis'].toString();
+        if (data['sekretaris_name'] != null) sekretarisNameNotifier.value = data['sekretaris_name'].toString();
+        if (data['sekretaris_nis'] != null) sekretarisNisNotifier.value = data['sekretaris_nis'].toString();
+
+        if (data['sp1_threshold'] != null) sp1ThresholdNotifier.value = int.tryParse(data['sp1_threshold'].toString()) ?? 20;
+        if (data['sp2_threshold'] != null) sp2ThresholdNotifier.value = int.tryParse(data['sp2_threshold'].toString()) ?? 50;
+        if (data['sp3_threshold'] != null) sp3ThresholdNotifier.value = int.tryParse(data['sp3_threshold'].toString()) ?? 75;
+        if (data['skorsing_threshold'] != null) skorsingThresholdNotifier.value = int.tryParse(data['skorsing_threshold'].toString()) ?? 100;
+        if (data['arsip_max_mb'] != null) arsipMaxMbNotifier.value = int.tryParse(data['arsip_max_mb'].toString()) ?? 25;
       }
     } catch (e) {
       debugPrint('AppSettingsService syncFromSupabase warning: $e');
