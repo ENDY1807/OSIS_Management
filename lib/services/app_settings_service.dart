@@ -109,7 +109,7 @@ class AppSettingsService {
   static Future<void> setAccentColor(Color color) async {
     accentColorNotifier.value = color;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_keyAccentColor, color.toARGB32());
+    await prefs.setInt(_keyAccentColor, color.value);
   }
 
   static Future<void> setAppBranding({
@@ -133,14 +133,14 @@ class AppSettingsService {
     }
     if (globalColor != null) {
       accentColorNotifier.value = globalColor;
-      await prefs.setInt(_keyAccentColor, globalColor.toARGB32());
+      await prefs.setInt(_keyAccentColor, globalColor.value);
     }
 
     // Save to Supabase Cloud if online
     try {
       final client = _supabase;
       if (client != null) {
-        final colorHex = '0x${(globalColor ?? accentColorNotifier.value).toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase()}';
+        final colorHex = '0x${(globalColor ?? accentColorNotifier.value).value.toRadixString(16).padLeft(8, '0').toUpperCase()}';
         await client.from('app_settings').upsert({
           'id': 'global_config',
           'app_name': appNameNotifier.value,

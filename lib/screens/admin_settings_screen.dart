@@ -370,7 +370,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
             spacing: 10,
             runSpacing: 10,
             children: AppSettingsService.presets.map((p) {
-              final isSelected = _selectedAccent.toARGB32() == p.color.toARGB32();
+              final isSelected = _selectedAccent.value == p.color.value;
               return InkWell(
                 onTap: () => setState(() => _selectedAccent = p.color),
                 borderRadius: BorderRadius.circular(12),
