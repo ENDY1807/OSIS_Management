@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'localization_service.dart';
 import 'data_service.dart';
+import 'sync_service.dart';
 
 class ThemePreset {
   final String name;
@@ -237,10 +238,13 @@ class AppSettingsService {
     await prefs.setString(_keyThemeMode, _themeModeToString(mode));
   }
 
-  static Future<void> setAccentColor(Color color) async {
+  static Future<void> setAccentColor(Color color, {bool syncCloud = true}) async {
     accentColorNotifier.value = color;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyAccentColor, color.toARGB32());
+    if (syncCloud) {
+      await _saveToSupabase();
+    }
   }
 
   static Future<void> setEnabledLanguages(List<String> langs) async {
@@ -389,38 +393,57 @@ class AppSettingsService {
   }
 
   static Future<void> _saveToSupabase() async {
-    try {
-      final client = _supabase;
-      if (client != null) {
-        final colorHex = '0x${accentColorNotifier.value.toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase()}';
-        await client.from('app_settings').upsert({
-          'id': 'global_config',
-          'app_name': appNameNotifier.value,
-          'app_subtitle': appSubtitleNotifier.value,
-          'logo_url': logoUrlNotifier.value,
-          'primary_color': colorHex,
-          'school_name': schoolNameNotifier.value,
-          'city': cityNotifier.value,
-          'academic_year': academicYearNotifier.value,
-          'kepsek_name': kepsekNameNotifier.value,
-          'kepsek_nip': kepsekNipNotifier.value,
-          'pembina_name': pembinaNameNotifier.value,
-          'pembina_nip': pembinaNipNotifier.value,
-          'ketos_name': ketosNameNotifier.value,
-          'ketos_nis': ketosNisNotifier.value,
-          'sekretaris_name': sekretarisNameNotifier.value,
-          'sekretaris_nis': sekretarisNisNotifier.value,
-          'sp1_threshold': sp1ThresholdNotifier.value,
-          'sp2_threshold': sp2ThresholdNotifier.value,
-          'sp3_threshold': sp3ThresholdNotifier.value,
-          'skorsing_threshold': skorsingThresholdNotifier.value,
-          'arsip_max_mb': arsipMaxMbNotifier.value,
-          'updated_at': DateTime.now().toIso8601String(),
-        }, onConflict: 'id');
-        await DataService.broadcastDataChange('app_settings');
+    final colorHex = '0x${accentColorNotifier.value.toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase()}';
+    final dbData = {
+      'id': 'global_config',
+      'app_name': appNameNotifier.value,
+      'app_subtitle': appSubtitleNotifier.value,
+      'logo_url': logoUrlNotifier.value,
+      'primary_color': colorHex,
+      'school_name': schoolNameNotifier.value,
+      'city': cityNotifier.value,
+      'academic_year': academicYearNotifier.value,
+      'kepsek_name': kepsekNameNotifier.value,
+      'kepsek_nip': kepsekNipNotifier.value,
+      'pembina_name': pembinaNameNotifier.value,
+      'pembina_nip': pembinaNipNotifier.value,
+      'ketos_name': ketosNameNotifier.value,
+      'ketos_nis': ketosNisNotifier.value,
+      'sekretaris_name': sekretarisNameNotifier.value,
+      'sekretaris_nis': sekretarisNisNotifier.value,
+      'sp1_threshold': sp1ThresholdNotifier.value,
+      'sp2_threshold': sp2ThresholdNotifier.value,
+      'sp3_threshold': sp3ThresholdNotifier.value,
+      'skorsing_threshold': skorsingThresholdNotifier.value,
+      'arsip_max_mb': arsipMaxMbNotifier.value,
+      'arsip_folders': arsipFoldersNotifier.value,
+      'sekbid_list': sekbidListNotifier.value,
+      'laporan_categories': laporanCategoriesNotifier.value,
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+
+    if (SyncService.isOnline) {
+      try {
+        final client = _supabase;
+        if (client != null) {
+          await client.from('app_settings').upsert(dbData, onConflict: 'id');
+          await DataService.broadcastDataChange('app_settings');
+        }
+      } catch (e) {
+        await SyncService.enqueueAction(
+          actionType: SyncActionType.upsert,
+          table: 'app_settings',
+          data: dbData,
+          targetId: 'global_config',
+        );
       }
-    } catch (e) {
-      debugPrint('AppSettingsService _saveToSupabase warning: $e');
+    } else {
+      await SyncService.enqueueAction(
+        actionType: SyncActionType.upsert,
+        table: 'app_settings',
+        data: dbData,
+        targetId: 'global_config',
+      );
     }
   }
 
@@ -437,36 +460,112 @@ class AppSettingsService {
         final logo = data['logo_url']?.toString();
         final colorStr = data['primary_color']?.toString();
 
-        if (name != null && name.isNotEmpty) appNameNotifier.value = name;
-        if (sub != null && sub.isNotEmpty) appSubtitleNotifier.value = sub;
-        if (logo != null) logoUrlNotifier.value = logo;
+        final prefs = await SharedPreferences.getInstance();
+
+        if (name != null && name.isNotEmpty) {
+          appNameNotifier.value = name;
+          await prefs.setString(_keyAppName, name);
+        }
+        if (sub != null && sub.isNotEmpty) {
+          appSubtitleNotifier.value = sub;
+          await prefs.setString(_keyAppSubtitle, sub);
+        }
+        if (logo != null) {
+          logoUrlNotifier.value = logo;
+          await prefs.setString(_keyLogoUrl, logo);
+        }
 
         if (colorStr != null && colorStr.isNotEmpty) {
           try {
             final parsedInt = int.parse(colorStr.replaceFirst('#', '').replaceFirst('0x', ''), radix: 16);
             final fullColor = (parsedInt <= 0xFFFFFF) ? 0xFF000000 | parsedInt : parsedInt;
             accentColorNotifier.value = Color(fullColor);
+            await prefs.setInt(_keyAccentColor, fullColor);
           } catch (_) {}
         }
 
-        if (data['school_name'] != null) schoolNameNotifier.value = data['school_name'].toString();
-        if (data['city'] != null) cityNotifier.value = data['city'].toString();
-        if (data['academic_year'] != null) academicYearNotifier.value = data['academic_year'].toString();
+        if (data['school_name'] != null) {
+          schoolNameNotifier.value = data['school_name'].toString();
+          await prefs.setString(_keySchoolName, schoolNameNotifier.value);
+        }
+        if (data['city'] != null) {
+          cityNotifier.value = data['city'].toString();
+          await prefs.setString(_keyCity, cityNotifier.value);
+        }
+        if (data['academic_year'] != null) {
+          academicYearNotifier.value = data['academic_year'].toString();
+          await prefs.setString(_keyAcademicYear, academicYearNotifier.value);
+        }
 
-        if (data['kepsek_name'] != null) kepsekNameNotifier.value = data['kepsek_name'].toString();
-        if (data['kepsek_nip'] != null) kepsekNipNotifier.value = data['kepsek_nip'].toString();
-        if (data['pembina_name'] != null) pembinaNameNotifier.value = data['pembina_name'].toString();
-        if (data['pembina_nip'] != null) pembinaNipNotifier.value = data['pembina_nip'].toString();
-        if (data['ketos_name'] != null) ketosNameNotifier.value = data['ketos_name'].toString();
-        if (data['ketos_nis'] != null) ketosNisNotifier.value = data['ketos_nis'].toString();
-        if (data['sekretaris_name'] != null) sekretarisNameNotifier.value = data['sekretaris_name'].toString();
-        if (data['sekretaris_nis'] != null) sekretarisNisNotifier.value = data['sekretaris_nis'].toString();
+        if (data['kepsek_name'] != null) {
+          kepsekNameNotifier.value = data['kepsek_name'].toString();
+          await prefs.setString(_keyKepsekName, kepsekNameNotifier.value);
+        }
+        if (data['kepsek_nip'] != null) {
+          kepsekNipNotifier.value = data['kepsek_nip'].toString();
+          await prefs.setString(_keyKepsekNip, kepsekNipNotifier.value);
+        }
+        if (data['pembina_name'] != null) {
+          pembinaNameNotifier.value = data['pembina_name'].toString();
+          await prefs.setString(_keyPembinaName, pembinaNameNotifier.value);
+        }
+        if (data['pembina_nip'] != null) {
+          pembinaNipNotifier.value = data['pembina_nip'].toString();
+          await prefs.setString(_keyPembinaNip, pembinaNipNotifier.value);
+        }
+        if (data['ketos_name'] != null) {
+          ketosNameNotifier.value = data['ketos_name'].toString();
+          await prefs.setString(_keyKetosName, ketosNameNotifier.value);
+        }
+        if (data['ketos_nis'] != null) {
+          ketosNisNotifier.value = data['ketos_nis'].toString();
+          await prefs.setString(_keyKetosNis, ketosNisNotifier.value);
+        }
+        if (data['sekretaris_name'] != null) {
+          sekretarisNameNotifier.value = data['sekretaris_name'].toString();
+          await prefs.setString(_keySekretarisName, sekretarisNameNotifier.value);
+        }
+        if (data['sekretaris_nis'] != null) {
+          sekretarisNisNotifier.value = data['sekretaris_nis'].toString();
+          await prefs.setString(_keySekretarisNis, sekretarisNisNotifier.value);
+        }
 
-        if (data['sp1_threshold'] != null) sp1ThresholdNotifier.value = int.tryParse(data['sp1_threshold'].toString()) ?? 20;
-        if (data['sp2_threshold'] != null) sp2ThresholdNotifier.value = int.tryParse(data['sp2_threshold'].toString()) ?? 50;
-        if (data['sp3_threshold'] != null) sp3ThresholdNotifier.value = int.tryParse(data['sp3_threshold'].toString()) ?? 75;
-        if (data['skorsing_threshold'] != null) skorsingThresholdNotifier.value = int.tryParse(data['skorsing_threshold'].toString()) ?? 100;
-        if (data['arsip_max_mb'] != null) arsipMaxMbNotifier.value = int.tryParse(data['arsip_max_mb'].toString()) ?? 25;
+        if (data['sp1_threshold'] != null) {
+          sp1ThresholdNotifier.value = int.tryParse(data['sp1_threshold'].toString()) ?? 20;
+          await prefs.setInt(_keySp1Threshold, sp1ThresholdNotifier.value);
+        }
+        if (data['sp2_threshold'] != null) {
+          sp2ThresholdNotifier.value = int.tryParse(data['sp2_threshold'].toString()) ?? 50;
+          await prefs.setInt(_keySp2Threshold, sp2ThresholdNotifier.value);
+        }
+        if (data['sp3_threshold'] != null) {
+          sp3ThresholdNotifier.value = int.tryParse(data['sp3_threshold'].toString()) ?? 75;
+          await prefs.setInt(_keySp3Threshold, sp3ThresholdNotifier.value);
+        }
+        if (data['skorsing_threshold'] != null) {
+          skorsingThresholdNotifier.value = int.tryParse(data['skorsing_threshold'].toString()) ?? 100;
+          await prefs.setInt(_keySkorsingThreshold, skorsingThresholdNotifier.value);
+        }
+        if (data['arsip_max_mb'] != null) {
+          arsipMaxMbNotifier.value = int.tryParse(data['arsip_max_mb'].toString()) ?? 25;
+          await prefs.setInt(_keyArsipMaxMb, arsipMaxMbNotifier.value);
+        }
+
+        if (data['arsip_folders'] != null && data['arsip_folders'] is List) {
+          final folders = (data['arsip_folders'] as List).map((e) => e.toString()).toList();
+          arsipFoldersNotifier.value = folders;
+          await prefs.setStringList(_keyArsipFolders, folders);
+        }
+        if (data['sekbid_list'] != null && data['sekbid_list'] is List) {
+          final sekbids = (data['sekbid_list'] as List).map((e) => e.toString()).toList();
+          sekbidListNotifier.value = sekbids;
+          await prefs.setStringList(_keySekbidList, sekbids);
+        }
+        if (data['laporan_categories'] != null && data['laporan_categories'] is List) {
+          final cats = (data['laporan_categories'] as List).map((e) => e.toString()).toList();
+          laporanCategoriesNotifier.value = cats;
+          await prefs.setStringList(_keyLaporanCategories, cats);
+        }
       }
     } catch (e) {
       debugPrint('AppSettingsService syncFromSupabase warning: $e');

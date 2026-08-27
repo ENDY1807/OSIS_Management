@@ -10,6 +10,7 @@ import '../services/auth_service.dart';
 import '../services/pdf_service.dart';
 import '../services/notification_service.dart';
 import '../services/localization_service.dart';
+import '../services/app_settings_service.dart';
 import '../app_theme.dart';
 
 const _uuid = Uuid();
@@ -26,15 +27,176 @@ class _LaporanScreenState extends State<LaporanScreen> {
   String _filterStatus = 'Semua';
   StreamSubscription<String>? _dataSub;
 
+  bool get _isAdmin =>
+      widget.username == 'ADMIN' || AuthService.getRole(widget.username) == 'ADMIN';
+  bool get _isPembina =>
+      _isAdmin ||
+      widget.username == 'PEMBINA' ||
+      widget.username == 'KESISWAAN' ||
+      AuthService.getRole(widget.username) == 'PEMBINA' ||
+      AuthService.getRole(widget.username) == 'KESISWAAN';
+
   @override
   void initState() {
     super.initState();
     _load();
     _dataSub = DataService.onDataChanged.listen((table) {
-      if (table == 'laporan_kegiatan' || table == 'laporan' || table == 'all') {
+      if (table == 'laporan_kegiatan' || table == 'laporan' || table == 'app_settings' || table == 'all') {
         if (mounted) _load(showLoading: false);
       }
     });
+  }
+
+  void _showAdminConfigLaporan() {
+    final list = List<String>.from(AppSettingsService.laporanCategoriesNotifier.value);
+    final newCatCtrl = TextEditingController();
+    bool isSaving = false;
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setM) => Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF141D2E) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: isDark ? const Border(top: BorderSide(color: Color(0xFF243452), width: 1)) : null,
+          ),
+          padding: EdgeInsets.only(
+            left: 20, right: 20, top: 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(color: isDark ? const Color(0xFF243452) : kPrimary, borderRadius: BorderRadius.circular(2)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withAlpha(isDark ? 50 : 30),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.admin_panel_settings_rounded, color: Colors.amber, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Konfigurasi Kategori Laporan (Admin)',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark),
+                          ),
+                          Text(
+                            'Kategori baru akan otomatis muncul di seluruh pengguna aplikasi',
+                            style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.black54),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // Tambah Kategori Baru
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: newCatCtrl,
+                        decoration: const InputDecoration(
+                          hintText: 'Nama Kategori Laporan baru...',
+                          isDense: true,
+                          prefixIcon: Icon(Icons.add_circle_outline, size: 18),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () {
+                        final val = newCatCtrl.text.trim();
+                        if (val.isNotEmpty && !list.contains(val)) {
+                          setM(() {
+                            list.add(val);
+                            newCatCtrl.clear();
+                          });
+                        }
+                      },
+                      child: const Text('Tambah'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Daftar Kategori
+                Text(
+                  'DAFTAR KATEGORI LAPORAN (${list.length})',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF38BDF8) : kPrimary, letterSpacing: 0.5),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: list.map((cat) {
+                    return Chip(
+                      label: Text(cat, style: const TextStyle(fontSize: 12)),
+                      deleteIcon: const Icon(Icons.close, size: 14),
+                      onDeleted: list.length > 1
+                          ? () => setM(() => list.remove(cat))
+                          : null,
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 20),
+
+                ElevatedButton.icon(
+                  onPressed: isSaving ? null : () async {
+                    setM(() => isSaving = true);
+                    await AppSettingsService.saveAdminConfigs(laporanCategories: list);
+                    if (ctx.mounted) Navigator.pop(ctx);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Row(
+                            children: [
+                              Icon(Icons.check_circle_rounded, color: Colors.white),
+                              SizedBox(width: 10),
+                              Expanded(child: Text('Kategori Laporan berhasil disinkronkan ke semua user!')),
+                            ],
+                          ),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  },
+                  icon: isSaving
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.save_rounded),
+                  label: Text(isSaving ? 'Menyimpan ke Cloud...' : 'Simpan Kategori ke Semua User'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -484,6 +646,17 @@ class _LaporanScreenState extends State<LaporanScreen> {
             const SizedBox(width: 8),
             _filterBtn(LocalizationService.tr('status_done'), isDark: isDark, primary: primary),
             const Spacer(),
+            if (_isPembina || _isAdmin) ...[
+              Tooltip(
+                message: 'Konfigurasi Kategori Laporan (Admin)',
+                child: IconButton(
+                  icon: const Icon(Icons.tune_rounded, color: Colors.amber, size: 20),
+                  onPressed: _showAdminConfigLaporan,
+                  padding: const EdgeInsets.only(right: 6),
+                  constraints: const BoxConstraints(),
+                ),
+              ),
+            ],
             IconButton(
               icon: Icon(Icons.refresh, color: primary),
               onPressed: _load,

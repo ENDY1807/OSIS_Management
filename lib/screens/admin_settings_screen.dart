@@ -16,13 +16,40 @@ class AdminSettingsScreen extends StatefulWidget {
 class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTickerProviderStateMixin {
   late TabController _tabCtrl;
 
-  // Branding Controllers
+  // 1. Branding Controllers
   final _appNameCtrl = TextEditingController();
   final _appSubtitleCtrl = TextEditingController();
   final _logoUrlCtrl = TextEditingController();
   Color _selectedAccent = const Color(0xFF00B4D8);
   final _hexColorCtrl = TextEditingController();
   List<String> _selectedLanguages = ['id', 'en'];
+
+  // 2. Tata Tertib & Poin Controllers
+  final _sp1Ctrl = TextEditingController();
+  final _sp2Ctrl = TextEditingController();
+  final _sp3Ctrl = TextEditingController();
+  final _skorsingCtrl = TextEditingController();
+
+  // 3. Proker & Laporan Lists
+  List<String> _sekbidList = [];
+  List<String> _laporanCategories = [];
+
+  // 4. Arsip Controllers & Lists
+  final _arsipMaxMbCtrl = TextEditingController();
+  List<String> _arsipFolders = [];
+
+  // 5. Data Sekolah & Legalitas Controllers
+  final _schoolNameCtrl = TextEditingController();
+  final _cityCtrl = TextEditingController();
+  final _academicYearCtrl = TextEditingController();
+  final _kepsekNameCtrl = TextEditingController();
+  final _kepsekNipCtrl = TextEditingController();
+  final _pembinaNameCtrl = TextEditingController();
+  final _pembinaNipCtrl = TextEditingController();
+  final _ketosNameCtrl = TextEditingController();
+  final _ketosNisCtrl = TextEditingController();
+  final _sekretarisNameCtrl = TextEditingController();
+  final _sekretarisNisCtrl = TextEditingController();
 
   bool _saving = false;
   bool _isSyncing = false;
@@ -32,9 +59,22 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 2, vsync: this);
+    _tabCtrl = TabController(length: 6, vsync: this);
 
-    // Load Branding
+    _loadCurrentConfigs();
+    _loadAccounts();
+
+    _dataSub = DataService.onDataChanged.listen((table) {
+      if (table == 'accounts' || table == 'app_settings' || table == 'all') {
+        if (mounted) {
+          _loadCurrentConfigs();
+          _loadAccounts();
+        }
+      }
+    });
+  }
+
+  void _loadCurrentConfigs() {
     _appNameCtrl.text = AppSettingsService.appNameNotifier.value;
     _appSubtitleCtrl.text = AppSettingsService.appSubtitleNotifier.value;
     _logoUrlCtrl.text = AppSettingsService.logoUrlNotifier.value;
@@ -42,12 +82,28 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
     _hexColorCtrl.text = '#${_selectedAccent.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
     _selectedLanguages = List<String>.from(AppSettingsService.enabledLanguagesNotifier.value);
 
-    _loadAccounts();
-    _dataSub = DataService.onDataChanged.listen((table) {
-      if (table == 'accounts' || table == 'app_settings' || table == 'all') {
-        if (mounted) _loadAccounts();
-      }
-    });
+    _sp1Ctrl.text = AppSettingsService.sp1ThresholdNotifier.value.toString();
+    _sp2Ctrl.text = AppSettingsService.sp2ThresholdNotifier.value.toString();
+    _sp3Ctrl.text = AppSettingsService.sp3ThresholdNotifier.value.toString();
+    _skorsingCtrl.text = AppSettingsService.skorsingThresholdNotifier.value.toString();
+
+    _sekbidList = List<String>.from(AppSettingsService.sekbidListNotifier.value);
+    _laporanCategories = List<String>.from(AppSettingsService.laporanCategoriesNotifier.value);
+
+    _arsipMaxMbCtrl.text = AppSettingsService.arsipMaxMbNotifier.value.toString();
+    _arsipFolders = List<String>.from(AppSettingsService.arsipFoldersNotifier.value);
+
+    _schoolNameCtrl.text = AppSettingsService.schoolNameNotifier.value;
+    _cityCtrl.text = AppSettingsService.cityNotifier.value;
+    _academicYearCtrl.text = AppSettingsService.academicYearNotifier.value;
+    _kepsekNameCtrl.text = AppSettingsService.kepsekNameNotifier.value;
+    _kepsekNipCtrl.text = AppSettingsService.kepsekNipNotifier.value;
+    _pembinaNameCtrl.text = AppSettingsService.pembinaNameNotifier.value;
+    _pembinaNipCtrl.text = AppSettingsService.pembinaNipNotifier.value;
+    _ketosNameCtrl.text = AppSettingsService.ketosNameNotifier.value;
+    _ketosNisCtrl.text = AppSettingsService.ketosNisNotifier.value;
+    _sekretarisNameCtrl.text = AppSettingsService.sekretarisNameNotifier.value;
+    _sekretarisNisCtrl.text = AppSettingsService.sekretarisNisNotifier.value;
   }
 
   @override
@@ -57,6 +113,25 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
     _appSubtitleCtrl.dispose();
     _logoUrlCtrl.dispose();
     _hexColorCtrl.dispose();
+
+    _sp1Ctrl.dispose();
+    _sp2Ctrl.dispose();
+    _sp3Ctrl.dispose();
+    _skorsingCtrl.dispose();
+
+    _arsipMaxMbCtrl.dispose();
+
+    _schoolNameCtrl.dispose();
+    _cityCtrl.dispose();
+    _academicYearCtrl.dispose();
+    _kepsekNameCtrl.dispose();
+    _kepsekNipCtrl.dispose();
+    _pembinaNameCtrl.dispose();
+    _pembinaNipCtrl.dispose();
+    _ketosNameCtrl.dispose();
+    _ketosNisCtrl.dispose();
+    _sekretarisNameCtrl.dispose();
+    _sekretarisNisCtrl.dispose();
 
     _dataSub?.cancel();
     super.dispose();
@@ -72,18 +147,42 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
       _selectedAccent = color;
       _hexColorCtrl.text = '#${color.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
     });
+    AppSettingsService.setAccentColor(color, syncCloud: false);
   }
 
   Future<void> _saveAllConfigs() async {
     setState(() => _saving = true);
 
-    // 1. Save Branding to Cloud & Local
+    // 1. Simpan Branding
     await AppSettingsService.setAppBranding(
       name: _appNameCtrl.text.trim(),
       subtitle: _appSubtitleCtrl.text.trim(),
       logoUrl: _logoUrlCtrl.text.trim(),
       globalColor: _selectedAccent,
       enabledLanguages: _selectedLanguages.isEmpty ? ['id'] : _selectedLanguages,
+    );
+
+    // 2. Simpan Konfigurasi Lainnya
+    await AppSettingsService.saveAdminConfigs(
+      schoolName: _schoolNameCtrl.text.trim(),
+      city: _cityCtrl.text.trim(),
+      academicYear: _academicYearCtrl.text.trim(),
+      kepsekName: _kepsekNameCtrl.text.trim(),
+      kepsekNip: _kepsekNipCtrl.text.trim(),
+      pembinaName: _pembinaNameCtrl.text.trim(),
+      pembinaNip: _pembinaNipCtrl.text.trim(),
+      ketosName: _ketosNameCtrl.text.trim(),
+      ketosNis: _ketosNisCtrl.text.trim(),
+      sekretarisName: _sekretarisNameCtrl.text.trim(),
+      sekretarisNis: _sekretarisNisCtrl.text.trim(),
+      sp1: int.tryParse(_sp1Ctrl.text.trim()),
+      sp2: int.tryParse(_sp2Ctrl.text.trim()),
+      sp3: int.tryParse(_sp3Ctrl.text.trim()),
+      skorsing: int.tryParse(_skorsingCtrl.text.trim()),
+      arsipMaxMb: int.tryParse(_arsipMaxMbCtrl.text.trim()),
+      arsipFolders: _arsipFolders,
+      sekbidList: _sekbidList,
+      laporanCategories: _laporanCategories,
     );
 
     if (!mounted) return;
@@ -241,6 +340,34 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
     );
   }
 
+  void _showAddChipDialog(String title, ValueChanged<String> onAdd) {
+    final ctrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Tambah $title'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          decoration: InputDecoration(hintText: 'Masukkan nama $title'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(LocalizationService.tr('btn_cancel'))),
+          ElevatedButton(
+            onPressed: () {
+              final text = ctrl.text.trim();
+              if (text.isNotEmpty) {
+                onAdd(text);
+                Navigator.pop(ctx);
+              }
+            },
+            child: Text(LocalizationService.tr('btn_save')),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -262,9 +389,14 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
         ],
         bottom: TabBar(
           controller: _tabCtrl,
-          tabs: [
-            Tab(text: LocalizationService.tr('tab_branding'), icon: const Icon(Icons.palette_outlined, size: 18)),
-            Tab(text: LocalizationService.tr('tab_accounts'), icon: const Icon(Icons.manage_accounts_outlined, size: 18)),
+          isScrollable: true,
+          tabs: const [
+            Tab(text: 'Branding & Warna', icon: Icon(Icons.palette_outlined, size: 18)),
+            Tab(text: 'Tata Tertib', icon: Icon(Icons.warning_amber_rounded, size: 18)),
+            Tab(text: 'Proker & Laporan', icon: Icon(Icons.assignment_outlined, size: 18)),
+            Tab(text: 'Arsip & Berkas', icon: Icon(Icons.folder_outlined, size: 18)),
+            Tab(text: 'Sekolah & Legalitas', icon: Icon(Icons.school_outlined, size: 18)),
+            Tab(text: 'Akun Pengguna', icon: Icon(Icons.manage_accounts_outlined, size: 18)),
           ],
         ),
       ),
@@ -272,6 +404,10 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
         controller: _tabCtrl,
         children: [
           _buildBrandingTab(theme, isDark, primary),
+          _buildTataTertibTab(theme, isDark, primary),
+          _buildProkerLaporanTab(theme, isDark, primary),
+          _buildArsipTab(theme, isDark, primary),
+          _buildSekolahTab(theme, isDark, primary),
           _buildAccountsTab(theme, isDark, primary),
         ],
       ),
@@ -334,18 +470,23 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(color: theme.cardTheme.color, borderRadius: BorderRadius.circular(16), border: Border.all(color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0))),
             child: Wrap(
-              spacing: 12, runSpacing: 12,
+              spacing: 10, runSpacing: 10,
               children: AppSettingsService.presets.map((p) {
                 final isSel = _selectedAccent.toARGB32() == p.color.toARGB32();
                 return InkWell(
                   onTap: () => _onColorChanged(p.color),
+                  borderRadius: BorderRadius.circular(30),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(color: isSel ? p.color.withAlpha(40) : Colors.transparent, borderRadius: BorderRadius.circular(30), border: Border.all(color: isSel ? p.color : Colors.grey.shade300)),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isSel ? p.color.withAlpha(45) : Colors.transparent,
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(color: isSel ? p.color : (isDark ? Colors.white24 : Colors.grey.shade300), width: isSel ? 2 : 1),
+                    ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Container(width: 22, height: 22, decoration: BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: [p.color, p.darkColor]))),
+                        Container(width: 20, height: 20, decoration: BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: [p.color, p.darkColor]))),
                         const SizedBox(width: 8),
                         Text(p.name, style: TextStyle(fontSize: 12, fontWeight: isSel ? FontWeight.bold : FontWeight.w500)),
                       ],
@@ -363,6 +504,181 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
           TextField(controller: _appSubtitleCtrl, onChanged: (_) => setState(() {}), decoration: InputDecoration(labelText: LocalizationService.tr('app_subtitle_label'), prefixIcon: const Icon(Icons.subtitles_outlined))),
           const SizedBox(height: 12),
           TextField(controller: _logoUrlCtrl, decoration: InputDecoration(labelText: LocalizationService.tr('logo_url_label'), prefixIcon: const Icon(Icons.image_outlined))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTataTertibTab(ThemeData theme, bool isDark, Color primary) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _sectionHeader(title: 'Batas Poin Surat Peringatan & Sanksi', icon: Icons.rule_rounded, color: _selectedAccent),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _sp1Ctrl,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Batas Poin SP 1 (Surat Peringatan 1)',
+              prefixIcon: Icon(Icons.warning_amber_rounded, color: Colors.amber),
+            ),
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: _sp2Ctrl,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Batas Poin SP 2 (Surat Peringatan 2)',
+              prefixIcon: Icon(Icons.report_problem_outlined, color: Colors.orange),
+            ),
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: _sp3Ctrl,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Batas Poin SP 3 (Panggilan Orang Tua)',
+              prefixIcon: Icon(Icons.error_outline_rounded, color: Colors.deepOrange),
+            ),
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: _skorsingCtrl,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Batas Poin Tindakan Skorsing / Sidang',
+              prefixIcon: Icon(Icons.gavel_rounded, color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProkerLaporanTab(ThemeData theme, bool isDark, Color primary) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _sectionHeader(title: 'Daftar Divisi / Sekbid (${_sekbidList.length})', icon: Icons.groups_rounded, color: _selectedAccent),
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.green),
+                onPressed: () => _showAddChipDialog('Sekbid Baru', (val) => setState(() => _sekbidList.add(val))),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8, runSpacing: 8,
+            children: _sekbidList.map((s) => Chip(
+              label: Text(s, style: const TextStyle(fontSize: 12)),
+              onDeleted: () => setState(() => _sekbidList.remove(s)),
+              deleteIconColor: Colors.redAccent,
+            )).toList(),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _sectionHeader(title: 'Kategori Laporan Kegiatan (${_laporanCategories.length})', icon: Icons.category_rounded, color: _selectedAccent),
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.green),
+                onPressed: () => _showAddChipDialog('Kategori Laporan Baru', (val) => setState(() => _laporanCategories.add(val))),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8, runSpacing: 8,
+            children: _laporanCategories.map((c) => Chip(
+              label: Text(c, style: const TextStyle(fontSize: 12)),
+              onDeleted: () => setState(() => _laporanCategories.remove(c)),
+              deleteIconColor: Colors.redAccent,
+            )).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildArsipTab(ThemeData theme, bool isDark, Color primary) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _sectionHeader(title: 'Batas Ukuran Berkas', icon: Icons.upload_file_rounded, color: _selectedAccent),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _arsipMaxMbCtrl,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Maksimal Ukuran Upload per Berkas (MB)',
+              prefixIcon: Icon(Icons.sd_storage_rounded),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _sectionHeader(title: 'Folder Kategori Arsip (${_arsipFolders.length})', icon: Icons.folder_copy_rounded, color: _selectedAccent),
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.green),
+                onPressed: () => _showAddChipDialog('Folder Arsip Baru', (val) => setState(() => _arsipFolders.add(val))),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8, runSpacing: 8,
+            children: _arsipFolders.map((f) => Chip(
+              label: Text(f, style: const TextStyle(fontSize: 12)),
+              onDeleted: () => setState(() => _arsipFolders.remove(f)),
+              deleteIconColor: Colors.redAccent,
+            )).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSekolahTab(ThemeData theme, bool isDark, Color primary) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _sectionHeader(title: 'Identitas Sekolah & Tahun Ajaran', icon: Icons.domain_rounded, color: _selectedAccent),
+          const SizedBox(height: 12),
+          TextField(controller: _schoolNameCtrl, decoration: const InputDecoration(labelText: 'Nama Sekolah', prefixIcon: Icon(Icons.school_outlined))),
+          const SizedBox(height: 12),
+          TextField(controller: _cityCtrl, decoration: const InputDecoration(labelText: 'Kota / Wilayah', prefixIcon: Icon(Icons.location_city_outlined))),
+          const SizedBox(height: 12),
+          TextField(controller: _academicYearCtrl, decoration: const InputDecoration(labelText: 'Tahun Ajaran / Periode', prefixIcon: Icon(Icons.calendar_today_outlined))),
+          const SizedBox(height: 24),
+          _sectionHeader(title: 'Pejabat Penandatangan Dokumen & LPJ', icon: Icons.draw_rounded, color: _selectedAccent),
+          const SizedBox(height: 12),
+          TextField(controller: _kepsekNameCtrl, decoration: const InputDecoration(labelText: 'Nama Kepala Sekolah', prefixIcon: Icon(Icons.person_rounded))),
+          const SizedBox(height: 12),
+          TextField(controller: _kepsekNipCtrl, decoration: const InputDecoration(labelText: 'NIP Kepala Sekolah', prefixIcon: Icon(Icons.badge_outlined))),
+          const SizedBox(height: 12),
+          TextField(controller: _pembinaNameCtrl, decoration: const InputDecoration(labelText: 'Nama Pembina OSIS', prefixIcon: Icon(Icons.person_rounded))),
+          const SizedBox(height: 12),
+          TextField(controller: _pembinaNipCtrl, decoration: const InputDecoration(labelText: 'NIP Pembina OSIS', prefixIcon: Icon(Icons.badge_outlined))),
+          const SizedBox(height: 12),
+          TextField(controller: _ketosNameCtrl, decoration: const InputDecoration(labelText: 'Nama Ketua OSIS', prefixIcon: Icon(Icons.person_rounded))),
+          const SizedBox(height: 12),
+          TextField(controller: _ketosNisCtrl, decoration: const InputDecoration(labelText: 'NIS Ketua OSIS', prefixIcon: Icon(Icons.badge_outlined))),
+          const SizedBox(height: 12),
+          TextField(controller: _sekretarisNameCtrl, decoration: const InputDecoration(labelText: 'Nama Sekretaris OSIS', prefixIcon: Icon(Icons.person_rounded))),
+          const SizedBox(height: 12),
+          TextField(controller: _sekretarisNisCtrl, decoration: const InputDecoration(labelText: 'NIS Sekretaris OSIS', prefixIcon: Icon(Icons.badge_outlined))),
         ],
       ),
     );

@@ -7,8 +7,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/models.dart';
 import '../services/data_service.dart';
+import '../services/auth_service.dart';
 import '../services/pdf_service.dart';
 import '../services/localization_service.dart';
+import '../services/app_settings_service.dart';
 import 'package:collection/collection.dart';
 import '../app_theme.dart';
 
@@ -27,17 +29,259 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
   String _filterPeriod = 'semua'; // semua, hari_ini, minggu, bulan, tahun, custom
   DateTimeRange? _customDateRange;
   StreamSubscription<String>? _dataSub;
+  String _currentUser = '';
+
+  bool get _isAdmin =>
+      _currentUser == 'ADMIN' || AuthService.getRole(_currentUser) == 'ADMIN';
+  bool get _isPembina =>
+      _isAdmin ||
+      _currentUser == 'PEMBINA' ||
+      _currentUser == 'KESISWAAN' ||
+      AuthService.getRole(_currentUser) == 'PEMBINA' ||
+      AuthService.getRole(_currentUser) == 'KESISWAAN';
 
   @override
   void initState() {
     super.initState();
     _tab = TabController(length: 3, vsync: this);
     _load();
+    AuthService.getUserName().then((u) {
+      if (mounted) setState(() => _currentUser = u ?? '');
+    });
     _dataSub = DataService.onDataChanged.listen((table) {
-      if (table == 'pelanggaran' || table == 'siswa' || table == 'jenis_pelanggaran' || table == 'all') {
+      if (table == 'pelanggaran' || table == 'siswa' || table == 'jenis_pelanggaran' || table == 'app_settings' || table == 'all') {
         if (mounted) _load(showLoading: false);
       }
     });
+  }
+
+  void _showAdminConfigRekap() {
+    final schoolNameCtrl = TextEditingController(text: AppSettingsService.schoolNameNotifier.value);
+    final cityCtrl = TextEditingController(text: AppSettingsService.cityNotifier.value);
+    final academicYearCtrl = TextEditingController(text: AppSettingsService.academicYearNotifier.value);
+    final kepsekNameCtrl = TextEditingController(text: AppSettingsService.kepsekNameNotifier.value);
+    final kepsekNipCtrl = TextEditingController(text: AppSettingsService.kepsekNipNotifier.value);
+    final pembinaNameCtrl = TextEditingController(text: AppSettingsService.pembinaNameNotifier.value);
+    final pembinaNipCtrl = TextEditingController(text: AppSettingsService.pembinaNipNotifier.value);
+    final ketosNameCtrl = TextEditingController(text: AppSettingsService.ketosNameNotifier.value);
+    final ketosNisCtrl = TextEditingController(text: AppSettingsService.ketosNisNotifier.value);
+    final sekretarisNameCtrl = TextEditingController(text: AppSettingsService.sekretarisNameNotifier.value);
+    final sekretarisNisCtrl = TextEditingController(text: AppSettingsService.sekretarisNisNotifier.value);
+    bool isSaving = false;
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setM) => Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF141D2E) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: isDark ? const Border(top: BorderSide(color: Color(0xFF243452), width: 1)) : null,
+          ),
+          padding: EdgeInsets.only(
+            left: 20, right: 20, top: 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(color: isDark ? const Color(0xFF243452) : kPrimary, borderRadius: BorderRadius.circular(2)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withAlpha(isDark ? 50 : 30),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.admin_panel_settings_rounded, color: Colors.amber, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Konfigurasi Legalitas & TTD PDF (Admin)',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark),
+                          ),
+                          Text(
+                            'Data sekolah & penandatangan berlaku untuk semua cetakan PDF',
+                            style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.black54),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // Data Sekolah
+                TextField(
+                  controller: schoolNameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Nama Sekolah',
+                    prefixIcon: Icon(Icons.school_outlined),
+                    isDense: true,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: cityCtrl,
+                        decoration: const InputDecoration(labelText: 'Kota', isDense: true),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: academicYearCtrl,
+                        decoration: const InputDecoration(labelText: 'Tahun Ajaran', isDense: true),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Kepala Sekolah
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: kepsekNameCtrl,
+                        decoration: const InputDecoration(labelText: 'Nama Kepala Sekolah', isDense: true),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: kepsekNipCtrl,
+                        decoration: const InputDecoration(labelText: 'NIP Kepala Sekolah', isDense: true),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Pembina OSIS
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: pembinaNameCtrl,
+                        decoration: const InputDecoration(labelText: 'Nama Pembina OSIS', isDense: true),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: pembinaNipCtrl,
+                        decoration: const InputDecoration(labelText: 'NIP Pembina OSIS', isDense: true),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Ketos & Sekretaris
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: ketosNameCtrl,
+                        decoration: const InputDecoration(labelText: 'Nama Ketua OSIS', isDense: true),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: ketosNisCtrl,
+                        decoration: const InputDecoration(labelText: 'NIS Ketua OSIS', isDense: true),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: sekretarisNameCtrl,
+                        decoration: const InputDecoration(labelText: 'Nama Sekretaris OSIS', isDense: true),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: sekretarisNisCtrl,
+                        decoration: const InputDecoration(labelText: 'NIS Sekretaris OSIS', isDense: true),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                ElevatedButton.icon(
+                  onPressed: isSaving ? null : () async {
+                    setM(() => isSaving = true);
+                    await AppSettingsService.saveAdminConfigs(
+                      schoolName: schoolNameCtrl.text.trim(),
+                      city: cityCtrl.text.trim(),
+                      academicYear: academicYearCtrl.text.trim(),
+                      kepsekName: kepsekNameCtrl.text.trim(),
+                      kepsekNip: kepsekNipCtrl.text.trim(),
+                      pembinaName: pembinaNameCtrl.text.trim(),
+                      pembinaNip: pembinaNipCtrl.text.trim(),
+                      ketosName: ketosNameCtrl.text.trim(),
+                      ketosNis: ketosNisCtrl.text.trim(),
+                      sekretarisName: sekretarisNameCtrl.text.trim(),
+                      sekretarisNis: sekretarisNisCtrl.text.trim(),
+                    );
+                    if (ctx.mounted) Navigator.pop(ctx);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Row(
+                            children: [
+                              Icon(Icons.check_circle_rounded, color: Colors.white),
+                              SizedBox(width: 10),
+                              Expanded(child: Text('Data Legalitas PDF berhasil disinkronkan ke semua user!')),
+                            ],
+                          ),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  },
+                  icon: isSaving
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.save_rounded),
+                  label: Text(isSaving ? 'Menyimpan ke Cloud...' : 'Simpan Legalitas ke Semua User'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -761,6 +1005,13 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
           ],
         ),
         actions: [
+          if (_isAdmin || _isPembina) ...[
+            IconButton(
+              icon: const Icon(Icons.tune_rounded, color: Colors.amber),
+              onPressed: _showAdminConfigRekap,
+              tooltip: 'Konfigurasi Legalitas & TTD PDF (Admin)',
+            ),
+          ],
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: _load,

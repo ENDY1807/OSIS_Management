@@ -6,10 +6,12 @@ import '../services/data_service.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
 import '../services/localization_service.dart';
+import '../services/app_settings_service.dart';
 import '../app_theme.dart';
 
 List<JenisPelanggaran> _jenisUntukHari(List<JenisPelanggaran> jenis, int weekday) {
-  return jenis.where((j) => j.hariAktif.contains(weekday)).toList();
+  // Jika hariAktif kosong, berlaku untuk semua hari
+  return jenis.where((j) => j.hariAktif.isEmpty || j.hariAktif.contains(weekday)).toList();
 }
 
 class PelanggaranScreen extends StatefulWidget {
@@ -37,9 +39,10 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
       _selectedDate == _today();
 
   static const _superUsers = ['KETUA', 'WAKIL', 'SEKRETARIS', 'BENDAHARA'];
+  bool get _isAdmin =>
+      widget.username == 'ADMIN' || AuthService.getRole(widget.username) == 'ADMIN';
   bool get _canEdit =>
-      widget.username == 'ADMIN' ||
-      AuthService.getRole(widget.username) == 'ADMIN' ||
+      _isAdmin ||
       _superUsers.contains(widget.username) ||
       widget.username == 'PEMBINA' ||
       widget.username == 'KESISWAAN' ||
@@ -54,7 +57,7 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
     super.initState();
     _load();
     _dataSub = DataService.onDataChanged.listen((table) {
-      if (table == 'pelanggaran' || table == 'siswa' || table == 'jenis_pelanggaran' || table == 'all') {
+      if (table == 'pelanggaran' || table == 'siswa' || table == 'jenis_pelanggaran' || table == 'app_settings' || table == 'all') {
         if (mounted) _load(showLoading: false);
       }
     });
@@ -91,6 +94,183 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
     }
   }
 
+  void _showAdminConfigPelanggaran() {
+    final sp1Ctrl = TextEditingController(text: AppSettingsService.sp1ThresholdNotifier.value.toString());
+    final sp2Ctrl = TextEditingController(text: AppSettingsService.sp2ThresholdNotifier.value.toString());
+    final sp3Ctrl = TextEditingController(text: AppSettingsService.sp3ThresholdNotifier.value.toString());
+    final skorsingCtrl = TextEditingController(text: AppSettingsService.skorsingThresholdNotifier.value.toString());
+    bool isSaving = false;
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setM) => Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF141D2E) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: isDark ? const Border(top: BorderSide(color: Color(0xFF243452), width: 1)) : null,
+          ),
+          padding: EdgeInsets.only(
+            left: 20, right: 20, top: 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(color: isDark ? const Color(0xFF243452) : kPrimary, borderRadius: BorderRadius.circular(2)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withAlpha(isDark ? 50 : 30),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.admin_panel_settings_rounded, color: Colors.amber, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Konfigurasi Tata Tertib & SP (Admin)',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark),
+                          ),
+                          Text(
+                            'Perubahan akan otomatis tersimpan & berlaku untuk semua pengguna',
+                            style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.black54),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // Ambang Batas SP Fields
+                Text(
+                  'AMBANG BATAS POIN SURAT PERINGATAN (SP)',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF38BDF8) : kPrimary, letterSpacing: 0.5),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: sp1Ctrl,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Poin SP 1',
+                          prefixIcon: Icon(Icons.warning_amber_rounded, size: 18),
+                          isDense: true,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: sp2Ctrl,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Poin SP 2',
+                          prefixIcon: Icon(Icons.warning_amber_rounded, size: 18),
+                          isDense: true,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: sp3Ctrl,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Poin SP 3',
+                          prefixIcon: Icon(Icons.error_outline_rounded, size: 18),
+                          isDense: true,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: skorsingCtrl,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Poin Skorsing',
+                          prefixIcon: Icon(Icons.block_rounded, size: 18),
+                          isDense: true,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                ElevatedButton.icon(
+                  onPressed: isSaving ? null : () async {
+                    setM(() => isSaving = true);
+                    final sp1 = int.tryParse(sp1Ctrl.text.trim()) ?? 20;
+                    final sp2 = int.tryParse(sp2Ctrl.text.trim()) ?? 50;
+                    final sp3 = int.tryParse(sp3Ctrl.text.trim()) ?? 75;
+                    final skorsing = int.tryParse(skorsingCtrl.text.trim()) ?? 100;
+
+                    await AppSettingsService.saveAdminConfigs(
+                      sp1: sp1,
+                      sp2: sp2,
+                      sp3: sp3,
+                      skorsing: skorsing,
+                    );
+
+                    if (ctx.mounted) Navigator.pop(ctx);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Row(
+                            children: [
+                              Icon(Icons.check_circle_rounded, color: Colors.white),
+                              SizedBox(width: 10),
+                              Expanded(child: Text('Konfigurasi Tata Tertib berhasil disimpan ke semua user!')),
+                            ],
+                          ),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  },
+                  icon: isSaving
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.save_rounded),
+                  label: Text(isSaving ? 'Menyimpan ke Cloud...' : 'Simpan Konfigurasi ke Semua User'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -108,7 +288,16 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
     }
   }
 
-  void _showCeklis() {
+  void _showCeklis() async {
+    // Pastikan siswa dimuat dari cache lokal jika memori kosong sebelum membuka sheet
+    if (_siswa.isEmpty) {
+      final loaded = await DataService.getSiswa();
+      if (mounted) {
+        setState(() => _siswa = loaded);
+      }
+    }
+    if (!mounted) return;
+
     Siswa? selectedSiswa;
     final selectedTanggal = _selectedDate;
     final jenisHariIni = _jenisUntukHari(_jenis, selectedTanggal.weekday);
@@ -147,7 +336,37 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
 
                 // ── Pilih Siswa (Autocomplete) ──
                 if (_siswa.isEmpty)
-                  _warningBox(LocalizationService.currentLocale.value.languageCode == 'en' ? 'No student data. Add students in Management.' : 'Belum ada data siswa. Tambahkan di menu Manajemen.')
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withAlpha(isDark ? 30 : 40),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.amber.withAlpha(120)),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          'Memuat data siswa...',
+                          style: TextStyle(fontSize: 12, color: isDark ? Colors.amberAccent : Colors.amber.shade900),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        ElevatedButton.icon(
+                          onPressed: () async {
+                            final loaded = await DataService.getSiswa();
+                            setModal(() {
+                              _siswa = loaded;
+                            });
+                            setState(() {
+                              _siswa = loaded;
+                            });
+                          },
+                          icon: const Icon(Icons.refresh_rounded, size: 16),
+                          label: const Text('Muat Data Siswa'),
+                        ),
+                      ],
+                    ),
+                  )
                 else
                   RawAutocomplete<Siswa>(
                     textEditingController: siswaCtrl,
@@ -454,6 +673,23 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
                     ),
                   ),
                   Row(mainAxisSize: MainAxisSize.min, children: [
+                    if (_isAdmin) ...[
+                      Tooltip(
+                        message: 'Konfigurasi SP & Tata Tertib (Admin)',
+                        child: GestureDetector(
+                          onTap: _showAdminConfigPelanggaran,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            margin: const EdgeInsets.only(right: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.withAlpha(50),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Icon(Icons.tune_rounded, color: Colors.amber, size: 16),
+                          ),
+                        ),
+                      ),
+                    ],
                     GestureDetector(
                       onTap: () => setState(() {
                         _selectedDate = _selectedDate.subtract(const Duration(days: 1));

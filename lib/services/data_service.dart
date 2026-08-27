@@ -9,6 +9,7 @@ import 'package:excel/excel.dart' as exc;
 import '../models/models.dart';
 import 'auth_service.dart';
 import 'sync_service.dart';
+import 'app_settings_service.dart';
 
 const _uuid = Uuid();
 
@@ -26,7 +27,6 @@ class DataService {
   static const _keyArsip        = 'arsip';
   static const _keyArsipFolder  = 'arsip_folder';
   static const _keyLaporan      = 'laporan_kegiatan_v2';
-  static const _keyPendingPelanggaran = 'pending_pelanggaran';
 
   static final StreamController<String> _dataChangeController = StreamController<String>.broadcast();
   static Stream<String> get onDataChanged => _dataChangeController.stream;
@@ -66,6 +66,7 @@ class DataService {
         'laporan_kegiatan',
         'file_riwayat',
         'accounts',
+        'app_settings',
       ];
       for (final table in monitoredTables) {
         _realtimeChannel?.onPostgresChanges(
@@ -76,6 +77,9 @@ class DataService {
             debugPrint('Postgres change on $table: ${payload.eventType}');
             if (table == 'accounts') {
               AuthService.syncWithSupabase();
+            }
+            if (table == 'app_settings') {
+              AppSettingsService.syncFromSupabase();
             }
             notifyDataChanged(table);
           },
@@ -134,26 +138,71 @@ class DataService {
 
   // ── helpers cache ────────────────────────────────────────────────────────
   static Future<void> _saveCache(String key, List<Map<String, dynamic>> list) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(key, list.map(jsonEncode).toList());
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(key, list.map((e) => jsonEncode(e)).toList());
+    } catch (e) {
+      debugPrint('Error saving cache for $key: $e');
+    }
   }
 
   static Future<List<Map<String, dynamic>>> _readCache(String key) async {
-    final prefs = await SharedPreferences.getInstance();
-    return (prefs.getStringList(key) ?? [])
-        .map((e) => Map<String, dynamic>.from(jsonDecode(e)))
-        .toList();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final list = prefs.getStringList(key) ?? [];
+      return list.map((e) {
+        try {
+          return Map<String, dynamic>.from(jsonDecode(e) as Map);
+        } catch (_) {
+          return <String, dynamic>{};
+        }
+      }).where((m) => m.isNotEmpty).toList();
+    } catch (e) {
+      debugPrint('Error reading cache for $key: $e');
+      return [];
+    }
   }
+
+  // Default dataset siswa untuk inisialisasi awal offline jika belum ada data sama sekali
+  static const List<Map<String, dynamic>> _defaultSiswa = [
+    {'id': 's-1', 'nama': 'Ahmad Fauzi', 'kelas': 'X RPL 1', 'nis': '23241001'},
+    {'id': 's-2', 'nama': 'Annisa Rahmawati', 'kelas': 'X RPL 1', 'nis': '23241002'},
+    {'id': 's-3', 'nama': 'Bagas Pratama', 'kelas': 'X TKJ 1', 'nis': '23241003'},
+    {'id': 's-4', 'nama': 'Dewi Lestari', 'kelas': 'XI RPL 2', 'nis': '22231015'},
+    {'id': 's-5', 'nama': 'Dimas Saputra', 'kelas': 'XI TKJ 2', 'nis': '22231020'},
+    {'id': 's-6', 'nama': 'Fajar Hidayat', 'kelas': 'XII RPL 1', 'nis': '21221005'},
+    {'id': 's-7', 'nama': 'Gita Nurul', 'kelas': 'XII DKV 1', 'nis': '21221012'},
+    {'id': 's-8', 'nama': 'Rizky Ramadhan', 'kelas': 'X DKV 2', 'nis': '23241030'},
+    {'id': 's-9', 'nama': 'Siti Aisyah', 'kelas': 'XI DKV 2', 'nis': '22231040'},
+    {'id': 's-10', 'nama': 'Zahra Putri', 'kelas': 'XII TKJ 1', 'nis': '21221055'},
+  ];
 
   // ── Siswa ────────────────────────────────────────────────────────────────
   static Future<List<Siswa>> getSiswa() async {
+    // 1. Jika offline, langsung ambil dari cache lokal instan tanpa menunggu network
+    if (!SyncService.isOnline) {
+      final cache = await _readCache(_keySiswa);
+      if (cache.isNotEmpty) {
+        return cache.map(Siswa.fromJson).toList();
+      }
+      await _saveCache(_keySiswa, _defaultSiswa);
+      return _defaultSiswa.map(Siswa.fromJson).toList();
+    }
+
+    // 2. Jika online, tarik dari Supabase dengan timeout aman
     try {
-      final rows = await _db.from('siswa').select().order('nama');
-      final list = rows.map((e) => Siswa.fromJson(e)).toList();
-      await _saveCache(_keySiswa, rows.cast<Map<String, dynamic>>());
+      final rows = await _db.from('siswa').select().order('nama').timeout(const Duration(seconds: 4));
+      final list = (rows as List).map((e) => Siswa.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+      if (list.isNotEmpty) {
+        await _saveCache(_keySiswa, list.map((e) => e.toJson()).toList());
+      }
       return list;
     } catch (_) {
       final cache = await _readCache(_keySiswa);
+      if (cache.isEmpty) {
+        await _saveCache(_keySiswa, _defaultSiswa);
+        return _defaultSiswa.map(Siswa.fromJson).toList();
+      }
       return cache.map(Siswa.fromJson).toList();
     }
   }
@@ -293,19 +342,30 @@ class DataService {
 
   // ── Jenis Pelanggaran ────────────────────────────────────────────────────
   static Future<List<JenisPelanggaran>> getJenis() async {
+    // 1. Jika offline, baca langsung dari cache lokal instan
+    if (!SyncService.isOnline) {
+      final cache = await _readCache(_keyJenis);
+      if (cache.isNotEmpty) {
+        return cache.map(JenisPelanggaran.fromJson).toList();
+      }
+      return _defaultJenis();
+    }
+
+    // 2. Jika online, ambil dari Supabase
     try {
-      final rows = await _db.from('jenis_pelanggaran').select();
+      final rows = await _db.from('jenis_pelanggaran').select().timeout(const Duration(seconds: 4));
       if (rows.isEmpty) {
         final defaults = _defaultJenis();
-        // simpan default ke Supabase supaya poin tersedia
         for (final j in defaults) {
-          await _db.from('jenis_pelanggaran').upsert(j.toJson());
+          try {
+            await _db.from('jenis_pelanggaran').upsert(j.toJson());
+          } catch (_) {}
         }
         await _saveCache(_keyJenis, defaults.map((e) => e.toJson()).toList());
         return defaults;
       }
-      final list = rows.map((e) => JenisPelanggaran.fromJson(e)).toList();
-      await _saveCache(_keyJenis, rows.cast<Map<String, dynamic>>());
+      final list = (rows as List).map((e) => JenisPelanggaran.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+      await _saveCache(_keyJenis, list.map((e) => e.toJson()).toList());
       return list;
     } catch (_) {
       final cache = await _readCache(_keyJenis);
@@ -432,9 +492,34 @@ class DataService {
   // ── Pelanggaran ──────────────────────────────────────────────────────────
   static Future<List<Pelanggaran>> getPelanggaran() async {
     List<Siswa>? siswaCache;
+
+    // 1. Jika offline, langsung ambil dari cache lokal instan
+    if (!SyncService.isOnline) {
+      final cache = await _readCache(_keyPelanggaran);
+      final list = cache.map((e) => Pelanggaran.fromJson(e)).toList();
+      if (list.any((p) => p.namaSiswa == null || p.namaSiswa!.isEmpty)) {
+        siswaCache ??= await getSiswa();
+        for (final p in list) {
+          if (p.namaSiswa == null || p.namaSiswa!.isEmpty) {
+            final s = siswaCache.firstWhere(
+              (item) => item.id == p.siswaId,
+              orElse: () => Siswa(id: '', nama: '', kelas: '', nis: ''),
+            );
+            if (s.nama.isNotEmpty) {
+              p.namaSiswa = s.nama;
+              p.kelasSiswa = s.kelas;
+              p.nisSiswa = s.nis;
+            }
+          }
+        }
+      }
+      return list;
+    }
+
+    // 2. Jika online, ambil dari Supabase dengan timeout
     try {
-      final rows = await _db.from('pelanggaran').select().order('tanggal', ascending: false);
-      final list = rows.map((e) => Pelanggaran(
+      final rows = await _db.from('pelanggaran').select().order('tanggal', ascending: false).timeout(const Duration(seconds: 4));
+      final list = (rows as List).map((e) => Pelanggaran(
             id: e['id'],
             siswaId: e['siswa_id'] ?? '',
             jenisId: e['jenis_id'] ?? '',
@@ -597,9 +682,13 @@ class DataService {
 
   // ── Proker ───────────────────────────────────────────────────────────────
   static Future<List<Proker>> getProker() async {
+    if (!SyncService.isOnline) {
+      final cache = await _readCache(_keyProker);
+      return cache.map(Proker.fromJson).toList();
+    }
     try {
-      final rows = await _db.from('proker').select().order('tanggal_rencana');
-      final list = rows.map((e) => Proker(
+      final rows = await _db.from('proker').select().order('tanggal_rencana').timeout(const Duration(seconds: 4));
+      final list = (rows as List).map((e) => Proker(
             id: e['id'],
             nama: e['nama'],
             deskripsi: e['deskripsi'] ?? '',
@@ -610,7 +699,6 @@ class DataService {
             status: e['status'] ?? StatusProker.belum,
             keterangan: e['keterangan'] ?? '',
           )).toList();
-      // Convert database format to model format for caching
       final cacheData = list.map((p) => p.toJson()).toList();
       await _saveCache(_keyProker, cacheData);
       return list;
@@ -740,9 +828,13 @@ class DataService {
 
   // ── Arsip ────────────────────────────────────────────────────────────────
   static Future<List<Arsip>> getArsip() async {
+    if (!SyncService.isOnline) {
+      final cache = await _readCache(_keyArsip);
+      return cache.map(Arsip.fromJson).toList();
+    }
     try {
-      final rows = await _db.from('arsip').select().order('tanggal', ascending: false);
-      final list = rows.map((e) => Arsip(
+      final rows = await _db.from('arsip').select().order('tanggal', ascending: false).timeout(const Duration(seconds: 4));
+      final list = (rows as List).map((e) => Arsip(
             id: e['id'],
             judul: e['judul'],
             kategori: e['kategori'] ?? KategoriArsip.lainnya,
@@ -753,7 +845,6 @@ class DataService {
             fileUrl: e['file_url'] ?? '',
             keterangan: e['keterangan'] ?? '',
           )).toList();
-      // Convert database format to model format for caching
       final cacheData = list.map((a) => a.toJson()).toList();
       await _saveCache(_keyArsip, cacheData);
       return list;
@@ -1082,9 +1173,13 @@ class DataService {
 
   // ── Laporan Kegiatan ─────────────────────────────────────────────────────
   static Future<List<LaporanKegiatan>> getLaporan() async {
+    if (!SyncService.isOnline) {
+      final cache = await _readCache(_keyLaporan);
+      return cache.map(LaporanKegiatan.fromJson).toList();
+    }
     try {
-      final rows = await _db.from('laporan_kegiatan').select().order('tanggal_kegiatan', ascending: false);
-      final list = rows.map((e) => LaporanKegiatan(
+      final rows = await _db.from('laporan_kegiatan').select().order('tanggal_kegiatan', ascending: false).timeout(const Duration(seconds: 4));
+      final list = (rows as List).map((e) => LaporanKegiatan(
             id: e['id'],
             judul: e['judul'],
             sekbid: e['sekbid'] ?? '',
@@ -1099,7 +1194,6 @@ class DataService {
             peserta: (e['peserta'] as List?)?.map((p) => p.toString()).toList() ?? [],
             pembuatId: e['pembuat_id'] ?? '',
           )).toList();
-      // Convert database format to model format for caching
       final cacheData = list.map((l) => l.toJson()).toList();
       await _saveCache(_keyLaporan, cacheData);
       return list;
@@ -1751,15 +1845,49 @@ class DataService {
       'nis': row['nis']!,
     }).toList();
 
-    // Upsert per batch 50
+    // 1. Simpan selalu ke Cache Lokal instan
+    final cache = await _readCache(_keySiswa);
+    for (final item in toUpsert) {
+      final idx = cache.indexWhere((c) => c['nis'] == item['nis']);
+      if (idx != -1) {
+        cache[idx] = item;
+      } else {
+        cache.add(item);
+      }
+    }
+    await _saveCache(_keySiswa, cache);
+
+    // 2. Upsert ke Supabase per batch 50 (jika online) atau enqueue (jika offline)
     const batchSize = 50;
-    for (int i = 0; i < toUpsert.length; i += batchSize) {
-      final end = (i + batchSize).clamp(0, toUpsert.length);
-      await _db.from('siswa').upsert(
-        toUpsert.sublist(i, end),
-        onConflict: 'nis',
-        ignoreDuplicates: true,
-      );
+    if (SyncService.isOnline) {
+      try {
+        for (int i = 0; i < toUpsert.length; i += batchSize) {
+          final end = (i + batchSize).clamp(0, toUpsert.length);
+          await _db.from('siswa').upsert(
+            toUpsert.sublist(i, end),
+            onConflict: 'nis',
+            ignoreDuplicates: true,
+          );
+        }
+      } catch (e) {
+        for (final item in toUpsert) {
+          await SyncService.enqueueAction(
+            actionType: SyncActionType.upsert,
+            table: 'siswa',
+            data: item,
+            targetId: item['id']?.toString(),
+          );
+        }
+      }
+    } else {
+      for (final item in toUpsert) {
+        await SyncService.enqueueAction(
+          actionType: SyncActionType.upsert,
+          table: 'siswa',
+          data: item,
+          targetId: item['id']?.toString(),
+        );
+      }
     }
 
     // Simpan riwayat file

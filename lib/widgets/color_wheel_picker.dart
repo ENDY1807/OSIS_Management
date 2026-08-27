@@ -18,6 +18,7 @@ class ColorWheelPicker extends StatefulWidget {
 class _ColorWheelPickerState extends State<ColorWheelPicker> {
   late HSVColor _hsv;
   late TextEditingController _hexController;
+  bool _isDragging = false;
 
   @override
   void initState() {
@@ -53,6 +54,18 @@ class _ColorWheelPickerState extends State<ColorWheelPicker> {
     widget.onColorChanged(newHsv.toColor());
   }
 
+  void _handleTouch(Offset localPos, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final dx = localPos.dx - center.dx;
+    final dy = localPos.dy - center.dy;
+
+    // Hitung sudut rotasi Hue (0..360 derajat) secara mulus
+    double angle = math.atan2(dy, dx) * 180 / math.pi;
+    if (angle < 0) angle += 360;
+
+    _updateColor(_hsv.withHue(angle));
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -62,30 +75,45 @@ class _ColorWheelPickerState extends State<ColorWheelPicker> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // 1. Interactive Donut Color Wheel (Rotatable 360° Hue Ring + Center Preview)
+        // 1. Interactive Rotatable 360° Color Wheel Ring
         Center(
           child: SizedBox(
-            width: 240,
-            height: 240,
+            width: 250,
+            height: 250,
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final size = constraints.biggest;
-                final center = Offset(size.width / 2, size.height / 2);
                 final outerRadius = size.width / 2 - 12;
                 final innerRadius = outerRadius - 38;
 
                 return GestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  onPanDown: (d) => _handleRingTouch(d.localPosition, center, innerRadius, outerRadius),
-                  onPanStart: (d) => _handleRingTouch(d.localPosition, center, innerRadius, outerRadius),
-                  onPanUpdate: (d) => _handleRingTouch(d.localPosition, center, innerRadius, outerRadius),
-                  child: CustomPaint(
-                    size: size,
-                    painter: _DonutColorWheelPainter(
-                      hsv: _hsv,
-                      outerRadius: outerRadius,
-                      innerRadius: innerRadius,
-                      isDark: isDark,
+                  onPanDown: (details) {
+                    setState(() => _isDragging = true);
+                    _handleTouch(details.localPosition, size);
+                  },
+                  onPanStart: (details) {
+                    setState(() => _isDragging = true);
+                    _handleTouch(details.localPosition, size);
+                  },
+                  onPanUpdate: (details) {
+                    _handleTouch(details.localPosition, size);
+                  },
+                  onPanEnd: (_) => setState(() => _isDragging = false),
+                  onPanCancel: () => setState(() => _isDragging = false),
+                  child: Listener(
+                    behavior: HitTestBehavior.opaque,
+                    onPointerDown: (e) => _handleTouch(e.localPosition, size),
+                    onPointerMove: (e) => _handleTouch(e.localPosition, size),
+                    child: CustomPaint(
+                      size: size,
+                      painter: _DonutColorWheelPainter(
+                        hsv: _hsv,
+                        outerRadius: outerRadius,
+                        innerRadius: innerRadius,
+                        isDark: isDark,
+                        isDragging: _isDragging,
+                      ),
                     ),
                   ),
                 );
@@ -93,10 +121,18 @@ class _ColorWheelPickerState extends State<ColorWheelPicker> {
             ),
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 10),
+        Text(
+          '💡 Putar roda warna untuk memilih corak (Hue: ${_hsv.hue.round()}°)',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+            color: isDark ? Colors.white60 : Colors.black54,
+          ),
+        ),
+        const SizedBox(height: 16),
 
-        // 2. Saturation & Brightness Sliders
-        // Saturation Slider
+        // 2. Saturation Slider
         Row(
           children: [
             Icon(Icons.gradient_rounded, size: 20, color: isDark ? Colors.white70 : Colors.black54),
@@ -118,7 +154,7 @@ class _ColorWheelPickerState extends State<ColorWheelPicker> {
               ),
             ),
             SizedBox(
-              width: 44,
+              width: 46,
               child: Text(
                 '${(_hsv.saturation * 100).round()}% S',
                 style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : Colors.black87),
@@ -127,7 +163,7 @@ class _ColorWheelPickerState extends State<ColorWheelPicker> {
           ],
         ),
 
-        // Brightness Slider
+        // 3. Brightness / Value Slider
         Row(
           children: [
             Icon(Icons.brightness_6_rounded, size: 20, color: isDark ? Colors.white70 : Colors.black54),
@@ -149,7 +185,7 @@ class _ColorWheelPickerState extends State<ColorWheelPicker> {
               ),
             ),
             SizedBox(
-              width: 44,
+              width: 46,
               child: Text(
                 '${(_hsv.value * 100).round()}% V',
                 style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : Colors.black87),
@@ -159,7 +195,7 @@ class _ColorWheelPickerState extends State<ColorWheelPicker> {
         ),
         const SizedBox(height: 12),
 
-        // 3. Hex Code Input & Preview Swatch
+        // 4. Hex Code Input & Preview Swatch
         Row(
           children: [
             Container(
@@ -207,17 +243,6 @@ class _ColorWheelPickerState extends State<ColorWheelPicker> {
       ],
     );
   }
-
-  void _handleRingTouch(Offset localPos, Offset center, double innerRadius, double outerRadius) {
-    final dx = localPos.dx - center.dx;
-    final dy = localPos.dy - center.dy;
-
-    // Calculate angle for Hue (0..360) smoothly on continuous drag
-    double angle = math.atan2(dy, dx) * 180 / math.pi;
-    if (angle < 0) angle += 360;
-
-    _updateColor(_hsv.withHue(angle));
-  }
 }
 
 class _DonutColorWheelPainter extends CustomPainter {
@@ -225,12 +250,14 @@ class _DonutColorWheelPainter extends CustomPainter {
   final double outerRadius;
   final double innerRadius;
   final bool isDark;
+  final bool isDragging;
 
   _DonutColorWheelPainter({
     required this.hsv,
     required this.outerRadius,
     required this.innerRadius,
     required this.isDark,
+    this.isDragging = false,
   });
 
   @override
@@ -259,7 +286,15 @@ class _DonutColorWheelPainter extends CustomPainter {
 
     canvas.drawCircle(center, midRadius, ringPaint);
 
-    // 2. Draw Center Preview Circle
+    // 2. Draw Subtle Border for the Ring
+    final ringBorderPaint = Paint()
+      ..color = isDark ? Colors.white24 : Colors.black12
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    canvas.drawCircle(center, outerRadius, ringBorderPaint);
+    canvas.drawCircle(center, innerRadius, ringBorderPaint);
+
+    // 3. Draw Center Preview Circle with dynamic color
     final currentColor = hsv.toColor();
     final centerPaint = Paint()
       ..color = currentColor
@@ -267,29 +302,49 @@ class _DonutColorWheelPainter extends CustomPainter {
     canvas.drawCircle(center, innerRadius - 8, centerPaint);
 
     final centerBorder = Paint()
-      ..color = isDark ? Colors.white30 : Colors.black12
+      ..color = isDark ? Colors.white38 : Colors.black12
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
+      ..strokeWidth = 2.5;
     canvas.drawCircle(center, innerRadius - 8, centerBorder);
 
-    // 3. Draw Rotational Selector Indicator / Knob on the Ring
+    // Center icon/indicator
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: '${hsv.hue.round()}°',
+        style: TextStyle(
+          color: (hsv.value > 0.5 && hsv.saturation < 0.7) ? Colors.black87 : Colors.white,
+          fontSize: 13,
+          fontWeight: FontWeight.bold,
+          shadows: const [
+            Shadow(color: Colors.black45, blurRadius: 4),
+          ],
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    textPainter.paint(
+      canvas,
+      Offset(center.dx - textPainter.width / 2, center.dy - textPainter.height / 2),
+    );
+
+    // 4. Draw Rotational Knob on the Ring
     final rad = hsv.hue * math.pi / 180;
     final knobPos = Offset(center.dx + midRadius * math.cos(rad), center.dy + midRadius * math.sin(rad));
 
     final knobShadow = Paint()
       ..color = Colors.black54
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
-    canvas.drawCircle(knobPos, 14, knobShadow);
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, isDragging ? 8 : 5);
+    canvas.drawCircle(knobPos, isDragging ? 16 : 14, knobShadow);
 
     final knobOuter = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.fill;
-    canvas.drawCircle(knobPos, 12, knobOuter);
+    canvas.drawCircle(knobPos, isDragging ? 14 : 12, knobOuter);
 
     final knobInner = Paint()
       ..color = currentColor
       ..style = PaintingStyle.fill;
-    canvas.drawCircle(knobPos, 8.5, knobInner);
+    canvas.drawCircle(knobPos, isDragging ? 10 : 8.5, knobInner);
   }
 
   @override
@@ -297,6 +352,7 @@ class _DonutColorWheelPainter extends CustomPainter {
     return oldDelegate.hsv != hsv ||
         oldDelegate.outerRadius != outerRadius ||
         oldDelegate.innerRadius != innerRadius ||
-        oldDelegate.isDark != isDark;
+        oldDelegate.isDark != isDark ||
+        oldDelegate.isDragging != isDragging;
   }
 }

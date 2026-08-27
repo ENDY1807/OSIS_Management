@@ -3,7 +3,6 @@ import 'package:intl/intl.dart';
 import '../services/sync_service.dart';
 import '../services/data_service.dart';
 import '../services/auth_service.dart';
-import '../services/localization_service.dart';
 
 class SyncStatusDialog extends StatefulWidget {
   const SyncStatusDialog({super.key});

@@ -146,6 +146,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (table == 'accounts' || table == 'all') {
         _refreshUser();
       }
+      if (table == 'app_settings' || table == 'all') {
+        AppSettingsService.syncFromSupabase();
+      }
     });
   }
 
@@ -333,7 +336,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ],
           ),
           actions: [
-            // Interactive Offline/Online Sync Status Pill Badge
+            // Simplified Minimalist Online / Offline Status Badge
             ValueListenableBuilder<SyncStatus>(
               valueListenable: SyncService.statusNotifier,
               builder: (context, syncStatus, _) {
@@ -345,59 +348,64 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
                     final color = isSyncing
                         ? Colors.lightBlueAccent
-                        : (isOnline ? const Color(0xFF34D399) : const Color(0xFFFBBF24));
+                        : (isOnline ? const Color(0xFF10B981) : const Color(0xFFF59E0B));
 
-                    final label = isSyncing
-                        ? 'Sync'
+                    final statusText = isSyncing
+                        ? 'Syncing'
                         : (isOnline
-                            ? (pendingCount > 0 ? '$pendingCount Sync' : 'Online')
-                            : (pendingCount > 0 ? '$pendingCount Off' : 'Offline'));
+                            ? (pendingCount > 0 ? 'Online • $pendingCount' : 'Online')
+                            : (pendingCount > 0 ? 'Offline • $pendingCount' : 'Offline'));
 
                     return Center(
                       child: Padding(
-                        padding: const EdgeInsets.only(right: 4),
-                        child: InkWell(
-                          onTap: () => SyncStatusDialog.show(context),
-                          borderRadius: BorderRadius.circular(16),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: color.withAlpha(isDark ? 35 : 55),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: color.withAlpha(140), width: 1),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (isSyncing)
-                                  SizedBox(
-                                    width: 9,
-                                    height: 9,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 1.5,
-                                      color: color,
+                        padding: const EdgeInsets.only(right: 6),
+                        child: Tooltip(
+                          message: isSyncing
+                              ? 'Sedang menyinkronkan data...'
+                              : (isOnline
+                                  ? (pendingCount > 0 ? '$pendingCount data menunggu dikirim' : 'Terhubung ke server (Online)')
+                                  : (pendingCount > 0 ? '$pendingCount data tersimpan offline' : 'Mode Offline')),
+                          child: InkWell(
+                            onTap: () => SyncStatusDialog.show(context),
+                            borderRadius: BorderRadius.circular(20),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                              decoration: BoxDecoration(
+                                color: color.withAlpha(isDark ? 35 : 45),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: color.withAlpha(120), width: 0.8),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (isSyncing)
+                                    SizedBox(
+                                      width: 8,
+                                      height: 8,
+                                      child: CircularProgressIndicator(strokeWidth: 1.5, color: color),
+                                    )
+                                  else
+                                    Container(
+                                      width: 6,
+                                      height: 6,
+                                      decoration: BoxDecoration(
+                                        color: color,
+                                        shape: BoxShape.circle,
+                                        boxShadow: [BoxShadow(color: color.withAlpha(180), blurRadius: 4)],
+                                      ),
                                     ),
-                                  )
-                                else
-                                  Container(
-                                    width: 6.5,
-                                    height: 6.5,
-                                    decoration: BoxDecoration(
-                                      color: color,
-                                      shape: BoxShape.circle,
+                                  const SizedBox(width: 5),
+                                  Text(
+                                    statusText,
+                                    style: const TextStyle(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                      letterSpacing: 0.2,
                                     ),
                                   ),
-                                const SizedBox(width: 5),
-                                Text(
-                                  label,
-                                  style: TextStyle(
-                                    fontSize: 10.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: isDark ? Colors.white : Colors.white,
-                                    letterSpacing: 0.2,
-                                  ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         ),

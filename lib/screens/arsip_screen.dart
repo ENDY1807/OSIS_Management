@@ -16,6 +16,7 @@ import '../services/data_service.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
 import '../services/localization_service.dart';
+import '../services/app_settings_service.dart';
 import '../app_theme.dart';
 
 const _uuid = Uuid();
@@ -55,6 +56,14 @@ class ArsipScreenState extends State<ArsipScreen> {
   List<Arsip> _clipboardFiles = [];
   List<String> _clipboardFolders = [];
 
+  bool get _isAdmin =>
+      widget.username == 'ADMIN' || AuthService.getRole(widget.username) == 'ADMIN';
+  bool get _isPembina =>
+      _isAdmin ||
+      widget.username == 'PEMBINA' ||
+      widget.username == 'KESISWAAN' ||
+      AuthService.getRole(widget.username) == 'PEMBINA' ||
+      AuthService.getRole(widget.username) == 'KESISWAAN';
   bool get _canEdit => true;
 
   @override
@@ -62,10 +71,178 @@ class ArsipScreenState extends State<ArsipScreen> {
     super.initState();
     _load();
     _dataSub = DataService.onDataChanged.listen((table) {
-      if (table == 'arsip' || table == 'arsip_folder' || table == 'all') {
+      if (table == 'arsip' || table == 'arsip_folder' || table == 'app_settings' || table == 'all') {
         if (mounted) _load(silent: true);
       }
     });
+  }
+
+  void _showAdminConfigArsip() {
+    final maxMbCtrl = TextEditingController(text: AppSettingsService.arsipMaxMbNotifier.value.toString());
+    final folderList = List<String>.from(AppSettingsService.arsipFoldersNotifier.value);
+    final newFolderCtrl = TextEditingController();
+    bool isSaving = false;
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setM) => Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF141D2E) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: isDark ? const Border(top: BorderSide(color: Color(0xFF243452), width: 1)) : null,
+          ),
+          padding: EdgeInsets.only(
+            left: 20, right: 20, top: 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(color: isDark ? const Color(0xFF243452) : kPrimary, borderRadius: BorderRadius.circular(2)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withAlpha(isDark ? 50 : 30),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.admin_panel_settings_rounded, color: Colors.amber, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Konfigurasi Arsip Digital (Admin)',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark),
+                          ),
+                          Text(
+                            'Batasan upload & struktur folder tersinkron ke semua pengguna',
+                            style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.black54),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // Max File Size
+                TextField(
+                  controller: maxMbCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Batas Ukuran Upload Maksimal (MB)',
+                    prefixIcon: Icon(Icons.file_upload_outlined),
+                    suffixText: 'MB',
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Tambah Folder Bawaan
+                Text(
+                  'STRUKTUR FOLDER BAWAAN',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF38BDF8) : kPrimary, letterSpacing: 0.5),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: newFolderCtrl,
+                        decoration: const InputDecoration(
+                          hintText: 'Nama folder baru...',
+                          isDense: true,
+                          prefixIcon: Icon(Icons.create_new_folder_outlined, size: 18),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () {
+                        final val = newFolderCtrl.text.trim();
+                        if (val.isNotEmpty && !folderList.contains(val)) {
+                          setM(() {
+                            folderList.add(val);
+                            newFolderCtrl.clear();
+                          });
+                        }
+                      },
+                      child: const Text('Tambah'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: folderList.map((f) {
+                    return Chip(
+                      label: Text(f, style: const TextStyle(fontSize: 12)),
+                      deleteIcon: const Icon(Icons.close, size: 14),
+                      onDeleted: folderList.length > 1
+                          ? () => setM(() => folderList.remove(f))
+                          : null,
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 20),
+
+                ElevatedButton.icon(
+                  onPressed: isSaving ? null : () async {
+                    setM(() => isSaving = true);
+                    final maxMb = int.tryParse(maxMbCtrl.text.trim()) ?? 25;
+                    await AppSettingsService.saveAdminConfigs(
+                      arsipMaxMb: maxMb,
+                      arsipFolders: folderList,
+                    );
+                    if (ctx.mounted) Navigator.pop(ctx);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Row(
+                            children: [
+                              Icon(Icons.check_circle_rounded, color: Colors.white),
+                              SizedBox(width: 10),
+                              Expanded(child: Text('Konfigurasi Arsip berhasil disinkronkan ke semua user!')),
+                            ],
+                          ),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  },
+                  icon: isSaving
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.save_rounded),
+                  label: Text(isSaving ? 'Menyimpan ke Cloud...' : 'Simpan Konfigurasi ke Semua User'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -2044,6 +2221,15 @@ class ArsipScreenState extends State<ArsipScreen> {
             ),
           ),
           const SizedBox(width: 8),
+          if (_isAdmin || _isPembina) ...[
+            Tooltip(
+              message: 'Konfigurasi Arsip & Batas MB (Admin)',
+              child: IconButton(
+                icon: const Icon(Icons.tune_rounded, color: Colors.amber, size: 20),
+                onPressed: _showAdminConfigArsip,
+              ),
+            ),
+          ],
           IconButton(
             icon: Icon(_sortMode == SortMode.dateNewest ? Icons.sort_rounded : Icons.filter_list_rounded, color: primary),
             tooltip: 'Ganti Urutan',

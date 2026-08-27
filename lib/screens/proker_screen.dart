@@ -6,6 +6,7 @@ import '../services/data_service.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
 import '../services/localization_service.dart';
+import '../services/app_settings_service.dart';
 import '../app_theme.dart';
 import 'package:uuid/uuid.dart';
 
@@ -37,7 +38,7 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
     _tab = TabController(length: 3, vsync: this);
     _tab.addListener(() => setState(() {}));
     _dataSub = DataService.onDataChanged.listen((table) {
-      if (table == 'proker' || table == 'all') {
+      if (table == 'proker' || table == 'app_settings' || table == 'all') {
         if (mounted) _load();
       }
     });
@@ -49,6 +50,158 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
       });
       _load();
     });
+  }
+
+  void _showAdminConfigProker() {
+    final list = List<String>.from(AppSettingsService.sekbidListNotifier.value);
+    final newSekbidCtrl = TextEditingController();
+    bool isSaving = false;
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setM) => Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF141D2E) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: isDark ? const Border(top: BorderSide(color: Color(0xFF243452), width: 1)) : null,
+          ),
+          padding: EdgeInsets.only(
+            left: 20, right: 20, top: 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(color: isDark ? const Color(0xFF243452) : kPrimary, borderRadius: BorderRadius.circular(2)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withAlpha(isDark ? 50 : 30),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.admin_panel_settings_rounded, color: Colors.amber, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Konfigurasi Sekbid & Departemen (Admin)',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark),
+                          ),
+                          Text(
+                            'Perubahan sekbid akan berlaku di semua akun pengguna',
+                            style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.black54),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // Tambah Sekbid Baru Input
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: newSekbidCtrl,
+                        decoration: const InputDecoration(
+                          hintText: 'Nama Sekbid/Unit baru...',
+                          isDense: true,
+                          prefixIcon: Icon(Icons.add_circle_outline, size: 18),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () {
+                        final val = newSekbidCtrl.text.trim();
+                        if (val.isNotEmpty && !list.contains(val)) {
+                          setM(() {
+                            list.add(val);
+                            newSekbidCtrl.clear();
+                          });
+                        }
+                      },
+                      child: const Text('Tambah'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Daftar Sekbid Chips
+                Text(
+                  'DAFTAR SEKBID / DIVISI AKTIF (${list.length})',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF38BDF8) : kPrimary, letterSpacing: 0.5),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: list.map((item) {
+                    return Chip(
+                      label: Text(item, style: const TextStyle(fontSize: 12)),
+                      deleteIcon: const Icon(Icons.close, size: 14),
+                      onDeleted: list.length > 1
+                          ? () => setM(() => list.remove(item))
+                          : null,
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 20),
+
+                ElevatedButton.icon(
+                  onPressed: isSaving ? null : () async {
+                    setM(() => isSaving = true);
+                    await AppSettingsService.saveAdminConfigs(sekbidList: list);
+                    if (ctx.mounted) Navigator.pop(ctx);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Row(
+                            children: [
+                              Icon(Icons.check_circle_rounded, color: Colors.white),
+                              SizedBox(width: 10),
+                              Expanded(child: Text('Daftar Sekbid berhasil disinkronkan ke semua user!')),
+                            ],
+                          ),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  },
+                  icon: isSaving
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.save_rounded),
+                  label: Text(isSaving ? 'Menyimpan ke Cloud...' : 'Simpan Perubahan ke Semua User'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -472,6 +625,28 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
                 _statBox(LocalizationService.tr('status_running'), totalBerjalan, const Color(0xFF007A8E)),
                 const SizedBox(width: 8),
                 _statBox(LocalizationService.tr('status_done'), totalSelesai, const Color(0xFF2E7D32)),
+                if (_isAdmin || _isPembina) ...[
+                  const SizedBox(width: 8),
+                  Tooltip(
+                    message: 'Konfigurasi Sekbid & Departemen (Admin)',
+                    child: InkWell(
+                      onTap: _showAdminConfigProker,
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        height: 52,
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.withAlpha(isDark ? 40 : 50),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.amber.withAlpha(120)),
+                        ),
+                        child: const Center(
+                          child: Icon(Icons.tune_rounded, color: Colors.amber, size: 20),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
