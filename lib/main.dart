@@ -10,10 +10,12 @@ import 'screens/laporan_screen.dart';
 import 'screens/admin_settings_screen.dart';
 import 'services/data_service.dart';
 import 'services/auth_service.dart';
+import 'services/sync_service.dart';
 import 'services/notification_service.dart';
 import 'services/app_settings_service.dart';
 import 'services/localization_service.dart';
 import 'widgets/user_settings_sheet.dart';
+import 'widgets/sync_status_dialog.dart';
 import 'models/models.dart';
 import 'screens/login_screen.dart';
 import 'app_theme.dart';
@@ -36,6 +38,11 @@ void main() async {
     await AppSettingsService.init();
   } catch (e) {
     debugPrint('AppSettingsService init error: $e');
+  }
+  try {
+    await SyncService.init();
+  } catch (e) {
+    debugPrint('SyncService init error: $e');
   }
   try {
     await DataService.initializeSupabase();
@@ -225,6 +232,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       DataService.notifyDataChanged('all');
+      SyncService.checkAndSync();
     }
   }
 
@@ -325,6 +333,81 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ],
           ),
           actions: [
+            // Interactive Offline/Online Sync Status Pill Badge
+            ValueListenableBuilder<SyncStatus>(
+              valueListenable: SyncService.statusNotifier,
+              builder: (context, syncStatus, _) {
+                return ValueListenableBuilder<int>(
+                  valueListenable: SyncService.pendingCountNotifier,
+                  builder: (context, pendingCount, _) {
+                    final isOnline = syncStatus == SyncStatus.online;
+                    final isSyncing = syncStatus == SyncStatus.syncing;
+
+                    final color = isSyncing
+                        ? Colors.lightBlueAccent
+                        : (isOnline ? const Color(0xFF34D399) : const Color(0xFFFBBF24));
+
+                    final label = isSyncing
+                        ? 'Sync'
+                        : (isOnline
+                            ? (pendingCount > 0 ? '$pendingCount Sync' : 'Online')
+                            : (pendingCount > 0 ? '$pendingCount Off' : 'Offline'));
+
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 4),
+                        child: InkWell(
+                          onTap: () => SyncStatusDialog.show(context),
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: color.withAlpha(isDark ? 35 : 55),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: color.withAlpha(140), width: 1),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (isSyncing)
+                                  SizedBox(
+                                    width: 9,
+                                    height: 9,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 1.5,
+                                      color: color,
+                                    ),
+                                  )
+                                else
+                                  Container(
+                                    width: 6.5,
+                                    height: 6.5,
+                                    decoration: BoxDecoration(
+                                      color: color,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                const SizedBox(width: 5),
+                                Text(
+                                  label,
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: isDark ? Colors.white : Colors.white,
+                                    letterSpacing: 0.2,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+
             // Quick Toggle Theme Mode (Light / Dark)
             IconButton(
               icon: Icon(

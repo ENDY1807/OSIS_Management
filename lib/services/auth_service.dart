@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'data_service.dart';
+import 'sync_service.dart';
 
 class AppAccount {
   final String username;
@@ -359,21 +360,37 @@ class AuthService {
     _accountDetails![uname] = updatedAcc;
     await _saveAccountsToCache();
 
-    // Simpan ke Supabase
-    try {
-      final client = _supabase;
-      if (client != null) {
-        await client.from('accounts').upsert({
-          'username': uname,
-          'password': nPass,
-          'role': updatedAcc.role,
-          'display_name': updatedAcc.displayName,
-          'updated_at': DateTime.now().toIso8601String(),
-        }, onConflict: 'username');
-        await DataService.broadcastDataChange('accounts');
+    final dbData = {
+      'username': uname,
+      'password': nPass,
+      'role': updatedAcc.role,
+      'display_name': updatedAcc.displayName,
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+
+    // Kirim ke Supabase atau antrekan ke SyncService
+    if (SyncService.isOnline) {
+      try {
+        final client = _supabase;
+        if (client != null) {
+          await client.from('accounts').upsert(dbData, onConflict: 'username');
+          await DataService.broadcastDataChange('accounts');
+        }
+      } catch (e) {
+        await SyncService.enqueueAction(
+          actionType: SyncActionType.upsert,
+          table: 'accounts',
+          data: dbData,
+          targetId: uname,
+        );
       }
-    } catch (e) {
-      debugPrint('Error updating password to Supabase: $e');
+    } else {
+      await SyncService.enqueueAction(
+        actionType: SyncActionType.upsert,
+        table: 'accounts',
+        data: dbData,
+        targetId: uname,
+      );
     }
   }
 
@@ -390,20 +407,36 @@ class AuthService {
     _accountDetails![uname] = acc;
     await _saveAccountsToCache();
 
-    try {
-      final client = _supabase;
-      if (client != null) {
-        await client.from('accounts').upsert({
-          'username': uname,
-          'password': acc.password,
-          'role': acc.role,
-          'display_name': acc.displayName,
-          'updated_at': DateTime.now().toIso8601String(),
-        }, onConflict: 'username');
-        await DataService.broadcastDataChange('accounts');
+    final dbData = {
+      'username': uname,
+      'password': acc.password,
+      'role': acc.role,
+      'display_name': acc.displayName,
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+
+    if (SyncService.isOnline) {
+      try {
+        final client = _supabase;
+        if (client != null) {
+          await client.from('accounts').upsert(dbData, onConflict: 'username');
+          await DataService.broadcastDataChange('accounts');
+        }
+      } catch (e) {
+        await SyncService.enqueueAction(
+          actionType: SyncActionType.upsert,
+          table: 'accounts',
+          data: dbData,
+          targetId: uname,
+        );
       }
-    } catch (e) {
-      debugPrint('Error saving account to Supabase: $e');
+    } else {
+      await SyncService.enqueueAction(
+        actionType: SyncActionType.upsert,
+        table: 'accounts',
+        data: dbData,
+        targetId: uname,
+      );
     }
   }
 
@@ -414,14 +447,26 @@ class AuthService {
     _accountDetails?.remove(uname);
     await _saveAccountsToCache();
 
-    try {
-      final client = _supabase;
-      if (client != null) {
-        await client.from('accounts').delete().eq('username', uname);
-        await DataService.broadcastDataChange('accounts');
+    if (SyncService.isOnline) {
+      try {
+        final client = _supabase;
+        if (client != null) {
+          await client.from('accounts').delete().eq('username', uname);
+          await DataService.broadcastDataChange('accounts');
+        }
+      } catch (e) {
+        await SyncService.enqueueAction(
+          actionType: SyncActionType.delete,
+          table: 'accounts',
+          targetId: uname,
+        );
       }
-    } catch (e) {
-      debugPrint('Error deleting account from Supabase: $e');
+    } else {
+      await SyncService.enqueueAction(
+        actionType: SyncActionType.delete,
+        table: 'accounts',
+        targetId: uname,
+      );
     }
   }
 
@@ -437,21 +482,40 @@ class AuthService {
     }
     await _saveAccountsToCache();
 
-    try {
-      final client = _supabase;
-      if (client != null) {
-        final seedData = _defaults.entries.map((e) => {
-          'username': e.key,
-          'password': e.value,
-          'role': e.key,
-          'display_name': defaultDisplayNames[e.key] ?? e.key,
-          'updated_at': DateTime.now().toIso8601String(),
-        }).toList();
-        await client.from('accounts').upsert(seedData, onConflict: 'username');
-        await DataService.broadcastDataChange('accounts');
+    final seedData = _defaults.entries.map((e) => {
+      'username': e.key,
+      'password': e.value,
+      'role': e.key,
+      'display_name': defaultDisplayNames[e.key] ?? e.key,
+      'updated_at': DateTime.now().toIso8601String(),
+    }).toList();
+
+    if (SyncService.isOnline) {
+      try {
+        final client = _supabase;
+        if (client != null) {
+          await client.from('accounts').upsert(seedData, onConflict: 'username');
+          await DataService.broadcastDataChange('accounts');
+        }
+      } catch (e) {
+        for (final item in seedData) {
+          await SyncService.enqueueAction(
+            actionType: SyncActionType.upsert,
+            table: 'accounts',
+            data: item,
+            targetId: item['username']?.toString(),
+          );
+        }
       }
-    } catch (e) {
-      debugPrint('Error resetting accounts to Supabase: $e');
+    } else {
+      for (final item in seedData) {
+        await SyncService.enqueueAction(
+          actionType: SyncActionType.upsert,
+          table: 'accounts',
+          data: item,
+          targetId: item['username']?.toString(),
+        );
+      }
     }
   }
 
