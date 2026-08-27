@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
@@ -81,6 +83,7 @@ class SyncService {
   static Timer? _healthCheckTimer;
   static bool _initialized = false;
   static bool _isFlushing = false;
+  static int _consecutiveFailures = 0;
 
   static SupabaseClient? get _supabase {
     try {
@@ -177,39 +180,70 @@ class SyncService {
 
   // ── Pemeriksaan Konektivitas & Auto Sync ───────────────────────────────────
 
-  /// Memeriksa apakah Supabase dapat diakses
-  static Future<bool> checkConnection() async {
-    final client = _supabase;
-    if (client == null) {
-      _setStatus(SyncStatus.offline);
-      return false;
+  /// Memeriksa aksesibilitas internet umum (DNS / HTTP 204)
+  static Future<bool> hasInternet() async {
+    if (!kIsWeb) {
+      try {
+        final result = await InternetAddress.lookup('google.com')
+            .timeout(const Duration(seconds: 3));
+        if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
+          return true;
+        }
+      } catch (_) {}
     }
 
     try {
-      // Coba query sederhana ke database Supabase dengan timeout 4 detik
+      final res = await http
+          .get(Uri.parse('https://www.gstatic.com/generate_204'))
+          .timeout(const Duration(seconds: 4));
+      if (res.statusCode == 204 || res.statusCode == 200) {
+        return true;
+      }
+    } catch (_) {}
+
+    return false;
+  }
+
+  /// Memeriksa apakah koneksi aktif (multi-tier probe dengan debounce)
+  static Future<bool> checkConnection() async {
+    final client = _supabase;
+    if (client == null) {
+      _handleFailure();
+      return false;
+    }
+
+    bool isNetAvailable = false;
+    try {
+      // 1. Probe Supabase table secara cepat
       await client
-          .from('siswa')
+          .from('app_settings')
           .select('id')
           .limit(1)
-          .timeout(const Duration(seconds: 4));
+          .timeout(const Duration(seconds: 5));
+      isNetAvailable = true;
+    } catch (e) {
+      // 2. Jika Supabase timeout/RLS, cek apakah internet umum aktif
+      final net = await hasInternet();
+      if (net) {
+        isNetAvailable = true;
+      }
+    }
 
+    if (isNetAvailable) {
+      _consecutiveFailures = 0;
       _setStatus(SyncStatus.online);
       return true;
-    } catch (_) {
-      try {
-        // Fallback probe ke tabel accounts
-        await client
-            .from('accounts')
-            .select('username')
-            .limit(1)
-            .timeout(const Duration(seconds: 3));
+    } else {
+      _handleFailure();
+      return false;
+    }
+  }
 
-        _setStatus(SyncStatus.online);
-        return true;
-      } catch (_) {
-        _setStatus(SyncStatus.offline);
-        return false;
-      }
+  static void _handleFailure() {
+    _consecutiveFailures++;
+    // Hanya beralih ke offline jika gagal 2x berturut-turut untuk mencegah kedipan status akibat jitter WiFi
+    if (_consecutiveFailures >= 2) {
+      _setStatus(SyncStatus.offline);
     }
   }
 
@@ -240,6 +274,7 @@ class SyncService {
 
     final queue = await getQueue();
     if (queue.isEmpty) {
+      _consecutiveFailures = 0;
       _setStatus(SyncStatus.online);
       return true;
     }
@@ -254,18 +289,35 @@ class SyncService {
 
     for (final action in queue) {
       bool success = false;
+      bool isPermanentError = false;
+
       try {
         success = await _executeAction(client, action);
+      } on PostgrestException catch (pe) {
+        debugPrint('SyncService Postgres error on ${action.table}: ${pe.message}');
+        action.retryCount += 1;
+        action.lastError = pe.message;
+        // Constraint error atau bad request bukan error koneksi internet
+        if (pe.code != null && (pe.code!.startsWith('23') || pe.code!.startsWith('42') || action.retryCount >= 4)) {
+          isPermanentError = true;
+        }
+        success = false;
       } catch (e) {
         debugPrint('SyncService error executing action on ${action.table}: $e');
         action.retryCount += 1;
         action.lastError = e.toString();
+        if (action.retryCount >= 5) {
+          isPermanentError = true;
+        }
         success = false;
       }
 
-      if (!success) {
+      if (success) {
+        // Berhasil diproses
+      } else if (isPermanentError) {
+        debugPrint('SyncService: Discarding corrupted action ${action.id} on ${action.table} after ${action.retryCount} retries.');
+      } else {
         hasFailures = true;
-        // Simpan untuk dicoba lagi jika gagal karena jaringan
         remaining.add(action);
       }
     }
@@ -274,7 +326,8 @@ class SyncService {
     _isFlushing = false;
 
     if (!hasFailures) {
-      statusNotifier.value = SyncStatus.online;
+      _consecutiveFailures = 0;
+      _setStatus(SyncStatus.online);
       final now = DateTime.now();
       lastSyncTimeNotifier.value = now;
       final prefs = await SharedPreferences.getInstance();
@@ -282,7 +335,13 @@ class SyncService {
       debugPrint('SyncService: Flush completed successfully. Queue is empty.');
       return true;
     } else {
-      statusNotifier.value = SyncStatus.offline;
+      // Verifikasi konektivitas riil sebelum mengubah status
+      final online = await hasInternet();
+      if (online) {
+        _setStatus(SyncStatus.online);
+      } else {
+        _handleFailure();
+      }
       debugPrint('SyncService: Flush finished with ${remaining.length} items remaining in queue.');
       return false;
     }
