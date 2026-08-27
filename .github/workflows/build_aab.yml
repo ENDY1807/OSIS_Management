@@ -5,6 +5,9 @@ on:
     branches: [ master, main ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-aab:
     name: Build Android Release AAB
@@ -33,9 +36,35 @@ jobs:
       - name: Build Android App Bundle (Release)
         run: flutter build appbundle --release
 
+      - name: Rename AAB for Distribution
+        run: |
+          mkdir -p dist
+          cp build/app/outputs/bundle/release/app-release.aab dist/OSIS_Management.aab
+
       - name: Upload AAB Release Artifact
         uses: actions/upload-artifact@v4
         with:
           name: OSIS_Management_Release_AAB
-          path: build/app/outputs/bundle/release/app-release.aab
-          retention-days: 14
+          path: dist/OSIS_Management.aab
+          retention-days: 30
+
+      - name: Create Public GitHub Release & Link
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/heads/main') || startsWith(github.ref, 'refs/heads/master')
+        continue-on-error: true
+        with:
+          tag_name: v1.0.2-aab-build${{ github.run_number }}
+          name: OSIS Management AppBundle v1.0.2 (Build #${{ github.run_number }})
+          body: |
+            ## 📦 Android App Bundle (.aab) Release
+            File Android App Bundle siap diunggah ke Google Play Store / console.
+            
+            - **Build Number**: #${{ github.run_number }}
+            - **Commit**: ${{ github.sha }}
+          files: dist/OSIS_Management.aab
+          draft: false
+          prerelease: false
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
