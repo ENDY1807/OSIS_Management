@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:file_picker/file_picker.dart';
 import '../models/models.dart';
 import '../services/data_service.dart';
 import '../services/auth_service.dart';
@@ -55,6 +57,21 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
     });
   }
 
+  Future<String?> _pickTtdImage() async {
+    try {
+      final result = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['png', 'jpg', 'jpeg'],
+      );
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.single;
+        final bytes = await file.readAsBytes();
+        return base64Encode(bytes);
+      }
+    } catch (_) {}
+    return null;
+  }
+
   void _showAdminConfigRekap() {
     final schoolNameCtrl = TextEditingController(text: AppSettingsService.schoolNameNotifier.value);
     final cityCtrl = TextEditingController(text: AppSettingsService.cityNotifier.value);
@@ -67,6 +84,12 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
     final ketosNisCtrl = TextEditingController(text: AppSettingsService.ketosNisNotifier.value);
     final sekretarisNameCtrl = TextEditingController(text: AppSettingsService.sekretarisNameNotifier.value);
     final sekretarisNisCtrl = TextEditingController(text: AppSettingsService.sekretarisNisNotifier.value);
+
+    String ttdKepsek = AppSettingsService.ttdKepsekNotifier.value;
+    String ttdPembina = AppSettingsService.ttdPembinaNotifier.value;
+    String ttdKetos = AppSettingsService.ttdKetosNotifier.value;
+    String ttdSekretaris = AppSettingsService.ttdSekretarisNotifier.value;
+
     bool isSaving = false;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -75,211 +98,301 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setM) => Container(
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF141D2E) : Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            border: isDark ? const Border(top: BorderSide(color: Color(0xFF243452), width: 1)) : null,
-          ),
-          padding: EdgeInsets.only(
-            left: 20, right: 20, top: 20,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(color: isDark ? const Color(0xFF243452) : kPrimary, borderRadius: BorderRadius.circular(2)),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.amber.withAlpha(isDark ? 50 : 30),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(Icons.admin_panel_settings_rounded, color: Colors.amber, size: 22),
+        builder: (ctx, setM) {
+          Widget buildTtdUploadTile(String label, String currentBase64, ValueChanged<String> onChanged) {
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF0E1626) : const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 55,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF141D2E) : Colors.white,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: Colors.grey.withAlpha(80)),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Konfigurasi Legalitas & TTD PDF (Admin)',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark),
+                    child: currentBase64.isNotEmpty
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: Image.memory(
+                              base64Decode(currentBase64),
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) => const Icon(Icons.broken_image_rounded, size: 20, color: Colors.grey),
+                            ),
+                          )
+                        : const Center(
+                            child: Icon(Icons.draw_rounded, size: 20, color: Colors.grey),
                           ),
-                          Text(
-                            'Data sekolah & penandatangan berlaku untuk semua cetakan PDF',
-                            style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.black54),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-
-                // Data Sekolah
-                TextField(
-                  controller: schoolNameCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Nama Sekolah',
-                    prefixIcon: Icon(Icons.school_outlined),
-                    isDense: true,
                   ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: cityCtrl,
-                        decoration: const InputDecoration(labelText: 'Kota', isDense: true),
-                      ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
+                        Text(currentBase64.isNotEmpty ? 'Foto TTD tersimpan' : 'Belum ada foto TTD', style: TextStyle(fontSize: 10, color: isDark ? Colors.white54 : Colors.black45)),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextField(
-                        controller: academicYearCtrl,
-                        decoration: const InputDecoration(labelText: 'Tahun Ajaran', isDense: true),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // Kepala Sekolah
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: kepsekNameCtrl,
-                        decoration: const InputDecoration(labelText: 'Nama Kepala Sekolah', isDense: true),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextField(
-                        controller: kepsekNipCtrl,
-                        decoration: const InputDecoration(labelText: 'NIP Kepala Sekolah', isDense: true),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                // Pembina OSIS
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: pembinaNameCtrl,
-                        decoration: const InputDecoration(labelText: 'Nama Pembina OSIS', isDense: true),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextField(
-                        controller: pembinaNipCtrl,
-                        decoration: const InputDecoration(labelText: 'NIP Pembina OSIS', isDense: true),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                // Ketos & Sekretaris
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: ketosNameCtrl,
-                        decoration: const InputDecoration(labelText: 'Nama Ketua OSIS', isDense: true),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextField(
-                        controller: ketosNisCtrl,
-                        decoration: const InputDecoration(labelText: 'NIS Ketua OSIS', isDense: true),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: sekretarisNameCtrl,
-                        decoration: const InputDecoration(labelText: 'Nama Sekretaris OSIS', isDense: true),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextField(
-                        controller: sekretarisNisCtrl,
-                        decoration: const InputDecoration(labelText: 'NIS Sekretaris OSIS', isDense: true),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-
-                ElevatedButton.icon(
-                  onPressed: isSaving ? null : () async {
-                    setM(() => isSaving = true);
-                    await AppSettingsService.saveAdminConfigs(
-                      schoolName: schoolNameCtrl.text.trim(),
-                      city: cityCtrl.text.trim(),
-                      academicYear: academicYearCtrl.text.trim(),
-                      kepsekName: kepsekNameCtrl.text.trim(),
-                      kepsekNip: kepsekNipCtrl.text.trim(),
-                      pembinaName: pembinaNameCtrl.text.trim(),
-                      pembinaNip: pembinaNipCtrl.text.trim(),
-                      ketosName: ketosNameCtrl.text.trim(),
-                      ketosNis: ketosNisCtrl.text.trim(),
-                      sekretarisName: sekretarisNameCtrl.text.trim(),
-                      sekretarisNis: sekretarisNisCtrl.text.trim(),
-                    );
-                    if (ctx.mounted) Navigator.pop(ctx);
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Row(
-                            children: [
-                              Icon(Icons.check_circle_rounded, color: Colors.white),
-                              SizedBox(width: 10),
-                              Expanded(child: Text('Data Legalitas PDF berhasil disinkronkan ke semua user!')),
-                            ],
-                          ),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                    }
-                  },
-                  icon: isSaving
-                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Icon(Icons.save_rounded),
-                  label: Text(isSaving ? 'Menyimpan ke Cloud...' : 'Simpan Legalitas ke Semua User'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                ),
-              ],
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    onPressed: () async {
+                      final picked = await _pickTtdImage();
+                      if (picked != null) {
+                        setM(() => onChanged(picked));
+                      }
+                    },
+                    icon: const Icon(Icons.upload_file_rounded, size: 14),
+                    label: const Text('Upload', style: TextStyle(fontSize: 11)),
+                  ),
+                  if (currentBase64.isNotEmpty) ...[
+                    const SizedBox(width: 4),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, size: 16, color: Colors.redAccent),
+                      tooltip: 'Hapus TTD',
+                      onPressed: () => setM(() => onChanged('')),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ],
+                ],
+              ),
+            );
+          }
+
+          return Container(
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF141D2E) : Colors.white,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              border: isDark ? const Border(top: BorderSide(color: Color(0xFF243452), width: 1)) : null,
             ),
-          ),
-        ),
+            padding: EdgeInsets.only(
+              left: 20, right: 20, top: 20,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(color: isDark ? const Color(0xFF243452) : kPrimary, borderRadius: BorderRadius.circular(2)),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.withAlpha(isDark ? 50 : 30),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.admin_panel_settings_rounded, color: Colors.amber, size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Konfigurasi Legalitas & TTD PDF (Admin)',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark),
+                            ),
+                            Text(
+                              'Data sekolah & foto TTD berlaku untuk semua cetakan PDF',
+                              style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.black54),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Data Sekolah
+                  TextField(
+                    controller: schoolNameCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Nama Sekolah',
+                      prefixIcon: Icon(Icons.school_outlined),
+                      isDense: true,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: cityCtrl,
+                          decoration: const InputDecoration(labelText: 'Kota', isDense: true),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: academicYearCtrl,
+                          decoration: const InputDecoration(labelText: 'Tahun Ajaran', isDense: true),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Kepala Sekolah
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: kepsekNameCtrl,
+                          decoration: const InputDecoration(labelText: 'Nama Kepala Sekolah', isDense: true),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: kepsekNipCtrl,
+                          decoration: const InputDecoration(labelText: 'NIP Kepala Sekolah', isDense: true),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Pembina OSIS
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: pembinaNameCtrl,
+                          decoration: const InputDecoration(labelText: 'Nama Pembina OSIS', isDense: true),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: pembinaNipCtrl,
+                          decoration: const InputDecoration(labelText: 'NIP Pembina OSIS', isDense: true),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Ketos & Sekretaris
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: ketosNameCtrl,
+                          decoration: const InputDecoration(labelText: 'Nama Ketua OSIS', isDense: true),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: ketosNisCtrl,
+                          decoration: const InputDecoration(labelText: 'NIS Ketua OSIS', isDense: true),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: sekretarisNameCtrl,
+                          decoration: const InputDecoration(labelText: 'Nama Sekretaris OSIS', isDense: true),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: sekretarisNisCtrl,
+                          decoration: const InputDecoration(labelText: 'NIS Sekretaris OSIS', isDense: true),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // FOTO TANDA TANGAN (TTD) DIGITAL
+                  Text(
+                    'UPLOAD FOTO TANDA TANGAN (TTD) DIGITAL',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF38BDF8) : kPrimary, letterSpacing: 0.5),
+                  ),
+                  const SizedBox(height: 12),
+
+                  buildTtdUploadTile('TTD Pembina OSIS', ttdPembina, (val) => ttdPembina = val),
+                  buildTtdUploadTile('TTD Ketua OSIS', ttdKetos, (val) => ttdKetos = val),
+                  buildTtdUploadTile('TTD Kepala Sekolah', ttdKepsek, (val) => ttdKepsek = val),
+                  buildTtdUploadTile('TTD Sekretaris OSIS', ttdSekretaris, (val) => ttdSekretaris = val),
+
+                  const SizedBox(height: 16),
+
+                  ElevatedButton.icon(
+                    onPressed: isSaving ? null : () async {
+                      setM(() => isSaving = true);
+                      await AppSettingsService.saveAdminConfigs(
+                        schoolName: schoolNameCtrl.text.trim(),
+                        city: cityCtrl.text.trim(),
+                        academicYear: academicYearCtrl.text.trim(),
+                        kepsekName: kepsekNameCtrl.text.trim(),
+                        kepsekNip: kepsekNipCtrl.text.trim(),
+                        pembinaName: pembinaNameCtrl.text.trim(),
+                        pembinaNip: pembinaNipCtrl.text.trim(),
+                        ketosName: ketosNameCtrl.text.trim(),
+                        ketosNis: ketosNisCtrl.text.trim(),
+                        sekretarisName: sekretarisNameCtrl.text.trim(),
+                        sekretarisNis: sekretarisNisCtrl.text.trim(),
+                        ttdKepsek: ttdKepsek,
+                        ttdPembina: ttdPembina,
+                        ttdKetos: ttdKetos,
+                        ttdSekretaris: ttdSekretaris,
+                      );
+                      if (ctx.mounted) Navigator.pop(ctx);
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Row(
+                              children: [
+                                Icon(Icons.check_circle_rounded, color: Colors.white),
+                                SizedBox(width: 10),
+                                Expanded(child: Text('Data Legalitas & Foto TTD berhasil disinkronkan ke semua user!')),
+                              ],
+                            ),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      }
+                    },
+                    icon: isSaving
+                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.save_rounded),
+                    label: Text(isSaving ? 'Menyimpan ke Cloud...' : 'Simpan Legalitas & TTD ke Semua User'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }

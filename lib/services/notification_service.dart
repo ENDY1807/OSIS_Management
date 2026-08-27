@@ -543,7 +543,7 @@ class NotificationService {
     } catch (_) {}
   }
 
-  static Future<void> clearAll() async {
+  static Future<void> clearAll({String? forUser}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_keyNotifications);

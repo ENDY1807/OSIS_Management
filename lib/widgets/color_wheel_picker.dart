@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 class ColorWheelPicker extends StatefulWidget {
@@ -75,7 +76,7 @@ class _ColorWheelPickerState extends State<ColorWheelPicker> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // 1. Interactive Rotatable 360° Color Wheel Ring
+        // 1. Interactive Rotatable 360° Color Wheel Ring (Eager touch capture - Prevents scroll)
         Center(
           child: SizedBox(
             width: 250,
@@ -86,34 +87,40 @@ class _ColorWheelPickerState extends State<ColorWheelPicker> {
                 final outerRadius = size.width / 2 - 12;
                 final innerRadius = outerRadius - 38;
 
-                return GestureDetector(
+                return RawGestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  onPanDown: (details) {
-                    setState(() => _isDragging = true);
-                    _handleTouch(details.localPosition, size);
+                  gestures: {
+                    EagerGestureRecognizer: GestureRecognizerFactoryWithHandlers<EagerGestureRecognizer>(
+                      () => EagerGestureRecognizer(),
+                      (EagerGestureRecognizer instance) {},
+                    ),
+                    PanGestureRecognizer: GestureRecognizerFactoryWithHandlers<PanGestureRecognizer>(
+                      () => PanGestureRecognizer(),
+                      (PanGestureRecognizer instance) {
+                        instance.onStart = (details) {
+                          setState(() => _isDragging = true);
+                          _handleTouch(details.localPosition, size);
+                        };
+                        instance.onUpdate = (details) {
+                          _handleTouch(details.localPosition, size);
+                        };
+                        instance.onEnd = (_) {
+                          setState(() => _isDragging = false);
+                        };
+                        instance.onCancel = () {
+                          setState(() => _isDragging = false);
+                        };
+                      },
+                    ),
                   },
-                  onPanStart: (details) {
-                    setState(() => _isDragging = true);
-                    _handleTouch(details.localPosition, size);
-                  },
-                  onPanUpdate: (details) {
-                    _handleTouch(details.localPosition, size);
-                  },
-                  onPanEnd: (_) => setState(() => _isDragging = false),
-                  onPanCancel: () => setState(() => _isDragging = false),
-                  child: Listener(
-                    behavior: HitTestBehavior.opaque,
-                    onPointerDown: (e) => _handleTouch(e.localPosition, size),
-                    onPointerMove: (e) => _handleTouch(e.localPosition, size),
-                    child: CustomPaint(
-                      size: size,
-                      painter: _DonutColorWheelPainter(
-                        hsv: _hsv,
-                        outerRadius: outerRadius,
-                        innerRadius: innerRadius,
-                        isDark: isDark,
-                        isDragging: _isDragging,
-                      ),
+                  child: CustomPaint(
+                    size: size,
+                    painter: _DonutColorWheelPainter(
+                      hsv: _hsv,
+                      outerRadius: outerRadius,
+                      innerRadius: innerRadius,
+                      isDark: isDark,
+                      isDragging: _isDragging,
                     ),
                   ),
                 );
@@ -123,7 +130,7 @@ class _ColorWheelPickerState extends State<ColorWheelPicker> {
         ),
         const SizedBox(height: 10),
         Text(
-          '💡 Putar roda warna untuk memilih corak (Hue: ${_hsv.hue.round()}°)',
+          '💡 Putar atau geser roda warna untuk memilih corak',
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w500,
@@ -306,26 +313,6 @@ class _DonutColorWheelPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.5;
     canvas.drawCircle(center, innerRadius - 8, centerBorder);
-
-    // Center icon/indicator
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: '${hsv.hue.round()}°',
-        style: TextStyle(
-          color: (hsv.value > 0.5 && hsv.saturation < 0.7) ? Colors.black87 : Colors.white,
-          fontSize: 13,
-          fontWeight: FontWeight.bold,
-          shadows: const [
-            Shadow(color: Colors.black45, blurRadius: 4),
-          ],
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    textPainter.paint(
-      canvas,
-      Offset(center.dx - textPainter.width / 2, center.dy - textPainter.height / 2),
-    );
 
     // 4. Draw Rotational Knob on the Ring
     final rad = hsv.hue * math.pi / 180;

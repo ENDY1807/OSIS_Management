@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'dart:convert';
 import 'dart:io';
 import 'package:archive/archive.dart';
 import 'package:intl/intl.dart';
@@ -36,6 +37,25 @@ class PdfService {
     final ketos = AppSettingsService.ketosNameNotifier.value;
     final ketosNis = AppSettingsService.ketosNisNotifier.value;
 
+    final ttdKepsekRaw = AppSettingsService.ttdKepsekNotifier.value;
+    final ttdPembinaRaw = AppSettingsService.ttdPembinaNotifier.value;
+    final ttdKetosRaw = AppSettingsService.ttdKetosNotifier.value;
+
+    pw.Widget buildTtdImage(String raw) {
+      if (raw.isNotEmpty) {
+        try {
+          final bytes = base64Decode(raw);
+          return pw.Container(
+            height: 38,
+            width: 70,
+            alignment: pw.Alignment.center,
+            child: pw.Image(pw.MemoryImage(bytes), fit: pw.BoxFit.contain),
+          );
+        } catch (_) {}
+      }
+      return pw.SizedBox(height: 38);
+    }
+
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.stretch,
       children: [
@@ -55,7 +75,7 @@ class PdfService {
               crossAxisAlignment: pw.CrossAxisAlignment.center,
               children: [
                 pw.Text('Mengetahui,\nPembina OSIS', textAlign: pw.TextAlign.center, style: const pw.TextStyle(fontSize: 8.5)),
-                pw.SizedBox(height: 38),
+                buildTtdImage(ttdPembinaRaw),
                 pw.Text(pembina, style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, decoration: pw.TextDecoration.underline)),
                 pw.Text('NIP. $pembinaNip', style: const pw.TextStyle(fontSize: 7.5)),
               ],
@@ -64,7 +84,7 @@ class PdfService {
               crossAxisAlignment: pw.CrossAxisAlignment.center,
               children: [
                 pw.Text('Ketua OSIS', textAlign: pw.TextAlign.center, style: const pw.TextStyle(fontSize: 8.5)),
-                pw.SizedBox(height: 38),
+                buildTtdImage(ttdKetosRaw),
                 pw.Text(ketos, style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, decoration: pw.TextDecoration.underline)),
                 pw.Text('NIS. $ketosNis', style: const pw.TextStyle(fontSize: 7.5)),
               ],
@@ -73,7 +93,7 @@ class PdfService {
               crossAxisAlignment: pw.CrossAxisAlignment.center,
               children: [
                 pw.Text('Menyetujui,\nKepala Sekolah', textAlign: pw.TextAlign.center, style: const pw.TextStyle(fontSize: 8.5)),
-                pw.SizedBox(height: 38),
+                buildTtdImage(ttdKepsekRaw),
                 pw.Text(kepsek, style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, decoration: pw.TextDecoration.underline)),
                 pw.Text('NIP. $kepsekNip', style: const pw.TextStyle(fontSize: 7.5)),
               ],

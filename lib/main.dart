@@ -317,16 +317,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       builder: (context, appName, _) {
                         return Text(
                           appName,
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white, letterSpacing: 0.3),
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white, letterSpacing: 0.3),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         );
                       },
                     ),
-                    if (_username.isNotEmpty)
+                    if (_displayName.isNotEmpty || _username.isNotEmpty)
                       Text(
                         _roleDisplay,
-                        style: const TextStyle(fontSize: 10, color: Colors.white70, letterSpacing: 0.2),
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.white70, letterSpacing: 0.2),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -336,7 +336,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ],
           ),
           actions: [
-            // Simplified Minimalist Online / Offline Status Badge
+            // Minimalist Single Dot Status (Kuning = Offline, Hijau = Online)
             ValueListenableBuilder<SyncStatus>(
               valueListenable: SyncService.statusNotifier,
               builder: (context, syncStatus, _) {
@@ -346,65 +346,55 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     final isOnline = syncStatus == SyncStatus.online;
                     final isSyncing = syncStatus == SyncStatus.syncing;
 
-                    final color = isSyncing
+                    // Hijau (#10B981) saat Online, Kuning (#F59E0B) saat Offline
+                    final dotColor = isSyncing
                         ? Colors.lightBlueAccent
                         : (isOnline ? const Color(0xFF10B981) : const Color(0xFFF59E0B));
 
-                    final statusText = isSyncing
-                        ? 'Syncing'
+                    final tooltipMsg = isSyncing
+                        ? 'Sedang menyinkronkan data...'
                         : (isOnline
-                            ? (pendingCount > 0 ? 'Online • $pendingCount' : 'Online')
-                            : (pendingCount > 0 ? 'Offline • $pendingCount' : 'Offline'));
+                            ? (pendingCount > 0 ? 'Online • $pendingCount antrean' : 'Online (Terhubung)')
+                            : (pendingCount > 0 ? 'Offline • $pendingCount data tersimpan' : 'Mode Offline'));
 
                     return Center(
                       child: Padding(
                         padding: const EdgeInsets.only(right: 6),
                         child: Tooltip(
-                          message: isSyncing
-                              ? 'Sedang menyinkronkan data...'
-                              : (isOnline
-                                  ? (pendingCount > 0 ? '$pendingCount data menunggu dikirim' : 'Terhubung ke server (Online)')
-                                  : (pendingCount > 0 ? '$pendingCount data tersimpan offline' : 'Mode Offline')),
+                          message: tooltipMsg,
                           child: InkWell(
                             onTap: () => SyncStatusDialog.show(context),
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(16),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                              width: 28,
+                              height: 28,
                               decoration: BoxDecoration(
-                                color: color.withAlpha(isDark ? 35 : 45),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: color.withAlpha(120), width: 0.8),
+                                color: dotColor.withAlpha(isDark ? 35 : 45),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: dotColor.withAlpha(140), width: 1.2),
                               ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (isSyncing)
-                                    SizedBox(
-                                      width: 8,
-                                      height: 8,
-                                      child: CircularProgressIndicator(strokeWidth: 1.5, color: color),
-                                    )
-                                  else
-                                    Container(
-                                      width: 6,
-                                      height: 6,
-                                      decoration: BoxDecoration(
-                                        color: color,
-                                        shape: BoxShape.circle,
-                                        boxShadow: [BoxShadow(color: color.withAlpha(180), blurRadius: 4)],
+                              child: Center(
+                                child: isSyncing
+                                    ? SizedBox(
+                                        width: 10,
+                                        height: 10,
+                                        child: CircularProgressIndicator(strokeWidth: 1.8, color: dotColor),
+                                      )
+                                    : Container(
+                                        width: 8,
+                                        height: 8,
+                                        decoration: BoxDecoration(
+                                          color: dotColor,
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: dotColor.withAlpha(220),
+                                              blurRadius: 5,
+                                              spreadRadius: 0.8,
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                    ),
-                                  const SizedBox(width: 5),
-                                  Text(
-                                    statusText,
-                                    style: const TextStyle(
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
-                                      letterSpacing: 0.2,
-                                    ),
-                                  ),
-                                ],
                               ),
                             ),
                           ),
@@ -625,8 +615,31 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       setState(() {});
                       setM(() {});
                     },
-                    icon: const Icon(Icons.done_all_rounded, size: 16),
+                    icon: const Icon(Icons.done_all_rounded, size: 15),
                     label: const Text('Baca Semua', style: TextStyle(fontSize: 11)),
+                  ),
+                  TextButton.icon(
+                    style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+                    onPressed: () async {
+                      final ok = await showDialog<bool>(
+                        context: context,
+                        builder: (dCtx) => AlertDialog(
+                          title: const Text('Hapus Semua Notifikasi?'),
+                          content: const Text('Semua riwayat notifikasi akan dibersihkan secara permanen.'),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(dCtx, false), child: const Text('Batal')),
+                            TextButton(onPressed: () => Navigator.pop(dCtx, true), child: const Text('Hapus', style: TextStyle(color: Colors.red))),
+                          ],
+                        ),
+                      );
+                      if (ok == true) {
+                        await NotificationService.clearAll(forUser: _username);
+                        setState(() {});
+                        setM(() {});
+                      }
+                    },
+                    icon: const Icon(Icons.delete_sweep_rounded, size: 15),
+                    label: const Text('Hapus Semua', style: TextStyle(fontSize: 11)),
                   ),
                 ],
               ),
