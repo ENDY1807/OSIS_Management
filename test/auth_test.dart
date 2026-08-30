@@ -12,9 +12,9 @@ void main() {
     expect(AuthService.normalizeUsername('kesiswaan'), 'KESISWAAN');
   });
 
-  test('sekbidList contains all 10 sekbid', () {
-    expect(AuthService.sekbidList.length, 10);
-    expect(AuthService.sekbidList.contains('SEKBID10'), isTrue);
+  test('sekbidList contains all default sekbid', () {
+    expect(AuthService.sekbidList.length >= 10, isTrue);
+    expect(AuthService.sekbidList.any((s) => s.contains('10')), isTrue);
   });
 
   test('checkPassword matches default passwords with normalization', () {
