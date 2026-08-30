@@ -30,7 +30,7 @@ class _ColorWheelPickerState extends State<ColorWheelPicker> {
   @override
   void didUpdateWidget(ColorWheelPicker oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.initialColor.toARGB32() != widget.initialColor.toARGB32()) {
+    if (!_isDragging && oldWidget.initialColor.toARGB32() != widget.initialColor.toARGB32()) {
       _hsv = HSVColor.fromColor(widget.initialColor);
       _hexController.text = _colorToHex(_hsv.toColor());
     }

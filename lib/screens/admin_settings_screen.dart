@@ -72,8 +72,13 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
 
     _dataSub = DataService.onDataChanged.listen((table) {
       if (table == 'accounts' || table == 'app_settings' || table == 'sekbid' || table == 'all') {
-        if (mounted) {
+        if (mounted && !_saving) {
+          final currentColor = _selectedAccent;
           _loadCurrentConfigs();
+          if (DateTime.now().difference(AppSettingsService.lastLocallyModifiedAt).inSeconds < 5) {
+            _selectedAccent = currentColor;
+            _hexColorCtrl.text = '#${currentColor.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
+          }
           _loadAccounts();
         }
       }

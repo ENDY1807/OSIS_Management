@@ -28,6 +28,7 @@ class DataService {
   static const _keyArsipFolder  = 'arsip_folder';
   static const _keyLaporan      = 'laporan_kegiatan_v2';
   static const _keySekbid       = 'sekbid';
+  static final String _localClientId = const Uuid().v4();
 
   static final StreamController<String> _dataChangeController = StreamController<String>.broadcast();
   static Stream<String> get onDataChanged => _dataChangeController.stream;
@@ -48,8 +49,14 @@ class DataService {
       _realtimeChannel?.onBroadcast(
         event: 'data_changed',
         callback: (payload) {
+          final clientId = payload['client_id']?.toString();
+          // Abaikan pesan broadcast yang berasal dari device sendiri untuk mencegah feedback loop / overwrite
+          if (clientId != null && clientId == _localClientId) {
+            return;
+          }
+
           final table = payload['table']?.toString() ?? 'all';
-          debugPrint('Realtime broadcast data changed: $table');
+          debugPrint('Realtime broadcast data changed from remote device: $table');
           if (table == 'accounts' || table == 'all') {
             AuthService.syncWithSupabase();
           }
@@ -145,6 +152,7 @@ class DataService {
       if (_realtimeChannel == null) initRealtime();
       final payload = <String, dynamic>{
         'table': table,
+        'client_id': _localClientId,
         'timestamp': DateTime.now().toIso8601String(),
         if (extra != null) ...extra,
       };

@@ -323,8 +323,12 @@ class AppSettingsService {
     await prefs.setString(_keyThemeMode, _themeModeToString(mode));
   }
 
+  static DateTime _lastLocallyModifiedAt = DateTime.fromMillisecondsSinceEpoch(0);
+  static DateTime get lastLocallyModifiedAt => _lastLocallyModifiedAt;
+
   static Timer? _colorSyncDebounce;
   static Future<void> setAccentColor(Color color, {bool syncCloud = true}) async {
+    _lastLocallyModifiedAt = DateTime.now();
     accentColorNotifier.value = color;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyAccentColor, color.toARGB32());
@@ -647,12 +651,15 @@ class AppSettingsService {
         }
 
         if (colorStr != null && colorStr.isNotEmpty) {
-          try {
-            final parsedInt = int.parse(colorStr.replaceFirst('#', '').replaceFirst('0x', ''), radix: 16);
-            final fullColor = (parsedInt <= 0xFFFFFF) ? 0xFF000000 | parsedInt : parsedInt;
-            accentColorNotifier.value = Color(fullColor);
-            await prefs.setInt(_keyAccentColor, fullColor);
-          } catch (_) {}
+          final isRecentLocalEdit = DateTime.now().difference(_lastLocallyModifiedAt).inSeconds < 5;
+          if (!isRecentLocalEdit) {
+            try {
+              final parsedInt = int.parse(colorStr.replaceFirst('#', '').replaceFirst('0x', ''), radix: 16);
+              final fullColor = (parsedInt <= 0xFFFFFF) ? 0xFF000000 | parsedInt : parsedInt;
+              accentColorNotifier.value = Color(fullColor);
+              await prefs.setInt(_keyAccentColor, fullColor);
+            } catch (_) {}
+          }
         }
 
         if (data['school_name'] != null) {
