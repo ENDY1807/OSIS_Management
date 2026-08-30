@@ -99,6 +99,8 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
     final sp2Ctrl = TextEditingController(text: AppSettingsService.sp2ThresholdNotifier.value.toString());
     final sp3Ctrl = TextEditingController(text: AppSettingsService.sp3ThresholdNotifier.value.toString());
     final skorsingCtrl = TextEditingController(text: AppSettingsService.skorsingThresholdNotifier.value.toString());
+    final fieldList = List<String>.from(AppSettingsService.pelanggaranFieldsNotifier.value);
+    final newFieldCtrl = TextEditingController();
     bool isSaving = false;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -146,11 +148,11 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Konfigurasi Tata Tertib & SP (Admin)',
+                            'Konfigurasi Tata Tertib & Catat Pelanggaran (Admin)',
                             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark),
                           ),
                           Text(
-                            'Perubahan akan otomatis tersimpan & berlaku untuk semua pengguna',
+                            'Kolom input dan ambang batas SP berlaku untuk semua pengguna',
                             style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.black54),
                           ),
                         ],
@@ -160,7 +162,7 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Ambang Batas SP Fields
+                // 1. Ambang Batas SP Fields
                 Text(
                   'AMBANG BATAS POIN SURAT PERINGATAN (SP)',
                   style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF38BDF8) : kPrimary, letterSpacing: 0.5),
@@ -223,6 +225,53 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
                 ),
                 const SizedBox(height: 20),
 
+                // 2. Kolom Input Catat Pelanggaran
+                Text(
+                  'KOLOM INPUT CATAT PELANGGARAN (${fieldList.length})',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF38BDF8) : kPrimary, letterSpacing: 0.5),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: newFieldCtrl,
+                        decoration: const InputDecoration(
+                          hintText: 'Contoh: Saksi/Petugas, Lokasi...',
+                          isDense: true,
+                          prefixIcon: Icon(Icons.playlist_add_check_rounded, size: 18),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () {
+                        final val = newFieldCtrl.text.trim();
+                        if (val.isNotEmpty && !fieldList.contains(val)) {
+                          setM(() {
+                            fieldList.add(val);
+                            newFieldCtrl.clear();
+                          });
+                        }
+                      },
+                      child: const Text('Tambah'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: fieldList.map((fld) {
+                    return Chip(
+                      label: Text(fld, style: const TextStyle(fontSize: 12)),
+                      deleteIcon: const Icon(Icons.close, size: 14),
+                      onDeleted: () => setM(() => fieldList.remove(fld)),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 24),
+
                 ElevatedButton.icon(
                   onPressed: isSaving ? null : () async {
                     setM(() => isSaving = true);
@@ -236,6 +285,7 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
                       sp2: sp2,
                       sp3: sp3,
                       skorsing: skorsing,
+                      pelanggaranFields: fieldList,
                     );
 
                     if (ctx.mounted) Navigator.pop(ctx);

@@ -170,7 +170,7 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
                 ElevatedButton.icon(
                   onPressed: isSaving ? null : () async {
                     setM(() => isSaving = true);
-                    await AppSettingsService.saveAdminConfigs(sekbidList: list);
+                    await DataService.saveSekbidList(list);
                     if (ctx.mounted) Navigator.pop(ctx);
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -252,7 +252,11 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
     final deskC = TextEditingController(text: existing?.deskripsi);
     final pjC = TextEditingController(text: existing?.penanggungJawab ?? AuthService.getDisplayName(_currentUser));
     final ketC = TextEditingController(text: existing?.keterangan);
-    String selectedSekbid = existing?.sekbid ?? ((_isSuperUser || _isPembina) ? (_currentUser.isNotEmpty && AuthService.prokerUnits.contains(_currentUser) ? _currentUser : AuthService.prokerUnits.first) : _currentUser);
+    final prokerUnits = AuthService.prokerUnits;
+    String selectedSekbid = existing?.sekbid ?? ((_isSuperUser || _isPembina) ? (_currentUser.isNotEmpty && prokerUnits.contains(_currentUser) ? _currentUser : prokerUnits.first) : _currentUser);
+    if (!prokerUnits.contains(selectedSekbid) && prokerUnits.isNotEmpty) {
+      selectedSekbid = prokerUnits.first;
+    }
     String selectedStatus = existing?.status ?? StatusProker.belum;
     DateTime tanggalRencana = existing?.tanggalRencana ?? DateTime.now();
     DateTime? tanggalRealisasi = existing?.tanggalRealisasi;
@@ -315,7 +319,7 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
                       labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
                       prefixIcon: const Icon(Icons.group, color: kAccent),
                     ),
-                    items: AuthService.prokerUnits
+                    items: prokerUnits
                         .map((s) => DropdownMenuItem(value: s, child: Text(AuthService.getDisplayName(s))))
                         .toList(),
                     onChanged: (v) => setModal(() => selectedSekbid = v ?? selectedSekbid),

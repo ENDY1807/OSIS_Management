@@ -7,7 +7,6 @@ import 'screens/manajemen_screen.dart';
 import 'screens/proker_screen.dart';
 import 'screens/arsip_screen.dart';
 import 'screens/laporan_screen.dart';
-import 'screens/admin_settings_screen.dart';
 import 'services/data_service.dart';
 import 'services/auth_service.dart';
 import 'services/sync_service.dart';
@@ -336,7 +335,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ],
           ),
           actions: [
-            // Minimalist Single Dot Status (Kuning = Offline, Hijau = Online)
+            // 1. Minimalist Single Dot Status (Kuning = Offline, Hijau = Online)
             ValueListenableBuilder<SyncStatus>(
               valueListenable: SyncService.statusNotifier,
               builder: (context, syncStatus, _) {
@@ -359,7 +358,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
                     return Center(
                       child: Padding(
-                        padding: const EdgeInsets.only(right: 6),
+                        padding: const EdgeInsets.only(right: 4),
                         child: Tooltip(
                           message: tooltipMsg,
                           child: InkWell(
@@ -406,21 +405,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               },
             ),
 
-            // Quick Toggle Theme Mode (Light / Dark)
-            IconButton(
-              icon: Icon(
-                isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-                color: isDark ? Colors.amberAccent : Colors.white70,
-                size: 20,
-              ),
-              tooltip: isDark ? 'White Mode' : 'Dark Mode',
-              onPressed: () {
-                final newMode = isDark ? ThemeMode.light : ThemeMode.dark;
-                AppSettingsService.setThemeMode(newMode);
-              },
-            ),
-
-            // Notification Bell
+            // 2. Notification Bell
             if (_canReceiveNotifications)
               FutureBuilder<int>(
                 future: NotificationService.getUnreadCount(forUser: _username),
@@ -461,7 +446,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 },
               ),
 
-            // Tombol Manajemen untuk superUser, Pembina, Kesiswaan, Admin, dan SEKBID2
+            // 3. Tombol Manajemen (Akses Super Admin ada di pojok kanan atas layar Manajemen)
             if (_canAccessManajemen)
               IconButton(
                 icon: const Icon(Icons.tune_rounded, color: Colors.white70, size: 21),
@@ -469,53 +454,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 tooltip: LocalizationService.tr('nav_manajemen'),
               ),
 
-            // Tombol Super Admin Panel (jika Admin)
-            if (_isAdmin)
-              IconButton(
-                icon: const Icon(Icons.admin_panel_settings_rounded, color: Colors.amber, size: 22),
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminSettingsScreen())),
-                tooltip: LocalizationService.tr('nav_admin'),
-              ),
-
-            // Settings Sheet Toggle untuk semua user
+            // 4. Settings Sheet Toggle untuk semua user (berisi Tema, Bahasa, Info Akun & Log Out)
             IconButton(
               icon: const Icon(Icons.settings_outlined, color: Colors.white70, size: 21),
               tooltip: LocalizationService.tr('nav_settings'),
               onPressed: () => UserSettingsSheet.show(context, username: _username),
             ),
-
-            // Logout Button
-            IconButton(
-              icon: const Icon(Icons.logout_rounded, color: Colors.white70, size: 21),
-              tooltip: LocalizationService.tr('btn_logout'),
-              onPressed: () async {
-                final ok = await showDialog<bool>(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    title: Text(LocalizationService.tr('confirm_logout')),
-                    content: Text('${LocalizationService.tr('logout_prompt')} ($_username)'),
-                    actions: [
-                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(LocalizationService.tr('btn_cancel'))),
-                      ElevatedButton(
-                        onPressed: () => Navigator.pop(ctx, true),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                        child: Text(LocalizationService.tr('btn_logout')),
-                      ),
-                    ],
-                  ),
-                );
-                if (ok == true) {
-                  await AuthService.logout();
-                  if (mounted) {
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(builder: (_) => const LoginScreen()),
-                      (_) => false,
-                    );
-                  }
-                }
-              },
-            ),
-            const SizedBox(width: 4),
+            const SizedBox(width: 6),
           ],
         ),
         body: IndexedStack(index: _idx, children: _screens),

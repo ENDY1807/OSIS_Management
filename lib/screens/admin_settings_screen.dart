@@ -33,12 +33,17 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
   // 3. Proker & Laporan Lists
   List<String> _sekbidList = [];
   List<String> _laporanCategories = [];
+  List<String> _laporanFields = [];
 
   // 4. Arsip Controllers & Lists
   final _arsipMaxMbCtrl = TextEditingController();
   List<String> _arsipFolders = [];
+  List<String> _arsipAllowedExts = [];
 
-  // 5. Data Sekolah & Legalitas Controllers
+  // 5. Tata Tertib & Pelanggaran Lists
+  List<String> _pelanggaranFields = [];
+
+  // 6. Data Sekolah & Rekap Lists
   final _schoolNameCtrl = TextEditingController();
   final _cityCtrl = TextEditingController();
   final _academicYearCtrl = TextEditingController();
@@ -50,6 +55,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
   final _ketosNisCtrl = TextEditingController();
   final _sekretarisNameCtrl = TextEditingController();
   final _sekretarisNisCtrl = TextEditingController();
+  List<String> _rekapTypes = [];
 
   bool _saving = false;
   bool _isSyncing = false;
@@ -86,12 +92,15 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
     _sp2Ctrl.text = AppSettingsService.sp2ThresholdNotifier.value.toString();
     _sp3Ctrl.text = AppSettingsService.sp3ThresholdNotifier.value.toString();
     _skorsingCtrl.text = AppSettingsService.skorsingThresholdNotifier.value.toString();
+    _pelanggaranFields = List<String>.from(AppSettingsService.pelanggaranFieldsNotifier.value);
 
     _sekbidList = List<String>.from(AppSettingsService.sekbidListNotifier.value);
     _laporanCategories = List<String>.from(AppSettingsService.laporanCategoriesNotifier.value);
+    _laporanFields = List<String>.from(AppSettingsService.laporanFieldsNotifier.value);
 
     _arsipMaxMbCtrl.text = AppSettingsService.arsipMaxMbNotifier.value.toString();
     _arsipFolders = List<String>.from(AppSettingsService.arsipFoldersNotifier.value);
+    _arsipAllowedExts = List<String>.from(AppSettingsService.arsipAllowedExtsNotifier.value);
 
     _schoolNameCtrl.text = AppSettingsService.schoolNameNotifier.value;
     _cityCtrl.text = AppSettingsService.cityNotifier.value;
@@ -104,6 +113,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
     _ketosNisCtrl.text = AppSettingsService.ketosNisNotifier.value;
     _sekretarisNameCtrl.text = AppSettingsService.sekretarisNameNotifier.value;
     _sekretarisNisCtrl.text = AppSettingsService.sekretarisNisNotifier.value;
+    _rekapTypes = List<String>.from(AppSettingsService.rekapTypesNotifier.value);
   }
 
   @override
@@ -147,7 +157,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
       _selectedAccent = color;
       _hexColorCtrl.text = '#${color.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
     });
-    AppSettingsService.setAccentColor(color, syncCloud: false);
+    AppSettingsService.setAccentColor(color, syncCloud: true);
   }
 
   Future<void> _saveAllConfigs() async {
@@ -179,10 +189,14 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
       sp2: int.tryParse(_sp2Ctrl.text.trim()),
       sp3: int.tryParse(_sp3Ctrl.text.trim()),
       skorsing: int.tryParse(_skorsingCtrl.text.trim()),
+      pelanggaranFields: _pelanggaranFields,
       arsipMaxMb: int.tryParse(_arsipMaxMbCtrl.text.trim()),
       arsipFolders: _arsipFolders,
+      arsipAllowedExts: _arsipAllowedExts,
       sekbidList: _sekbidList,
       laporanCategories: _laporanCategories,
+      laporanFields: _laporanFields,
+      rekapTypes: _rekapTypes,
     );
 
     if (!mounted) return;
@@ -552,6 +566,26 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
               prefixIcon: Icon(Icons.gavel_rounded, color: Colors.red),
             ),
           ),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _sectionHeader(title: 'Kolom Input Catat Pelanggaran (${_pelanggaranFields.length})', icon: Icons.playlist_add_check_rounded, color: _selectedAccent),
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.green),
+                onPressed: () => _showAddChipDialog('Kolom Input Pelanggaran', (val) => setState(() => _pelanggaranFields.add(val))),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8, runSpacing: 8,
+            children: _pelanggaranFields.map((pf) => Chip(
+              label: Text(pf, style: const TextStyle(fontSize: 12)),
+              onDeleted: () => setState(() => _pelanggaranFields.remove(pf)),
+              deleteIconColor: Colors.redAccent,
+            )).toList(),
+          ),
         ],
       ),
     );
@@ -569,7 +603,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
               _sectionHeader(title: 'Daftar Divisi / Sekbid (${_sekbidList.length})', icon: Icons.groups_rounded, color: _selectedAccent),
               IconButton(
                 icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.green),
-                onPressed: () => _showAddChipDialog('Sekbid Baru', (val) => setState(() => _sekbidList.add(val))),
+                onPressed: () => _showAddChipDialog('Sekbid / Unit Baru', (val) => setState(() => _sekbidList.add(val))),
               ),
             ],
           ),
@@ -599,6 +633,26 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
             children: _laporanCategories.map((c) => Chip(
               label: Text(c, style: const TextStyle(fontSize: 12)),
               onDeleted: () => setState(() => _laporanCategories.remove(c)),
+              deleteIconColor: Colors.redAccent,
+            )).toList(),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _sectionHeader(title: 'Kolom Input & Format Laporan (${_laporanFields.length})', icon: Icons.view_list_rounded, color: _selectedAccent),
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.green),
+                onPressed: () => _showAddChipDialog('Kolom Laporan Baru', (val) => setState(() => _laporanFields.add(val))),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8, runSpacing: 8,
+            children: _laporanFields.map((lf) => Chip(
+              label: Text(lf, style: const TextStyle(fontSize: 12)),
+              onDeleted: () => setState(() => _laporanFields.remove(lf)),
               deleteIconColor: Colors.redAccent,
             )).toList(),
           ),
@@ -643,6 +697,26 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
               deleteIconColor: Colors.redAccent,
             )).toList(),
           ),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _sectionHeader(title: 'Ekstensi File Diizinkan (${_arsipAllowedExts.length})', icon: Icons.extension_rounded, color: _selectedAccent),
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.green),
+                onPressed: () => _showAddChipDialog('Ekstensi File (contoh: pdf)', (val) => setState(() => _arsipAllowedExts.add(val.replaceAll('.', '').toLowerCase()))),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8, runSpacing: 8,
+            children: _arsipAllowedExts.map((ext) => Chip(
+              label: Text('.$ext', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+              onDeleted: () => setState(() => _arsipAllowedExts.remove(ext)),
+              deleteIconColor: Colors.redAccent,
+            )).toList(),
+          ),
         ],
       ),
     );
@@ -662,23 +736,25 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
           const SizedBox(height: 12),
           TextField(controller: _academicYearCtrl, decoration: const InputDecoration(labelText: 'Tahun Ajaran / Periode', prefixIcon: Icon(Icons.calendar_today_outlined))),
           const SizedBox(height: 24),
-          _sectionHeader(title: 'Pejabat Penandatangan Dokumen & LPJ', icon: Icons.draw_rounded, color: _selectedAccent),
-          const SizedBox(height: 12),
-          TextField(controller: _kepsekNameCtrl, decoration: const InputDecoration(labelText: 'Nama Kepala Sekolah', prefixIcon: Icon(Icons.person_rounded))),
-          const SizedBox(height: 12),
-          TextField(controller: _kepsekNipCtrl, decoration: const InputDecoration(labelText: 'NIP Kepala Sekolah', prefixIcon: Icon(Icons.badge_outlined))),
-          const SizedBox(height: 12),
-          TextField(controller: _pembinaNameCtrl, decoration: const InputDecoration(labelText: 'Nama Pembina OSIS', prefixIcon: Icon(Icons.person_rounded))),
-          const SizedBox(height: 12),
-          TextField(controller: _pembinaNipCtrl, decoration: const InputDecoration(labelText: 'NIP Pembina OSIS', prefixIcon: Icon(Icons.badge_outlined))),
-          const SizedBox(height: 12),
-          TextField(controller: _ketosNameCtrl, decoration: const InputDecoration(labelText: 'Nama Ketua OSIS', prefixIcon: Icon(Icons.person_rounded))),
-          const SizedBox(height: 12),
-          TextField(controller: _ketosNisCtrl, decoration: const InputDecoration(labelText: 'NIS Ketua OSIS', prefixIcon: Icon(Icons.badge_outlined))),
-          const SizedBox(height: 12),
-          TextField(controller: _sekretarisNameCtrl, decoration: const InputDecoration(labelText: 'Nama Sekretaris OSIS', prefixIcon: Icon(Icons.person_rounded))),
-          const SizedBox(height: 12),
-          TextField(controller: _sekretarisNisCtrl, decoration: const InputDecoration(labelText: 'NIS Sekretaris OSIS', prefixIcon: Icon(Icons.badge_outlined))),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _sectionHeader(title: 'Dimensi Rekap Disiplin Siswa (${_rekapTypes.length})', icon: Icons.analytics_outlined, color: _selectedAccent),
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.green),
+                onPressed: () => _showAddChipDialog('Dimensi Rekap Baru', (val) => setState(() => _rekapTypes.add(val))),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8, runSpacing: 8,
+            children: _rekapTypes.map((rt) => Chip(
+              label: Text(rt, style: const TextStyle(fontSize: 12)),
+              onDeleted: () => setState(() => _rekapTypes.remove(rt)),
+              deleteIconColor: Colors.redAccent,
+            )).toList(),
+          ),
         ],
       ),
     );

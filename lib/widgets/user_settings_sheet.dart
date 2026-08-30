@@ -3,6 +3,7 @@ import '../services/app_settings_service.dart';
 import '../services/localization_service.dart';
 import '../services/auth_service.dart';
 import '../screens/admin_settings_screen.dart';
+import '../screens/login_screen.dart';
 
 class UserSettingsSheet extends StatefulWidget {
   final String username;
@@ -425,6 +426,44 @@ class _UserSettingsSheetState extends State<UserSettingsSheet> {
                               ),
                             ),
                           ],
+                          Divider(height: 1, color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0)),
+                          ListTile(
+                            leading: const Icon(Icons.logout_rounded, color: Colors.redAccent, size: 22),
+                            title: Text(
+                              LocalizationService.tr('btn_logout'),
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.redAccent),
+                            ),
+                            trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.redAccent),
+                            onTap: () async {
+                              final ok = await showDialog<bool>(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: Text(LocalizationService.tr('confirm_logout')),
+                                  content: Text('${LocalizationService.tr('logout_prompt')} (${widget.username})'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(ctx, false),
+                                      child: Text(LocalizationService.tr('btn_cancel')),
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: () => Navigator.pop(ctx, true),
+                                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                                      child: Text(LocalizationService.tr('btn_logout')),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (ok == true) {
+                                await AuthService.logout();
+                                if (context.mounted) {
+                                  Navigator.of(context).pushAndRemoveUntil(
+                                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                                    (_) => false,
+                                  );
+                                }
+                              }
+                            },
+                          ),
                         ],
                       ),
                     ),

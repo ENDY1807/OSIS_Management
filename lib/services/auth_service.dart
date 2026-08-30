@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'data_service.dart';
 import 'sync_service.dart';
+import 'app_settings_service.dart';
 
 class AppAccount {
   final String username;
@@ -238,16 +239,27 @@ class AuthService {
     }
   }
 
-  static List<String> get sekbidList => [
-    'SEKBID1', 'SEKBID2', 'SEKBID3', 'SEKBID4', 'SEKBID5',
-    'SEKBID6', 'SEKBID7', 'SEKBID8', 'SEKBID9', 'SEKBID10',
-  ];
+  static List<String> get sekbidList => AppSettingsService.sekbidListNotifier.value;
 
-  static List<String> get prokerUnits => [
-    'KETUA', 'WAKIL', 'SEKRETARIS', 'BENDAHARA',
-    'SEKBID1', 'SEKBID2', 'SEKBID3', 'SEKBID4', 'SEKBID5',
-    'SEKBID6', 'SEKBID7', 'SEKBID8', 'SEKBID9', 'SEKBID10',
-  ];
+  static List<String> get prokerUnits {
+    final list = <String>[
+      'KETUA', 'WAKIL', 'SEKRETARIS', 'BENDAHARA',
+    ];
+    for (final s in AppSettingsService.sekbidListNotifier.value) {
+      if (!list.contains(s)) {
+        list.add(s);
+      }
+    }
+    for (final acc in allAccounts) {
+      if (!list.contains(acc.username) &&
+          acc.username != 'ADMIN' &&
+          acc.username != 'PEMBINA' &&
+          acc.username != 'KESISWAAN') {
+        list.add(acc.username);
+      }
+    }
+    return list;
+  }
 
   static Map<String, String> get accounts {
     final map = <String, String>{};
@@ -272,7 +284,14 @@ class AuthService {
     if (acc != null && acc.displayName.trim().isNotEmpty) {
       return acc.displayName;
     }
-    return defaultDisplayNames[u] ?? username;
+    if (defaultDisplayNames.containsKey(u)) {
+      return defaultDisplayNames[u]!;
+    }
+    if (u == 'KETUA') return 'Ketua OSIS';
+    if (u == 'WAKIL') return 'Wakil Ketua OSIS';
+    if (u == 'SEKRETARIS') return 'Sekretaris OSIS';
+    if (u == 'BENDAHARA') return 'Bendahara OSIS';
+    return username;
   }
 
   static String getRole(String username) {

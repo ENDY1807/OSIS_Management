@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 class ColorWheelPicker extends StatefulWidget {
@@ -87,31 +86,20 @@ class _ColorWheelPickerState extends State<ColorWheelPicker> {
                 final outerRadius = size.width / 2 - 12;
                 final innerRadius = outerRadius - 38;
 
-                return RawGestureDetector(
+                return Listener(
                   behavior: HitTestBehavior.opaque,
-                  gestures: {
-                    EagerGestureRecognizer: GestureRecognizerFactoryWithHandlers<EagerGestureRecognizer>(
-                      () => EagerGestureRecognizer(),
-                      (EagerGestureRecognizer instance) {},
-                    ),
-                    PanGestureRecognizer: GestureRecognizerFactoryWithHandlers<PanGestureRecognizer>(
-                      () => PanGestureRecognizer(),
-                      (PanGestureRecognizer instance) {
-                        instance.onStart = (details) {
-                          setState(() => _isDragging = true);
-                          _handleTouch(details.localPosition, size);
-                        };
-                        instance.onUpdate = (details) {
-                          _handleTouch(details.localPosition, size);
-                        };
-                        instance.onEnd = (_) {
-                          setState(() => _isDragging = false);
-                        };
-                        instance.onCancel = () {
-                          setState(() => _isDragging = false);
-                        };
-                      },
-                    ),
+                  onPointerDown: (event) {
+                    setState(() => _isDragging = true);
+                    _handleTouch(event.localPosition, size);
+                  },
+                  onPointerMove: (event) {
+                    _handleTouch(event.localPosition, size);
+                  },
+                  onPointerUp: (_) {
+                    setState(() => _isDragging = false);
+                  },
+                  onPointerCancel: (_) {
+                    setState(() => _isDragging = false);
                   },
                   child: CustomPaint(
                     size: size,

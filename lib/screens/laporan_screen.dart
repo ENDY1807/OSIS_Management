@@ -48,8 +48,10 @@ class _LaporanScreenState extends State<LaporanScreen> {
   }
 
   void _showAdminConfigLaporan() {
-    final list = List<String>.from(AppSettingsService.laporanCategoriesNotifier.value);
+    final catList = List<String>.from(AppSettingsService.laporanCategoriesNotifier.value);
+    final fieldList = List<String>.from(AppSettingsService.laporanFieldsNotifier.value);
     final newCatCtrl = TextEditingController();
+    final newFieldCtrl = TextEditingController();
     bool isSaving = false;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -97,11 +99,11 @@ class _LaporanScreenState extends State<LaporanScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Konfigurasi Kategori Laporan (Admin)',
+                            'Konfigurasi Kategori & Kolom Laporan (Admin)',
                             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark),
                           ),
                           Text(
-                            'Kategori baru akan otomatis muncul di seluruh pengguna aplikasi',
+                            'Pengaturan ini akan berlaku untuk semua pengguna aplikasi',
                             style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.black54),
                           ),
                         ],
@@ -111,7 +113,12 @@ class _LaporanScreenState extends State<LaporanScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Tambah Kategori Baru
+                // 1. Tambah Kategori Baru
+                Text(
+                  'KATEGORI LAPORAN (${catList.length})',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF38BDF8) : kPrimary, letterSpacing: 0.5),
+                ),
+                const SizedBox(height: 8),
                 Row(
                   children: [
                     Expanded(
@@ -128,9 +135,9 @@ class _LaporanScreenState extends State<LaporanScreen> {
                     ElevatedButton(
                       onPressed: () {
                         final val = newCatCtrl.text.trim();
-                        if (val.isNotEmpty && !list.contains(val)) {
+                        if (val.isNotEmpty && !catList.contains(val)) {
                           setM(() {
-                            list.add(val);
+                            catList.add(val);
                             newCatCtrl.clear();
                           });
                         }
@@ -139,33 +146,76 @@ class _LaporanScreenState extends State<LaporanScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-
-                // Daftar Kategori
-                Text(
-                  'DAFTAR KATEGORI LAPORAN (${list.length})',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF38BDF8) : kPrimary, letterSpacing: 0.5),
-                ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: list.map((cat) {
+                  children: catList.map((cat) {
                     return Chip(
                       label: Text(cat, style: const TextStyle(fontSize: 12)),
                       deleteIcon: const Icon(Icons.close, size: 14),
-                      onDeleted: list.length > 1
-                          ? () => setM(() => list.remove(cat))
+                      onDeleted: catList.length > 1
+                          ? () => setM(() => catList.remove(cat))
                           : null,
                     );
                   }).toList(),
                 ),
                 const SizedBox(height: 20),
 
+                // 2. Tambah Kolom Input Baru
+                Text(
+                  'KOLOM INPUT & FORMAT LAPORAN (${fieldList.length})',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF38BDF8) : kPrimary, letterSpacing: 0.5),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: newFieldCtrl,
+                        decoration: const InputDecoration(
+                          hintText: 'Nama Kolom Input baru...',
+                          isDense: true,
+                          prefixIcon: Icon(Icons.playlist_add_rounded, size: 18),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () {
+                        final val = newFieldCtrl.text.trim();
+                        if (val.isNotEmpty && !fieldList.contains(val)) {
+                          setM(() {
+                            fieldList.add(val);
+                            newFieldCtrl.clear();
+                          });
+                        }
+                      },
+                      child: const Text('Tambah'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: fieldList.map((fld) {
+                    return Chip(
+                      label: Text(fld, style: const TextStyle(fontSize: 12)),
+                      deleteIcon: const Icon(Icons.close, size: 14),
+                      onDeleted: () => setM(() => fieldList.remove(fld)),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 24),
+
                 ElevatedButton.icon(
                   onPressed: isSaving ? null : () async {
                     setM(() => isSaving = true);
-                    await AppSettingsService.saveAdminConfigs(laporanCategories: list);
+                    await AppSettingsService.saveAdminConfigs(
+                      laporanCategories: catList,
+                      laporanFields: fieldList,
+                    );
                     if (ctx.mounted) Navigator.pop(ctx);
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -174,7 +224,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
                             children: [
                               Icon(Icons.check_circle_rounded, color: Colors.white),
                               SizedBox(width: 10),
-                              Expanded(child: Text('Kategori Laporan berhasil disinkronkan ke semua user!')),
+                              Expanded(child: Text('Konfigurasi Laporan berhasil disinkronkan ke semua user!')),
                             ],
                           ),
                           backgroundColor: Colors.green,
@@ -185,7 +235,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
                   icon: isSaving
                       ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                       : const Icon(Icons.save_rounded),
-                  label: Text(isSaving ? 'Menyimpan ke Cloud...' : 'Simpan Kategori ke Semua User'),
+                  label: Text(isSaving ? 'Menyimpan ke Cloud...' : 'Simpan Konfigurasi ke Semua User'),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -240,7 +290,15 @@ class _LaporanScreenState extends State<LaporanScreen> {
     final pesertaC = TextEditingController(text: existing?.peserta.join(', ') ?? '');
     String status = existing?.status ?? StatusLaporan.draft;
     DateTime tanggal = existing?.tanggalKegiatan ?? DateTime.now();
-    final sekbid = widget.username;
+
+    final prokerUnits = AuthService.prokerUnits;
+    String selectedSekbid = existing?.sekbid ?? (_isAdmin || _isPembina ? (prokerUnits.contains(widget.username) ? widget.username : prokerUnits.first) : widget.username);
+    if (!prokerUnits.contains(selectedSekbid) && prokerUnits.isNotEmpty) {
+      selectedSekbid = prokerUnits.first;
+    }
+
+    final categories = AppSettingsService.laporanCategoriesNotifier.value;
+    String selectedCategory = categories.isNotEmpty ? categories.first : 'Kegiatan Rutin';
 
     if (!mounted) return;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -270,6 +328,49 @@ class _LaporanScreenState extends State<LaporanScreen> {
                 Text(existing == null ? LocalizationService.tr('laporan_add') : LocalizationService.tr('laporan_edit'),
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
                 const SizedBox(height: 16),
+
+                // Unit / Sekbid Selection
+                if (_isAdmin || _isPembina)
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedSekbid,
+                    decoration: InputDecoration(
+                      labelText: 'Unit / Sekbid Penyelenggara',
+                      labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                      prefixIcon: const Icon(Icons.groups_outlined, color: kAccent),
+                    ),
+                    items: prokerUnits
+                        .map((s) => DropdownMenuItem(value: s, child: Text(AuthService.getDisplayName(s))))
+                        .toList(),
+                    onChanged: (v) => setModal(() => selectedSekbid = v ?? selectedSekbid),
+                  )
+                else
+                  InputDecorator(
+                    decoration: InputDecoration(
+                      labelText: 'Unit / Sekbid Penyelenggara',
+                      labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                      prefixIcon: const Icon(Icons.groups_outlined, color: kAccent),
+                    ),
+                    child: Text(AuthService.getDisplayName(selectedSekbid), style: TextStyle(fontSize: 14, color: isDark ? Colors.white : kTextDark)),
+                  ),
+                const SizedBox(height: 12),
+
+                // Kategori Laporan Selection
+                if (categories.isNotEmpty) ...[
+                  DropdownButtonFormField<String>(
+                    initialValue: categories.contains(selectedCategory) ? selectedCategory : categories.first,
+                    decoration: InputDecoration(
+                      labelText: 'Kategori Kegiatan',
+                      labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                      prefixIcon: const Icon(Icons.category_outlined, color: kAccent),
+                    ),
+                    items: categories
+                        .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                        .toList(),
+                    onChanged: (v) => setModal(() => selectedCategory = v ?? selectedCategory),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+
                 TextField(
                   controller: judulC,
                   style: TextStyle(color: isDark ? Colors.white : Colors.black87),
@@ -384,7 +485,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
                     final l = LaporanKegiatan(
                       id: existing?.id ?? _uuid.v4(),
                       judul: judulC.text.trim(),
-                      sekbid: sekbid,
+                      sekbid: selectedSekbid,
                       penanggungJawab: ketuplakC.text.trim(),
                       tanggalKegiatan: tanggal,
                       lokasi: lokasiC.text.trim(),
@@ -394,7 +495,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
                       status: status,
                       tanggalBuat: existing?.tanggalBuat ?? DateTime.now(),
                       peserta: peserta,
-                      pembuatId: existing?.pembuatId ?? sekbid,
+                      pembuatId: existing?.pembuatId ?? widget.username,
                     );
                     try {
                       if (existing == null) {

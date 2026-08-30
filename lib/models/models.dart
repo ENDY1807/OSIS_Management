@@ -348,3 +348,32 @@ class AppNotification {
         isRead: isRead ?? this.isRead,
       );
 }
+
+class SekbidItem {
+  String id;
+  String name;
+  String deskripsi;
+  int urutan;
+
+  SekbidItem({
+    required this.id,
+    required this.name,
+    this.deskripsi = '',
+    this.urutan = 0,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'deskripsi': deskripsi,
+    'urutan': urutan,
+  };
+
+  factory SekbidItem.fromJson(Map<String, dynamic> j) => SekbidItem(
+    id: j['id']?.toString() ?? '',
+    name: j['name']?.toString() ?? j['nama']?.toString() ?? '',
+    deskripsi: j['deskripsi']?.toString() ?? '',
+    urutan: (j['urutan'] as num?)?.toInt() ?? 0,
+  );
+}
+

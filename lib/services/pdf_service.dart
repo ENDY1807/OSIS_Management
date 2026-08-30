@@ -1,5 +1,4 @@
 import 'dart:typed_data';
-import 'dart:convert';
 import 'dart:io';
 import 'package:archive/archive.dart';
 import 'package:intl/intl.dart';
@@ -28,86 +27,78 @@ class PdfService {
         ),
       ]);
 
-  static pw.Widget _signatureBlock({required String tanggal}) {
+  static pw.Widget _schoolHeader({required String judul, required String periodeLabel, required String tanggal}) {
+    final schoolName = AppSettingsService.schoolNameNotifier.value.isNotEmpty
+        ? AppSettingsService.schoolNameNotifier.value
+        : AppSettingsService.appNameNotifier.value;
+    final academicYear = AppSettingsService.academicYearNotifier.value;
     final city = AppSettingsService.cityNotifier.value;
-    final kepsek = AppSettingsService.kepsekNameNotifier.value;
-    final kepsekNip = AppSettingsService.kepsekNipNotifier.value;
-    final pembina = AppSettingsService.pembinaNameNotifier.value;
-    final pembinaNip = AppSettingsService.pembinaNipNotifier.value;
-    final ketos = AppSettingsService.ketosNameNotifier.value;
-    final ketosNis = AppSettingsService.ketosNisNotifier.value;
 
-    final ttdKepsekRaw = AppSettingsService.ttdKepsekNotifier.value;
-    final ttdPembinaRaw = AppSettingsService.ttdPembinaNotifier.value;
-    final ttdKetosRaw = AppSettingsService.ttdKetosNotifier.value;
-
-    pw.Widget buildTtdImage(String raw) {
-      if (raw.isNotEmpty) {
-        try {
-          final bytes = base64Decode(raw);
-          return pw.Container(
-            height: 38,
-            width: 70,
-            alignment: pw.Alignment.center,
-            child: pw.Image(pw.MemoryImage(bytes), fit: pw.BoxFit.contain),
-          );
-        } catch (_) {}
-      }
-      return pw.SizedBox(height: 38);
-    }
-
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-      children: [
-        pw.SizedBox(height: 20),
-        pw.Row(
-          mainAxisAlignment: pw.MainAxisAlignment.end,
-          children: [
-            pw.Text('$city, $tanggal', style: const pw.TextStyle(fontSize: 9)),
-          ],
-        ),
-        pw.SizedBox(height: 12),
-        pw.Row(
-          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.center,
-              children: [
-                pw.Text('Mengetahui,\nPembina OSIS', textAlign: pw.TextAlign.center, style: const pw.TextStyle(fontSize: 8.5)),
-                buildTtdImage(ttdPembinaRaw),
-                pw.Text(pembina, style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, decoration: pw.TextDecoration.underline)),
-                pw.Text('NIP. $pembinaNip', style: const pw.TextStyle(fontSize: 7.5)),
-              ],
-            ),
-            pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.center,
-              children: [
-                pw.Text('Ketua OSIS', textAlign: pw.TextAlign.center, style: const pw.TextStyle(fontSize: 8.5)),
-                buildTtdImage(ttdKetosRaw),
-                pw.Text(ketos, style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, decoration: pw.TextDecoration.underline)),
-                pw.Text('NIS. $ketosNis', style: const pw.TextStyle(fontSize: 7.5)),
-              ],
-            ),
-            pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.center,
-              children: [
-                pw.Text('Menyetujui,\nKepala Sekolah', textAlign: pw.TextAlign.center, style: const pw.TextStyle(fontSize: 8.5)),
-                buildTtdImage(ttdKepsekRaw),
-                pw.Text(kepsek, style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, decoration: pw.TextDecoration.underline)),
-                pw.Text('NIP. $kepsekNip', style: const pw.TextStyle(fontSize: 7.5)),
-              ],
-            ),
-          ],
-        ),
-      ],
-    );
+    return pw.Column(children: [
+      pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+            pw.Text(schoolName.toUpperCase(),
+                style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: _primaryColor)),
+            if (academicYear.isNotEmpty)
+              pw.Text('Tahun Ajaran / Periode: $academicYear',
+                  style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: _secondaryColor)),
+            pw.SizedBox(height: 2),
+            pw.Text(judul.toUpperCase(),
+                style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: _headerBgColor)),
+          ]),
+          pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.end, children: [
+            pw.Text('Wilayah: $city', style: const pw.TextStyle(fontSize: 9)),
+            pw.Text('Tanggal Cetak: $tanggal', style: const pw.TextStyle(fontSize: 9)),
+            pw.Text('Periode: $periodeLabel',
+                style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: _secondaryColor)),
+          ]),
+        ],
+      ),
+      pw.SizedBox(height: 6),
+      pw.Container(height: 2, color: _primaryColor),
+      pw.SizedBox(height: 14),
+    ]);
   }
 
   static pw.TableBorder _tableBorder() => pw.TableBorder(
         bottom: const pw.BorderSide(color: PdfColors.grey300, width: 0.5),
         horizontalInside: const pw.BorderSide(color: PdfColors.grey300, width: 0.5),
       );
+
+  static Future<void> cetakRekapDinamis({
+    required String judul,
+    required List<String> headers,
+    required List<List<String>> rows,
+    String periodeLabel = 'Semua Waktu',
+  }) async {
+    final pdf = pw.Document();
+    final tanggal = DateFormat('dd MMMM yyyy', 'id').format(DateTime.now());
+
+    pdf.addPage(pw.MultiPage(
+      pageFormat: PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.all(36),
+      header: (context) => _schoolHeader(judul: judul, periodeLabel: periodeLabel, tanggal: tanggal),
+      build: (ctx) => [
+        pw.TableHelper.fromTextArray(
+          border: _tableBorder(),
+          headerStyle: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 9.5),
+          headerDecoration: pw.BoxDecoration(
+              color: _headerBgColor,
+              borderRadius: const pw.BorderRadius.vertical(top: pw.Radius.circular(4))),
+          cellAlignment: pw.Alignment.centerLeft,
+          cellStyle: const pw.TextStyle(fontSize: 8.5),
+          headers: headers,
+          data: rows,
+        ),
+      ],
+      footer: _footer,
+    ));
+
+    await Printing.layoutPdf(onLayout: (_) => pdf.save());
+  }
 
   static Future<void> cetakRekap({
     required List<Siswa> siswa,
@@ -122,32 +113,13 @@ class PdfService {
     pdf.addPage(pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
       margin: const pw.EdgeInsets.all(36),
-      header: (context) => pw.Column(children: [
-        pw.Row(
-          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-          children: [
-            pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-              pw.Text('LAPORAN JURNAL OSIS & STAF SEKOLAH',
-                  style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: _secondaryColor)),
-              pw.Text('REKAP PELANGGARAN SISWA',
-                  style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: _primaryColor)),
-            ]),
-            pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.end, children: [
-              pw.Text('Tanggal Cetak: $tanggal', style: const pw.TextStyle(fontSize: 9)),
-              pw.Text('Periode: $periodeLabel',
-                  style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: _headerBgColor)),
-            ]),
-          ],
-        ),
-        pw.SizedBox(height: 8),
-        pw.Container(height: 2.5, color: _primaryColor),
-        pw.SizedBox(height: 16),
-      ]),
+      header: (context) => _schoolHeader(
+        judul: perJenis ? 'Rekap Berdasarkan Jenis Pelanggaran' : 'Rekap Peringkat Pelanggaran Siswa',
+        periodeLabel: periodeLabel,
+        tanggal: tanggal,
+      ),
       build: (ctx) => [
         if (perJenis) ...[
-          pw.Text('Rekap Berdasarkan Jenis Pelanggaran',
-              style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: _secondaryColor)),
-          pw.SizedBox(height: 8),
           pw.TableHelper.fromTextArray(
             border: _tableBorder(),
             headerStyle: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 10),
@@ -163,9 +135,6 @@ class PdfService {
             }).toList(),
           ),
         ] else ...[
-          pw.Text('Rekap Berdasarkan Peringkat Pelanggaran Murid',
-              style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: _secondaryColor)),
-          pw.SizedBox(height: 8),
           pw.TableHelper.fromTextArray(
             border: _tableBorder(),
             headerStyle: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 10),
@@ -190,20 +159,6 @@ class PdfService {
             }(),
           ),
         ],
-        pw.SizedBox(height: 32),
-        pw.Row(
-          mainAxisAlignment: pw.MainAxisAlignment.end,
-          children: [
-            pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.center, children: [
-              pw.Text('Pengurus OSIS / Staf Kesiswaan', style: const pw.TextStyle(fontSize: 9)),
-              pw.SizedBox(height: 45),
-              pw.Container(width: 120, height: 0.5, color: PdfColors.black),
-              pw.SizedBox(height: 2),
-              pw.Text('Tim Penilai Disiplin Sekolah',
-                  style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
-            ]),
-          ],
-        ),
       ],
       footer: _footer,
     ));
@@ -219,7 +174,6 @@ class PdfService {
     final pdf = pw.Document();
     final tanggal = DateFormat('dd MMMM yyyy', 'id').format(DateTime.now());
 
-    // Map kelas -> count
     final Map<String, int> kelasCount = {};
     for (final s in siswa) {
       if (s.kelas.isNotEmpty) {
@@ -236,31 +190,12 @@ class PdfService {
     pdf.addPage(pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
       margin: const pw.EdgeInsets.all(36),
-      header: (context) => pw.Column(children: [
-        pw.Row(
-          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-          children: [
-            pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-              pw.Text('LAPORAN JURNAL OSIS & STAF SEKOLAH',
-                  style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: _secondaryColor)),
-              pw.Text('REKAP PELANGGARAN PER KELAS',
-                  style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: _primaryColor)),
-            ]),
-            pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.end, children: [
-              pw.Text('Tanggal Cetak: $tanggal', style: const pw.TextStyle(fontSize: 9)),
-              pw.Text('Periode: $periodeLabel',
-                  style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: _headerBgColor)),
-            ]),
-          ],
-        ),
-        pw.SizedBox(height: 8),
-        pw.Container(height: 2.5, color: _primaryColor),
-        pw.SizedBox(height: 16),
-      ]),
+      header: (context) => _schoolHeader(
+        judul: 'Rekap Pelanggaran Per Kelas',
+        periodeLabel: periodeLabel,
+        tanggal: tanggal,
+      ),
       build: (ctx) => [
-        pw.Text('Distribusi Pelanggaran Siswa Berdasarkan Kelas',
-            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: _secondaryColor)),
-        pw.SizedBox(height: 8),
         pw.TableHelper.fromTextArray(
           border: _tableBorder(),
           headerStyle: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 10),
@@ -283,7 +218,6 @@ class PdfService {
             return ['${e.key + 1}', 'Kelas ${e.value.key}', '$count kali', status];
           }).toList(),
         ),
-        _signatureBlock(tanggal: tanggal),
       ],
       footer: _footer,
     ));
@@ -300,7 +234,6 @@ class PdfService {
     final pdf = pw.Document();
     final tanggal = DateFormat('dd MMMM yyyy', 'id').format(DateTime.now());
 
-    // Map kelas
     final Map<String, int> kelasCount = {};
     for (final s in siswa) {
       if (s.kelas.isNotEmpty) kelasCount[s.kelas] = 0;
@@ -312,7 +245,6 @@ class PdfService {
     }
     final sortedKelas = kelasCount.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
 
-    // Siswa ranking
     final List<Map<String, dynamic>> siswaData = [];
     for (final s in siswa) {
       final sPelanggaran = pelanggaran.where((p) => p.siswaId == s.id).toList();
@@ -324,29 +256,12 @@ class PdfService {
     pdf.addPage(pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
       margin: const pw.EdgeInsets.all(36),
-      header: (context) => pw.Column(children: [
-        pw.Row(
-          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-          children: [
-            pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-              pw.Text('LAPORAN JURNAL OSIS & STAF SEKOLAH',
-                  style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: _secondaryColor)),
-              pw.Text('LAPORAN REKAP DISIPLIN LENGKAP',
-                  style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: _primaryColor)),
-            ]),
-            pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.end, children: [
-              pw.Text('Tanggal Cetak: $tanggal', style: const pw.TextStyle(fontSize: 9)),
-              pw.Text('Periode: $periodeLabel',
-                  style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: _headerBgColor)),
-            ]),
-          ],
-        ),
-        pw.SizedBox(height: 8),
-        pw.Container(height: 2.5, color: _primaryColor),
-        pw.SizedBox(height: 16),
-      ]),
+      header: (context) => _schoolHeader(
+        judul: 'Laporan Rekap Disiplin Siswa Lengkap',
+        periodeLabel: periodeLabel,
+        tanggal: tanggal,
+      ),
       build: (ctx) => [
-        // Ringkasan Statistik Box
         pw.Container(
           padding: const pw.EdgeInsets.all(10),
           decoration: pw.BoxDecoration(
@@ -374,7 +289,6 @@ class PdfService {
         ),
         pw.SizedBox(height: 16),
 
-        // Section 1: Per Jenis
         pw.Text('1. Rekap Berdasarkan Jenis Pelanggaran',
             style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: _secondaryColor)),
         pw.SizedBox(height: 6),
@@ -392,7 +306,6 @@ class PdfService {
         ),
         pw.SizedBox(height: 20),
 
-        // Section 2: Per Kelas
         pw.Text('2. Rekap Berdasarkan Kelas',
             style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: _secondaryColor)),
         pw.SizedBox(height: 6),
@@ -407,7 +320,6 @@ class PdfService {
         ),
         pw.SizedBox(height: 20),
 
-        // Section 3: Peringkat Siswa
         pw.Text('3. Peringkat Pelanggaran Siswa',
             style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: _secondaryColor)),
         pw.SizedBox(height: 6),
@@ -426,8 +338,6 @@ class PdfService {
               return ['${e.key + 1}', s.nama, s.kelas, s.nis, '${e.value['count']} kali'];
             }).toList(),
           ),
-
-        _signatureBlock(tanggal: tanggal),
       ],
       footer: _footer,
     ));
@@ -450,31 +360,12 @@ class PdfService {
     pdf.addPage(pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
       margin: const pw.EdgeInsets.all(36),
-      header: (context) => pw.Column(children: [
-        pw.Row(
-          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-          children: [
-            pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-              pw.Text('LAPORAN JURNAL OSIS & STAF SEKOLAH',
-                  style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: _secondaryColor)),
-              pw.Text('REKAP DISIPLIN KELAS $kelas',
-                  style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: _primaryColor)),
-            ]),
-            pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.end, children: [
-              pw.Text('Tanggal Cetak: $tanggal', style: const pw.TextStyle(fontSize: 9)),
-              pw.Text('Periode: $periodeLabel',
-                  style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: _headerBgColor)),
-            ]),
-          ],
-        ),
-        pw.SizedBox(height: 8),
-        pw.Container(height: 2.5, color: _primaryColor),
-        pw.SizedBox(height: 16),
-      ]),
+      header: (context) => _schoolHeader(
+        judul: 'Rekap Disiplin Siswa Kelas $kelas',
+        periodeLabel: periodeLabel,
+        tanggal: tanggal,
+      ),
       build: (ctx) => [
-        pw.Text('Daftar Rincian Pelanggaran Siswa Kelas $kelas',
-            style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: _secondaryColor)),
-        pw.SizedBox(height: 8),
         if (pelanggaran.isEmpty)
           pw.Text('Tidak ada catatan pelanggaran untuk kelas ini pada periode yang dipilih.',
               style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey600))
@@ -498,20 +389,6 @@ class PdfService {
               ];
             }).toList(),
           ),
-        pw.SizedBox(height: 32),
-        pw.Row(
-          mainAxisAlignment: pw.MainAxisAlignment.end,
-          children: [
-            pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.center, children: [
-              pw.Text('Pengurus OSIS / Staf Kesiswaan', style: const pw.TextStyle(fontSize: 9)),
-              pw.SizedBox(height: 45),
-              pw.Container(width: 120, height: 0.5, color: PdfColors.black),
-              pw.SizedBox(height: 2),
-              pw.Text('Tim Penilai Disiplin Sekolah',
-                  style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
-            ]),
-          ],
-        ),
       ],
       footer: _footer,
     ));

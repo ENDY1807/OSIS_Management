@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -49,8 +50,12 @@ class AppSettingsService {
   static const _keySkorsingThreshold = 'cfg_skorsing_threshold';
   static const _keyArsipMaxMb = 'cfg_arsip_max_mb';
   static const _keyArsipFolders = 'cfg_arsip_folders';
+  static const _keyArsipAllowedExts = 'cfg_arsip_allowed_exts';
   static const _keySekbidList = 'cfg_sekbid_list';
   static const _keyLaporanCategories = 'cfg_laporan_categories';
+  static const _keyLaporanFields = 'cfg_laporan_fields';
+  static const _keyPelanggaranFields = 'cfg_pelanggaran_fields';
+  static const _keyRekapTypes = 'cfg_rekap_types';
 
   // Rich, curated modern presets
   static const List<ThemePreset> presets = [
@@ -108,6 +113,9 @@ class AppSettingsService {
     'Dokumentasi',
     'SK & Sertifikat',
   ]);
+  static final ValueNotifier<List<String>> arsipAllowedExtsNotifier = ValueNotifier([
+    'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png', 'zip', 'txt',
+  ]);
 
   static final ValueNotifier<List<String>> sekbidListNotifier = ValueNotifier([
     'BPH (Inti)',
@@ -132,6 +140,50 @@ class AppSettingsService {
     'Rapat Kerja & Pleno',
     'Lainnya',
   ]);
+
+  static final ValueNotifier<List<String>> laporanFieldsNotifier = ValueNotifier([
+    'kategori',
+    'anggaran',
+    'lokasi',
+    'ketuplak',
+    'deskripsi',
+    'hasil',
+    'kendala',
+    'peserta',
+    'dokumentasi',
+  ]);
+
+  static final ValueNotifier<List<String>> pelanggaranFieldsNotifier = ValueNotifier([
+    'lokasi',
+    'petugas',
+    'sanksi',
+    'poin',
+    'keterangan',
+  ]);
+
+  static final ValueNotifier<List<String>> rekapTypesNotifier = ValueNotifier([
+    'kelas',
+    'siswa',
+    'jenis',
+    'tingkat',
+    'sp_level',
+  ]);
+
+  /// Dynamic Proker unit list including Ketua OSIS, Wakil Ketua OSIS, Sekretaris, Bendahara, and all configured Sekbids
+  static List<String> get dynamicProkerUnits {
+    final list = <String>[
+      'Ketua OSIS',
+      'Wakil Ketua OSIS',
+      'Sekretaris OSIS',
+      'Bendahara OSIS',
+    ];
+    for (final s in sekbidListNotifier.value) {
+      if (!list.contains(s)) {
+        list.add(s);
+      }
+    }
+    return list;
+  }
 
   static SupabaseClient? get _supabase {
     try {
@@ -217,6 +269,26 @@ class AppSettingsService {
       laporanCategoriesNotifier.value = savedLaporanCats;
     }
 
+    final savedLaporanFields = prefs.getStringList(_keyLaporanFields);
+    if (savedLaporanFields != null && savedLaporanFields.isNotEmpty) {
+      laporanFieldsNotifier.value = savedLaporanFields;
+    }
+
+    final savedPelanggaranFields = prefs.getStringList(_keyPelanggaranFields);
+    if (savedPelanggaranFields != null && savedPelanggaranFields.isNotEmpty) {
+      pelanggaranFieldsNotifier.value = savedPelanggaranFields;
+    }
+
+    final savedRekapTypes = prefs.getStringList(_keyRekapTypes);
+    if (savedRekapTypes != null && savedRekapTypes.isNotEmpty) {
+      rekapTypesNotifier.value = savedRekapTypes;
+    }
+
+    final savedArsipExts = prefs.getStringList(_keyArsipAllowedExts);
+    if (savedArsipExts != null && savedArsipExts.isNotEmpty) {
+      arsipAllowedExtsNotifier.value = savedArsipExts;
+    }
+
     // 6. Initialize Localization
     await LocalizationService.init();
 
@@ -252,12 +324,16 @@ class AppSettingsService {
     await prefs.setString(_keyThemeMode, _themeModeToString(mode));
   }
 
+  static Timer? _colorSyncDebounce;
   static Future<void> setAccentColor(Color color, {bool syncCloud = true}) async {
     accentColorNotifier.value = color;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyAccentColor, color.toARGB32());
     if (syncCloud) {
-      await _saveToSupabase();
+      _colorSyncDebounce?.cancel();
+      _colorSyncDebounce = Timer(const Duration(milliseconds: 300), () {
+        _saveToSupabase();
+      });
     }
   }
 
@@ -322,8 +398,12 @@ class AppSettingsService {
     int? skorsing,
     int? arsipMaxMb,
     List<String>? arsipFolders,
+    List<String>? arsipAllowedExts,
     List<String>? sekbidList,
     List<String>? laporanCategories,
+    List<String>? laporanFields,
+    List<String>? pelanggaranFields,
+    List<String>? rekapTypes,
   }) async {
     final prefs = await SharedPreferences.getInstance();
 
@@ -415,6 +495,10 @@ class AppSettingsService {
       arsipFoldersNotifier.value = arsipFolders;
       await prefs.setStringList(_keyArsipFolders, arsipFolders);
     }
+    if (arsipAllowedExts != null) {
+      arsipAllowedExtsNotifier.value = arsipAllowedExts;
+      await prefs.setStringList(_keyArsipAllowedExts, arsipAllowedExts);
+    }
     if (sekbidList != null) {
       sekbidListNotifier.value = sekbidList;
       await prefs.setStringList(_keySekbidList, sekbidList);
@@ -422,6 +506,18 @@ class AppSettingsService {
     if (laporanCategories != null) {
       laporanCategoriesNotifier.value = laporanCategories;
       await prefs.setStringList(_keyLaporanCategories, laporanCategories);
+    }
+    if (laporanFields != null) {
+      laporanFieldsNotifier.value = laporanFields;
+      await prefs.setStringList(_keyLaporanFields, laporanFields);
+    }
+    if (pelanggaranFields != null) {
+      pelanggaranFieldsNotifier.value = pelanggaranFields;
+      await prefs.setStringList(_keyPelanggaranFields, pelanggaranFields);
+    }
+    if (rekapTypes != null) {
+      rekapTypesNotifier.value = rekapTypes;
+      await prefs.setStringList(_keyRekapTypes, rekapTypes);
     }
 
     await _saveToSupabase();
@@ -456,8 +552,12 @@ class AppSettingsService {
       'skorsing_threshold': skorsingThresholdNotifier.value,
       'arsip_max_mb': arsipMaxMbNotifier.value,
       'arsip_folders': arsipFoldersNotifier.value,
+      'arsip_allowed_exts': arsipAllowedExtsNotifier.value,
       'sekbid_list': sekbidListNotifier.value,
       'laporan_categories': laporanCategoriesNotifier.value,
+      'laporan_fields': laporanFieldsNotifier.value,
+      'pelanggaran_fields': pelanggaranFieldsNotifier.value,
+      'rekap_types': rekapTypesNotifier.value,
       'updated_at': DateTime.now().toIso8601String(),
     };
 
@@ -612,6 +712,11 @@ class AppSettingsService {
           arsipFoldersNotifier.value = folders;
           await prefs.setStringList(_keyArsipFolders, folders);
         }
+        if (data['arsip_allowed_exts'] != null && data['arsip_allowed_exts'] is List) {
+          final exts = (data['arsip_allowed_exts'] as List).map((e) => e.toString()).toList();
+          arsipAllowedExtsNotifier.value = exts;
+          await prefs.setStringList(_keyArsipAllowedExts, exts);
+        }
         if (data['sekbid_list'] != null && data['sekbid_list'] is List) {
           final sekbids = (data['sekbid_list'] as List).map((e) => e.toString()).toList();
           sekbidListNotifier.value = sekbids;
@@ -621,6 +726,21 @@ class AppSettingsService {
           final cats = (data['laporan_categories'] as List).map((e) => e.toString()).toList();
           laporanCategoriesNotifier.value = cats;
           await prefs.setStringList(_keyLaporanCategories, cats);
+        }
+        if (data['laporan_fields'] != null && data['laporan_fields'] is List) {
+          final flds = (data['laporan_fields'] as List).map((e) => e.toString()).toList();
+          laporanFieldsNotifier.value = flds;
+          await prefs.setStringList(_keyLaporanFields, flds);
+        }
+        if (data['pelanggaran_fields'] != null && data['pelanggaran_fields'] is List) {
+          final pflds = (data['pelanggaran_fields'] as List).map((e) => e.toString()).toList();
+          pelanggaranFieldsNotifier.value = pflds;
+          await prefs.setStringList(_keyPelanggaranFields, pflds);
+        }
+        if (data['rekap_types'] != null && data['rekap_types'] is List) {
+          final rtypes = (data['rekap_types'] as List).map((e) => e.toString()).toList();
+          rekapTypesNotifier.value = rtypes;
+          await prefs.setStringList(_keyRekapTypes, rtypes);
         }
       }
     } catch (e) {

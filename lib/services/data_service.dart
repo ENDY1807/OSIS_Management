@@ -27,6 +27,7 @@ class DataService {
   static const _keyArsip        = 'arsip';
   static const _keyArsipFolder  = 'arsip_folder';
   static const _keyLaporan      = 'laporan_kegiatan_v2';
+  static const _keySekbid       = 'sekbid';
 
   static final StreamController<String> _dataChangeController = StreamController<String>.broadcast();
   static Stream<String> get onDataChanged => _dataChangeController.stream;
@@ -52,6 +53,9 @@ class DataService {
           if (table == 'accounts' || table == 'all') {
             AuthService.syncWithSupabase();
           }
+          if (table == 'app_settings' || table == 'sekbid' || table == 'all') {
+            AppSettingsService.syncFromSupabase();
+          }
           notifyDataChanged(table);
         },
       );
@@ -67,6 +71,7 @@ class DataService {
         'file_riwayat',
         'accounts',
         'app_settings',
+        'sekbid',
       ];
       for (final table in monitoredTables) {
         _realtimeChannel?.onPostgresChanges(
@@ -78,7 +83,7 @@ class DataService {
             if (table == 'accounts') {
               AuthService.syncWithSupabase();
             }
-            if (table == 'app_settings') {
+            if (table == 'app_settings' || table == 'sekbid') {
               AppSettingsService.syncFromSupabase();
             }
             notifyDataChanged(table);
@@ -89,6 +94,40 @@ class DataService {
       _realtimeChannel?.subscribe();
     } catch (e) {
       debugPrint('DataService realtime subscription error: $e');
+    }
+  }
+
+  static Future<List<String>> getSekbidList() async {
+    if (AppSettingsService.sekbidListNotifier.value.isNotEmpty) {
+      return AppSettingsService.sekbidListNotifier.value;
+    }
+    final cache = await _readCache(_keySekbid);
+    if (cache.isNotEmpty) {
+      final list = cache.map((e) => (e['name'] ?? e['nama'] ?? '').toString()).where((s) => s.isNotEmpty).toList();
+      if (list.isNotEmpty) {
+        AppSettingsService.sekbidListNotifier.value = list;
+        return list;
+      }
+    }
+    return AppSettingsService.sekbidListNotifier.value;
+  }
+
+  static Future<void> saveSekbidList(List<String> sekbids) async {
+    AppSettingsService.sekbidListNotifier.value = List.from(sekbids);
+    await _saveCache(_keySekbid, sekbids.map((s) => {'name': s}).toList());
+    await AppSettingsService.saveAdminConfigs(sekbidList: sekbids);
+    if (SyncService.isOnline) {
+      try {
+        for (int i = 0; i < sekbids.length; i++) {
+          await _db.from('sekbid').upsert({
+            'id': 'sekbid_${i + 1}',
+            'name': sekbids[i],
+            'urutan': i + 1,
+            'updated_at': DateTime.now().toIso8601String(),
+          }, onConflict: 'id');
+        }
+        await broadcastDataChange('sekbid');
+      } catch (_) {}
     }
   }
 

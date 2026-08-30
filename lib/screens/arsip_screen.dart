@@ -80,7 +80,9 @@ class ArsipScreenState extends State<ArsipScreen> {
   void _showAdminConfigArsip() {
     final maxMbCtrl = TextEditingController(text: AppSettingsService.arsipMaxMbNotifier.value.toString());
     final folderList = List<String>.from(AppSettingsService.arsipFoldersNotifier.value);
+    final extList = List<String>.from(AppSettingsService.arsipAllowedExtsNotifier.value);
     final newFolderCtrl = TextEditingController();
+    final newExtCtrl = TextEditingController();
     bool isSaving = false;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -128,11 +130,11 @@ class ArsipScreenState extends State<ArsipScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Konfigurasi Arsip Digital (Admin)',
+                            'Konfigurasi Arsip Digital & File Manager (Admin)',
                             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark),
                           ),
                           Text(
-                            'Batasan upload & struktur folder tersinkron ke semua pengguna',
+                            'Batasan ukuran upload, ekstensi, dan folder tersinkron ke semua pengguna',
                             style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.black54),
                           ),
                         ],
@@ -142,7 +144,7 @@ class ArsipScreenState extends State<ArsipScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Max File Size
+                // 1. Max File Size
                 TextField(
                   controller: maxMbCtrl,
                   keyboardType: TextInputType.number,
@@ -154,12 +156,61 @@ class ArsipScreenState extends State<ArsipScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Tambah Folder Bawaan
+                // 2. Ekstensi File Diizinkan
                 Text(
-                  'STRUKTUR FOLDER BAWAAN',
+                  'EKSTENSI FILE DIIZINKAN (${extList.length})',
                   style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF38BDF8) : kPrimary, letterSpacing: 0.5),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: newExtCtrl,
+                        decoration: const InputDecoration(
+                          hintText: 'Contoh: pdf, docx, zip...',
+                          isDense: true,
+                          prefixIcon: Icon(Icons.extension_outlined, size: 18),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () {
+                        final val = newExtCtrl.text.trim().replaceAll('.', '').toLowerCase();
+                        if (val.isNotEmpty && !extList.contains(val)) {
+                          setM(() {
+                            extList.add(val);
+                            newExtCtrl.clear();
+                          });
+                        }
+                      },
+                      child: const Text('Tambah'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: extList.map((ext) {
+                    return Chip(
+                      label: Text('.$ext', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      deleteIcon: const Icon(Icons.close, size: 14),
+                      onDeleted: extList.length > 1
+                          ? () => setM(() => extList.remove(ext))
+                          : null,
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 20),
+
+                // 3. Tambah Folder Bawaan
+                Text(
+                  'STRUKTUR FOLDER ARSIP (${folderList.length})',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF38BDF8) : kPrimary, letterSpacing: 0.5),
+                ),
+                const SizedBox(height: 8),
                 Row(
                   children: [
                     Expanded(
@@ -187,8 +238,7 @@ class ArsipScreenState extends State<ArsipScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
-
+                const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
@@ -202,7 +252,7 @@ class ArsipScreenState extends State<ArsipScreen> {
                     );
                   }).toList(),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
 
                 ElevatedButton.icon(
                   onPressed: isSaving ? null : () async {
@@ -211,6 +261,7 @@ class ArsipScreenState extends State<ArsipScreen> {
                     await AppSettingsService.saveAdminConfigs(
                       arsipMaxMb: maxMb,
                       arsipFolders: folderList,
+                      arsipAllowedExts: extList,
                     );
                     if (ctx.mounted) Navigator.pop(ctx);
                     if (mounted) {
@@ -1380,13 +1431,27 @@ class ArsipScreenState extends State<ArsipScreen> {
                 // File Picker
                 InkWell(
                   onTap: () async {
+                    final maxMb = AppSettingsService.arsipMaxMbNotifier.value;
+                    final allowedExts = AppSettingsService.arsipAllowedExtsNotifier.value;
                     final result = await FilePicker.pickFiles(
                       type: FileType.custom,
-                      allowedExtensions: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png', 'zip', 'txt'],
+                      allowedExtensions: allowedExts.isNotEmpty
+                          ? allowedExts
+                          : ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png', 'zip', 'txt'],
                     );
                     if (result == null) return;
                     final f = result.files.first;
                     final fBytes = await f.readAsBytes();
+                    if (fBytes.lengthInBytes > maxMb * 1024 * 1024) {
+                      if (ctx.mounted) {
+                        ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                          content: Text('Ukuran file (${(fBytes.lengthInBytes / (1024 * 1024)).toStringAsFixed(1)} MB) melebihi batas maksimal $maxMb MB yang ditentukan Admin'),
+                          backgroundColor: Colors.red,
+                          duration: const Duration(seconds: 4),
+                        ));
+                      }
+                      return;
+                    }
                     setModal(() {
                       pickedFileName = f.name;
                       pickedFileBytes = fBytes;
@@ -1397,7 +1462,7 @@ class ArsipScreenState extends State<ArsipScreen> {
                   },
                   child: InputDecorator(
                     decoration: InputDecoration(
-                      labelText: LocalizationService.tr('btn_upload'),
+                      labelText: '${LocalizationService.tr('btn_upload')} (Maks ${AppSettingsService.arsipMaxMbNotifier.value} MB)',
                       labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
                       prefixIcon: const Icon(Icons.upload_file_outlined, color: kAccent),
                       suffixIcon: pickedFileName != null
