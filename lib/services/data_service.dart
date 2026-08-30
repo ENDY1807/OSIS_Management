@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -54,6 +54,14 @@ class DataService {
             AuthService.syncWithSupabase();
           }
           if (table == 'app_settings' || table == 'sekbid' || table == 'all') {
+            if (payload['primary_color'] != null) {
+              final colorStr = payload['primary_color'].toString();
+              try {
+                final parsedInt = int.parse(colorStr.replaceFirst('#', '').replaceFirst('0x', ''), radix: 16);
+                final fullColor = (parsedInt <= 0xFFFFFF) ? 0xFF000000 | parsedInt : parsedInt;
+                AppSettingsService.accentColorNotifier.value = Color(fullColor);
+              } catch (_) {}
+            }
             AppSettingsService.syncFromSupabase();
           }
           notifyDataChanged(table);
@@ -131,16 +139,18 @@ class DataService {
     }
   }
 
-  static Future<void> broadcastDataChange(String table) async {
+  static Future<void> broadcastDataChange(String table, [Map<String, dynamic>? extra]) async {
     notifyDataChanged(table);
     try {
       if (_realtimeChannel == null) initRealtime();
+      final payload = <String, dynamic>{
+        'table': table,
+        'timestamp': DateTime.now().toIso8601String(),
+        if (extra != null) ...extra,
+      };
       await _realtimeChannel?.sendBroadcastMessage(
         event: 'data_changed',
-        payload: {
-          'table': table,
-          'timestamp': DateTime.now().toIso8601String(),
-        },
+        payload: payload,
       );
     } catch (e) {
       debugPrint('Error broadcasting data change for $table: $e');

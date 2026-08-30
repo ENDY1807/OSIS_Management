@@ -525,6 +525,15 @@ class AppSettingsService {
 
   static Future<void> _saveToSupabase() async {
     final colorHex = '0x${accentColorNotifier.value.toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase()}';
+
+    // Broadcast instantly ke semua user secara real-time tanpa menunggu query database
+    DataService.broadcastDataChange('app_settings', {
+      'primary_color': colorHex,
+      'app_name': appNameNotifier.value,
+      'app_subtitle': appSubtitleNotifier.value,
+      'logo_url': logoUrlNotifier.value,
+    });
+
     final dbData = {
       'id': 'global_config',
       'app_name': appNameNotifier.value,
@@ -565,8 +574,32 @@ class AppSettingsService {
       try {
         final client = _supabase;
         if (client != null) {
-          await client.from('app_settings').upsert(dbData, onConflict: 'id');
-          await DataService.broadcastDataChange('app_settings');
+          try {
+            await client.from('app_settings').upsert(dbData, onConflict: 'id');
+          } catch (_) {
+            // Fallback jika database belum dimigrasi kolom barunya
+            final baseData = {
+              'id': 'global_config',
+              'app_name': appNameNotifier.value,
+              'app_subtitle': appSubtitleNotifier.value,
+              'logo_url': logoUrlNotifier.value,
+              'primary_color': colorHex,
+              'school_name': schoolNameNotifier.value,
+              'city': cityNotifier.value,
+              'academic_year': academicYearNotifier.value,
+              'sp1_threshold': sp1ThresholdNotifier.value,
+              'sp2_threshold': sp2ThresholdNotifier.value,
+              'sp3_threshold': sp3ThresholdNotifier.value,
+              'skorsing_threshold': skorsingThresholdNotifier.value,
+              'arsip_max_mb': arsipMaxMbNotifier.value,
+              'arsip_folders': arsipFoldersNotifier.value,
+              'sekbid_list': sekbidListNotifier.value,
+              'laporan_categories': laporanCategoriesNotifier.value,
+              'updated_at': DateTime.now().toIso8601String(),
+            };
+            await client.from('app_settings').upsert(baseData, onConflict: 'id');
+          }
+          await DataService.broadcastDataChange('app_settings', {'primary_color': colorHex});
         }
       } catch (e) {
         await SyncService.enqueueAction(
