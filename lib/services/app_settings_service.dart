@@ -170,16 +170,16 @@ class AppSettingsService {
   ]);
 
   static final ValueNotifier<List<String>> sekbidListNotifier = ValueNotifier([
-    'Sekbid 1',
-    'Sekbid 2',
-    'Sekbid 3',
-    'Sekbid 4',
-    'Sekbid 5',
-    'Sekbid 6',
-    'Sekbid 7',
-    'Sekbid 8',
-    'Sekbid 9',
-    'Sekbid 10',
+    'SEKBID1',
+    'SEKBID2',
+    'SEKBID3',
+    'SEKBID4',
+    'SEKBID5',
+    'SEKBID6',
+    'SEKBID7',
+    'SEKBID8',
+    'SEKBID9',
+    'SEKBID10',
   ]);
 
   static final ValueNotifier<List<String>> laporanCategoriesNotifier = ValueNotifier([
@@ -764,6 +764,13 @@ class AppSettingsService {
       'laporan_fields': laporanFieldsNotifier.value,
       'pelanggaran_fields': pelanggaranFieldsNotifier.value,
       'rekap_types': rekapTypesNotifier.value,
+      'custom_fields': (() {
+        final Map<String, dynamic> jsonMap = {};
+        customFieldsNotifier.value.forEach((k, v) {
+          jsonMap[k] = v.map((f) => f.toJson()).toList();
+        });
+        return jsonMap;
+      })(),
       'updated_at': DateTime.now().toIso8601String(),
     };
 
@@ -974,6 +981,28 @@ class AppSettingsService {
           final rtypes = (data['rekap_types'] as List).map((e) => e.toString()).toList();
           rekapTypesNotifier.value = rtypes;
           await prefs.setStringList(_keyRekapTypes, rtypes);
+        }
+        if (data['custom_fields'] != null) {
+          try {
+            dynamic raw = data['custom_fields'];
+            if (raw is String) {
+              raw = jsonDecode(raw);
+            }
+            if (raw is Map) {
+              final Map<String, List<AppCustomInputField>> map = {};
+              raw.forEach((key, val) {
+                if (val is List) {
+                  map[key.toString()] = val.map((e) => AppCustomInputField.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+                }
+              });
+              if (map.isNotEmpty) {
+                customFieldsNotifier.value = map;
+                await prefs.setString(_keyCustomFields, jsonEncode(raw));
+              }
+            }
+          } catch (e) {
+            debugPrint('AppSettingsService syncFromSupabase custom_fields warning: $e');
+          }
         }
       }
     } catch (e) {

@@ -67,7 +67,17 @@ class DataService {
                 final parsedInt = int.parse(colorStr.replaceFirst('#', '').replaceFirst('0x', ''), radix: 16);
                 final fullColor = (parsedInt <= 0xFFFFFF) ? 0xFF000000 | parsedInt : parsedInt;
                 AppSettingsService.accentColorNotifier.value = Color(fullColor);
+                SharedPreferences.getInstance().then((p) => p.setInt('app_accent_color', fullColor));
               } catch (_) {}
+            }
+            if (payload['app_name'] != null) {
+              AppSettingsService.appNameNotifier.value = payload['app_name'].toString();
+            }
+            if (payload['app_subtitle'] != null) {
+              AppSettingsService.appSubtitleNotifier.value = payload['app_subtitle'].toString();
+            }
+            if (payload['logo_url'] != null) {
+              AppSettingsService.logoUrlNotifier.value = payload['logo_url'].toString();
             }
             AppSettingsService.syncFromSupabase();
           }
@@ -188,6 +198,8 @@ class DataService {
     }
     // Sinkronisasi akun dari Supabase secara asinkron
     unawaited(AuthService.syncWithSupabase());
+    // Sinkronisasi konfigurasi aplikasi & warna dari Supabase secara asinkron
+    unawaited(AppSettingsService.syncFromSupabase());
     // Hapus cache lama yang tidak kompatibel
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('laporan_kegiatan');
