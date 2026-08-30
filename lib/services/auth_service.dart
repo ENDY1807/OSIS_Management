@@ -250,14 +250,6 @@ class AuthService {
         list.add(s);
       }
     }
-    for (final acc in allAccounts) {
-      if (!list.contains(acc.username) &&
-          acc.username != 'ADMIN' &&
-          acc.username != 'PEMBINA' &&
-          acc.username != 'KESISWAAN') {
-        list.add(acc.username);
-      }
-    }
     return list;
   }
 

@@ -75,7 +75,7 @@ class _ColorWheelPickerState extends State<ColorWheelPicker> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // 1. Interactive Rotatable 360° Color Wheel Ring (Eager touch capture - Prevents scroll)
+        // 1. Interactive Rotatable 360° Color Wheel Ring (Locked gesture arena - completely blocks parent scroll)
         Center(
           child: SizedBox(
             width: 250,
@@ -86,20 +86,27 @@ class _ColorWheelPickerState extends State<ColorWheelPicker> {
                 final outerRadius = size.width / 2 - 12;
                 final innerRadius = outerRadius - 38;
 
-                return Listener(
+                return GestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  onPointerDown: (event) {
+                  onPanDown: (details) {
                     setState(() => _isDragging = true);
-                    _handleTouch(event.localPosition, size);
+                    _handleTouch(details.localPosition, size);
                   },
-                  onPointerMove: (event) {
-                    _handleTouch(event.localPosition, size);
+                  onPanStart: (details) {
+                    setState(() => _isDragging = true);
+                    _handleTouch(details.localPosition, size);
                   },
-                  onPointerUp: (_) {
+                  onPanUpdate: (details) {
+                    _handleTouch(details.localPosition, size);
+                  },
+                  onPanEnd: (_) {
                     setState(() => _isDragging = false);
                   },
-                  onPointerCancel: (_) {
+                  onPanCancel: () {
                     setState(() => _isDragging = false);
+                  },
+                  onTapDown: (details) {
+                    _handleTouch(details.localPosition, size);
                   },
                   child: CustomPaint(
                     size: size,

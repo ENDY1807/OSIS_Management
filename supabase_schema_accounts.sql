@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS public.app_settings (
     arsip_max_mb INTEGER DEFAULT 25,
     arsip_folders JSONB DEFAULT '["Surat Masuk","Surat Keluar","Proposal Kegiatan","LPJ Kegiatan","Dokumentasi","SK & Sertifikat"]'::jsonb,
     arsip_allowed_exts JSONB DEFAULT '["pdf","docx","xlsx","pptx","png","jpg","jpeg","zip"]'::jsonb,
-    sekbid_list JSONB DEFAULT '["BPH (Inti)","SEKBID 1 (Keagamaan & Ketaqwaan)","SEKBID 2 (Budi Pekerti & Ketertiban)","SEKBID 3 (Wawasan Kebangsaan & Bela Negara)","SEKBID 4 (Prestasi Akademik, Seni, Olahraga)","SEKBID 5 (Demokrasi, HAM & Pendidikan Politik)","SEKBID 6 (Kreativitas, Keterampilan & Kewirausahaan)","SEKBID 7 (Kualitas Jasmani, Kesehatan & Gizi)","SEKBID 8 (Sastra & Budaya)","SEKBID 9 (Teknologi Informasi & Komunikasi)","SEKBID 10 (Komunikasi Bahasa Asing)"]'::jsonb,
+    sekbid_list JSONB DEFAULT '["Sekbid 1","Sekbid 2","Sekbid 3","Sekbid 4","Sekbid 5","Sekbid 6","Sekbid 7","Sekbid 8","Sekbid 9","Sekbid 10"]'::jsonb,
     laporan_categories JSONB DEFAULT '["Kegiatan Rutin","Program Unggulan","Peringatan Hari Besar","Lomba & Kompetisi","Bakti Sosial","Rapat Kerja & Pleno","Lainnya"]'::jsonb,
     laporan_fields JSONB DEFAULT '["Nama Kegiatan","Tanggal","Lokasi","Peserta / Sasaran","Deskripsi","Hasil / Capaian","Kendala & Evaluasi"]'::jsonb,
     pelanggaran_fields JSONB DEFAULT '["Saksi / Petugas","Lokasi Kejadian","Sanksi / Tindak Lanjut","Keterangan Tambahan"]'::jsonb,

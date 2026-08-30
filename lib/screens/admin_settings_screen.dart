@@ -65,13 +65,13 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 6, vsync: this);
+    _tabCtrl = TabController(length: 7, vsync: this);
 
     _loadCurrentConfigs();
     _loadAccounts();
 
     _dataSub = DataService.onDataChanged.listen((table) {
-      if (table == 'accounts' || table == 'app_settings' || table == 'all') {
+      if (table == 'accounts' || table == 'app_settings' || table == 'sekbid' || table == 'all') {
         if (mounted) {
           _loadCurrentConfigs();
           _loadAccounts();
@@ -404,10 +404,14 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
         bottom: TabBar(
           controller: _tabCtrl,
           isScrollable: true,
+          tabAlignment: TabAlignment.start,
+          padding: EdgeInsets.zero,
+          labelPadding: const EdgeInsets.symmetric(horizontal: 14),
           tabs: const [
             Tab(text: 'Branding & Warna', icon: Icon(Icons.palette_outlined, size: 18)),
+            Tab(text: 'Konfigurasi Input', icon: Icon(Icons.tune_rounded, size: 18)),
             Tab(text: 'Tata Tertib', icon: Icon(Icons.warning_amber_rounded, size: 18)),
-            Tab(text: 'Proker & Laporan', icon: Icon(Icons.assignment_outlined, size: 18)),
+            Tab(text: 'Proker & Sekbid', icon: Icon(Icons.assignment_outlined, size: 18)),
             Tab(text: 'Arsip & Berkas', icon: Icon(Icons.folder_outlined, size: 18)),
             Tab(text: 'Sekolah & Legalitas', icon: Icon(Icons.school_outlined, size: 18)),
             Tab(text: 'Akun Pengguna', icon: Icon(Icons.manage_accounts_outlined, size: 18)),
@@ -418,6 +422,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
         controller: _tabCtrl,
         children: [
           _buildBrandingTab(theme, isDark, primary),
+          _buildKonfigurasiInputTab(theme, isDark, primary),
           _buildTataTertibTab(theme, isDark, primary),
           _buildProkerLaporanTab(theme, isDark, primary),
           _buildArsipTab(theme, isDark, primary),
@@ -430,7 +435,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
 
   Widget _buildBrandingTab(ThemeData theme, bool isDark, Color primary) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -518,6 +523,162 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
           TextField(controller: _appSubtitleCtrl, onChanged: (_) => setState(() {}), decoration: InputDecoration(labelText: LocalizationService.tr('app_subtitle_label'), prefixIcon: const Icon(Icons.subtitles_outlined))),
           const SizedBox(height: 12),
           TextField(controller: _logoUrlCtrl, decoration: InputDecoration(labelText: LocalizationService.tr('logo_url_label'), prefixIcon: const Icon(Icons.image_outlined))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildKonfigurasiInputTab(ThemeData theme, bool isDark, Color primary) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF141D2E) : Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: isDark ? const Color(0xFF243452) : Colors.blue.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.tune_rounded, color: isDark ? const Color(0xFF38BDF8) : Colors.blue.shade700, size: 22),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Pusat Konfigurasi Input Halaman (Admin)',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.blue.shade900),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Atur kolom & opsi input untuk seluruh halaman aplikasi. Setiap perubahan langsung tersinkronkan ke semua pengguna.',
+                        style: TextStyle(fontSize: 11, color: isDark ? Colors.white70 : Colors.blue.shade800),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // 1. Input Kolom Laporan Kegiatan
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _sectionHeader(title: 'Kolom Input Laporan Kegiatan (${_laporanFields.length})', icon: Icons.article_outlined, color: _selectedAccent),
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.green),
+                tooltip: 'Tambah Kolom Laporan',
+                onPressed: () => _showAddChipDialog('Kolom Input Laporan', (val) => setState(() => _laporanFields.add(val))),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8, runSpacing: 8,
+            children: _laporanFields.map((lf) => Chip(
+              label: Text(lf, style: const TextStyle(fontSize: 12)),
+              onDeleted: () => setState(() => _laporanFields.remove(lf)),
+              deleteIconColor: Colors.redAccent,
+            )).toList(),
+          ),
+          const SizedBox(height: 24),
+
+          // 2. Input Kolom Catat Pelanggaran
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _sectionHeader(title: 'Kolom Input Catat Pelanggaran (${_pelanggaranFields.length})', icon: Icons.warning_amber_rounded, color: _selectedAccent),
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.green),
+                tooltip: 'Tambah Kolom Pelanggaran',
+                onPressed: () => _showAddChipDialog('Kolom Input Pelanggaran', (val) => setState(() => _pelanggaranFields.add(val))),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8, runSpacing: 8,
+            children: _pelanggaranFields.map((pf) => Chip(
+              label: Text(pf, style: const TextStyle(fontSize: 12)),
+              onDeleted: () => setState(() => _pelanggaranFields.remove(pf)),
+              deleteIconColor: Colors.redAccent,
+            )).toList(),
+          ),
+          const SizedBox(height: 24),
+
+          // 3. Input Dimensi Rekap
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _sectionHeader(title: 'Dimensi Rekap Disiplin Siswa (${_rekapTypes.length})', icon: Icons.bar_chart_rounded, color: _selectedAccent),
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.green),
+                tooltip: 'Tambah Dimensi Rekap',
+                onPressed: () => _showAddChipDialog('Dimensi Rekap Baru', (val) => setState(() => _rekapTypes.add(val))),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8, runSpacing: 8,
+            children: _rekapTypes.map((rt) => Chip(
+              label: Text(rt, style: const TextStyle(fontSize: 12)),
+              onDeleted: () => setState(() => _rekapTypes.remove(rt)),
+              deleteIconColor: Colors.redAccent,
+            )).toList(),
+          ),
+          const SizedBox(height: 24),
+
+          // 4. Folder & Ekstensi Arsip
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _sectionHeader(title: 'Ekstensi File Arsip Diizinkan (${_arsipAllowedExts.length})', icon: Icons.extension_outlined, color: _selectedAccent),
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.green),
+                tooltip: 'Tambah Ekstensi File',
+                onPressed: () => _showAddChipDialog('Ekstensi File (cth: pdf)', (val) => setState(() => _arsipAllowedExts.add(val.replaceAll('.', '').toLowerCase()))),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8, runSpacing: 8,
+            children: _arsipAllowedExts.map((ext) => Chip(
+              label: Text('.$ext', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              onDeleted: () => setState(() => _arsipAllowedExts.remove(ext)),
+              deleteIconColor: Colors.redAccent,
+            )).toList(),
+          ),
+          const SizedBox(height: 24),
+
+          // 5. Sekbid & Unit Proker
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _sectionHeader(title: 'Daftar Sekbid & Unit Proker (${_sekbidList.length})', icon: Icons.assignment_outlined, color: _selectedAccent),
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.green),
+                tooltip: 'Tambah Sekbid',
+                onPressed: () => _showAddChipDialog('Sekbid / Unit Baru', (val) => setState(() => _sekbidList.add(val))),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8, runSpacing: 8,
+            children: _sekbidList.map((s) => Chip(
+              label: Text(s, style: const TextStyle(fontSize: 12)),
+              onDeleted: _sekbidList.length > 1 ? () => setState(() => _sekbidList.remove(s)) : null,
+              deleteIconColor: Colors.redAccent,
+            )).toList(),
+          ),
         ],
       ),
     );

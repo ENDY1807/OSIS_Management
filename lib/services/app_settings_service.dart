@@ -118,17 +118,16 @@ class AppSettingsService {
   ]);
 
   static final ValueNotifier<List<String>> sekbidListNotifier = ValueNotifier([
-    'BPH (Inti)',
-    'SEKBID 1 (Keagamaan & Ketaqwaan)',
-    'SEKBID 2 (Budi Pekerti & Ketertiban)',
-    'SEKBID 3 (Wawasan Kebangsaan & Bela Negara)',
-    'SEKBID 4 (Prestasi Akademik, Seni, Olahraga)',
-    'SEKBID 5 (Demokrasi, HAM & Pendidikan Politik)',
-    'SEKBID 6 (Kreativitas, Keterampilan & Kewirausahaan)',
-    'SEKBID 7 (Kualitas Jasmani, Kesehatan & Gizi)',
-    'SEKBID 8 (Sastra & Budaya)',
-    'SEKBID 9 (Teknologi Informasi & Komunikasi)',
-    'SEKBID 10 (Komunikasi Bahasa Asing)',
+    'Sekbid 1',
+    'Sekbid 2',
+    'Sekbid 3',
+    'Sekbid 4',
+    'Sekbid 5',
+    'Sekbid 6',
+    'Sekbid 7',
+    'Sekbid 8',
+    'Sekbid 9',
+    'Sekbid 10',
   ]);
 
   static final ValueNotifier<List<String>> laporanCategoriesNotifier = ValueNotifier([
