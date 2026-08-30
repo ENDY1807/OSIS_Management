@@ -1,5 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:uuid/uuid.dart';
 import '../services/app_settings_service.dart';
 import '../services/auth_service.dart';
 import '../services/localization_service.dart';
@@ -23,6 +26,10 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
   Color _selectedAccent = const Color(0xFF00B4D8);
   final _hexColorCtrl = TextEditingController();
   List<String> _selectedLanguages = ['id', 'en'];
+
+  // Form Builder Module & Fields State
+  String _selectedConfigModule = 'laporan';
+  Map<String, List<AppCustomInputField>> _customFieldsMap = {};
 
   // 2. Tata Tertib & Poin Controllers
   final _sp1Ctrl = TextEditingController();
@@ -92,6 +99,14 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
     _selectedAccent = AppSettingsService.accentColorNotifier.value;
     _hexColorCtrl.text = '#${_selectedAccent.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
     _selectedLanguages = List<String>.from(AppSettingsService.enabledLanguagesNotifier.value);
+
+    _customFieldsMap = {
+      'laporan': List<AppCustomInputField>.from(AppSettingsService.customFieldsNotifier.value['laporan'] ?? []),
+      'proker': List<AppCustomInputField>.from(AppSettingsService.customFieldsNotifier.value['proker'] ?? []),
+      'pelanggaran': List<AppCustomInputField>.from(AppSettingsService.customFieldsNotifier.value['pelanggaran'] ?? []),
+      'rekap': List<AppCustomInputField>.from(AppSettingsService.customFieldsNotifier.value['rekap'] ?? []),
+      'arsip': List<AppCustomInputField>.from(AppSettingsService.customFieldsNotifier.value['arsip'] ?? []),
+    };
 
     _sp1Ctrl.text = AppSettingsService.sp1ThresholdNotifier.value.toString();
     _sp2Ctrl.text = AppSettingsService.sp2ThresholdNotifier.value.toString();
@@ -438,6 +453,344 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
     );
   }
 
+  Future<void> _pickLogoFile() async {
+    try {
+      final res = await FilePicker.pickFiles(
+        type: FileType.image,
+        withData: true,
+      );
+      if (res != null && res.files.isNotEmpty) {
+        final file = res.files.first;
+        final bytes = file.bytes;
+        if (bytes != null) {
+          final ext = file.extension?.toLowerCase() ?? 'png';
+          final base64String = base64Encode(bytes);
+          final dataUrl = 'data:image/$ext;base64,$base64String';
+          setState(() {
+            _logoUrlCtrl.text = dataUrl;
+          });
+          AppSettingsService.setLogoUrl(dataUrl);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Row(
+                  children: [
+                    Icon(Icons.check_circle_rounded, color: Colors.white),
+                    SizedBox(width: 10),
+                    Expanded(child: Text('Logo berhasil diunggah dan disimpan!')),
+                  ],
+                ),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memilih gambar logo: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  void _clearLogo() {
+    setState(() {
+      _logoUrlCtrl.text = '';
+    });
+    AppSettingsService.setLogoUrl('');
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Logo dikembalikan ke bawaan')),
+      );
+    }
+  }
+
+  void _showAddOrEditCustomFieldDialog({AppCustomInputField? existing}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    InputFieldType selectedType = existing?.type ?? InputFieldType.text;
+    final labelCtrl = TextEditingController(text: existing?.label ?? '');
+    final placeholderCtrl = TextEditingController(text: existing?.placeholder ?? '');
+    bool isRequired = existing?.isRequired ?? false;
+    final options = List<String>.from(existing?.options ?? []);
+    final newOptionCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setD) {
+          return AlertDialog(
+            title: Row(
+              children: [
+                Icon(existing == null ? Icons.add_circle_outline_rounded : Icons.edit_note_rounded, color: _selectedAccent),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    existing == null ? 'Tambah Kolom Input Baru' : 'Edit Kolom ${existing.label}',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: MediaQuery.of(context).size.width * 0.9,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Step 1: Pilih Tipe Input
+                    Text(
+                      '1. PILIH TIPE INPUT',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: _selectedAccent, letterSpacing: 0.8),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _typeChoiceChip(
+                          icon: Icons.text_fields_rounded,
+                          label: 'Teks (Text)',
+                          type: InputFieldType.text,
+                          selectedType: selectedType,
+                          onSelect: (t) => setD(() => selectedType = t),
+                          isDark: isDark,
+                        ),
+                        _typeChoiceChip(
+                          icon: Icons.arrow_drop_down_circle_outlined,
+                          label: 'Dropdown',
+                          type: InputFieldType.dropdown,
+                          selectedType: selectedType,
+                          onSelect: (t) => setD(() => selectedType = t),
+                          isDark: isDark,
+                        ),
+                        _typeChoiceChip(
+                          icon: Icons.check_circle_outline_rounded,
+                          label: 'Select Pilihan',
+                          type: InputFieldType.select,
+                          selectedType: selectedType,
+                          onSelect: (t) => setD(() => selectedType = t),
+                          isDark: isDark,
+                        ),
+                        _typeChoiceChip(
+                          icon: Icons.calendar_today_rounded,
+                          label: 'Tanggal (Date)',
+                          type: InputFieldType.date,
+                          selectedType: selectedType,
+                          onSelect: (t) => setD(() => selectedType = t),
+                          isDark: isDark,
+                        ),
+                        _typeChoiceChip(
+                          icon: Icons.attach_file_rounded,
+                          label: 'File / Berkas',
+                          type: InputFieldType.file,
+                          selectedType: selectedType,
+                          onSelect: (t) => setD(() => selectedType = t),
+                          isDark: isDark,
+                        ),
+                        _typeChoiceChip(
+                          icon: Icons.pin_outlined,
+                          label: 'Angka (Number)',
+                          type: InputFieldType.number,
+                          selectedType: selectedType,
+                          onSelect: (t) => setD(() => selectedType = t),
+                          isDark: isDark,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+
+                    // Step 2: Detail Kolom
+                    Text(
+                      '2. PENGATURAN KOLOM INPUT',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: _selectedAccent, letterSpacing: 0.8),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: labelCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Label Kolom Input *',
+                        hintText: 'Contoh: Lokasi Ruangan / Anggaran',
+                        prefixIcon: Icon(Icons.label_outline_rounded),
+                        isDense: true,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: placeholderCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Placeholder / Petunjuk Pengisian',
+                        hintText: 'Contoh: Masukkan nama ruangan...',
+                        prefixIcon: Icon(Icons.help_outline_rounded),
+                        isDense: true,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Wajib Diisi (Required)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                      subtitle: const Text('Pengguna tidak dapat menyimpan form jika kolom ini kosong', style: TextStyle(fontSize: 11)),
+                      value: isRequired,
+                      activeThumbColor: _selectedAccent,
+                      onChanged: (val) => setD(() => isRequired = val),
+                    ),
+
+                    // Step 3: Jika Dropdown atau Select -> Opsi Pilihan
+                    if (selectedType == InputFieldType.dropdown || selectedType == InputFieldType.select) ...[
+                      const SizedBox(height: 14),
+                      Text(
+                        '3. DAFTAR PILIHAN / OPSI (${options.length})',
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: _selectedAccent, letterSpacing: 0.8),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: newOptionCtrl,
+                              decoration: const InputDecoration(
+                                hintText: 'Ketik opsi baru...',
+                                isDense: true,
+                                prefixIcon: Icon(Icons.add_circle_outline, size: 18),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton(
+                            onPressed: () {
+                              final text = newOptionCtrl.text.trim();
+                              if (text.isNotEmpty && !options.contains(text)) {
+                                setD(() {
+                                  options.add(text);
+                                  newOptionCtrl.clear();
+                                });
+                              }
+                            },
+                            child: const Text('Tambah'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      if (options.isEmpty)
+                        Text(
+                          '* Tambahkan minimal 1 opsi untuk dropdown/select',
+                          style: TextStyle(fontSize: 11, color: Colors.orange.shade700, fontStyle: FontStyle.italic),
+                        )
+                      else
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: options.map((opt) {
+                            return Chip(
+                              label: Text(opt, style: const TextStyle(fontSize: 12)),
+                              deleteIcon: const Icon(Icons.close, size: 14),
+                              onDeleted: () => setD(() => options.remove(opt)),
+                              deleteIconColor: Colors.redAccent,
+                            );
+                          }).toList(),
+                        ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(LocalizationService.tr('btn_cancel')),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final label = labelCtrl.text.trim();
+                  if (label.isEmpty) return;
+
+                  final newField = AppCustomInputField(
+                    id: existing?.id ?? const Uuid().v4(),
+                    label: label,
+                    type: selectedType,
+                    placeholder: placeholderCtrl.text.trim(),
+                    isRequired: isRequired,
+                    options: options,
+                  );
+
+                  setState(() {
+                    final list = _customFieldsMap[_selectedConfigModule] ?? [];
+                    if (existing == null) {
+                      list.add(newField);
+                    } else {
+                      final idx = list.indexWhere((f) => f.id == existing.id);
+                      if (idx >= 0) {
+                        list[idx] = newField;
+                      } else {
+                        list.add(newField);
+                      }
+                    }
+                    _customFieldsMap[_selectedConfigModule] = list;
+                  });
+
+                  AppSettingsService.customFieldsNotifier.value = Map.from(_customFieldsMap);
+
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Kolom "$label" berhasil disimpan!'),
+                      backgroundColor: Colors.green,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                },
+                child: Text(LocalizationService.tr('btn_save')),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _typeChoiceChip({
+    required IconData icon,
+    required String label,
+    required InputFieldType type,
+    required InputFieldType selectedType,
+    required Function(InputFieldType) onSelect,
+    required bool isDark,
+  }) {
+    final isSelected = type == selectedType;
+    return InkWell(
+      onTap: () => onSelect(type),
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? _selectedAccent.withAlpha(isDark ? 60 : 40) : (isDark ? const Color(0xFF141D2E) : Colors.grey.shade100),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected ? _selectedAccent : (isDark ? const Color(0xFF243452) : Colors.grey.shade300),
+            width: isSelected ? 1.8 : 1.0,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: isSelected ? _selectedAccent : (isDark ? Colors.white70 : Colors.black54)),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isSelected ? _selectedAccent : (isDark ? Colors.white : Colors.black87),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildBrandingTab(ThemeData theme, bool isDark, Color primary) {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -461,7 +814,9 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [BoxShadow(color: _selectedAccent.withAlpha(120), blurRadius: 10, offset: const Offset(0, 4))],
                   ),
-                  child: const Icon(Icons.school_rounded, color: Colors.white, size: 28),
+                  child: Center(
+                    child: AppSettingsService.buildLogoWidget(width: 36, height: 36, fit: BoxFit.contain),
+                  ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -526,19 +881,100 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
           TextField(controller: _appNameCtrl, onChanged: (_) => setState(() {}), decoration: InputDecoration(labelText: LocalizationService.tr('app_name_label'), prefixIcon: const Icon(Icons.title_rounded))),
           const SizedBox(height: 12),
           TextField(controller: _appSubtitleCtrl, onChanged: (_) => setState(() {}), decoration: InputDecoration(labelText: LocalizationService.tr('app_subtitle_label'), prefixIcon: const Icon(Icons.subtitles_outlined))),
-          const SizedBox(height: 12),
-          TextField(controller: _logoUrlCtrl, decoration: InputDecoration(labelText: LocalizationService.tr('logo_url_label'), prefixIcon: const Icon(Icons.image_outlined))),
+          const SizedBox(height: 16),
+
+          // Logo Uploader Card
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: theme.cardTheme.color,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.image_outlined, size: 20, color: Colors.blueAccent),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Logo Aplikasi (Pilih File Gambar)',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : Colors.black87),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Container(
+                      width: 64,
+                      height: 64,
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF0F172A) : Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.shade300),
+                      ),
+                      child: Center(
+                        child: AppSettingsService.buildLogoWidget(width: 56, height: 56, fit: BoxFit.contain),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: _pickLogoFile,
+                            icon: const Icon(Icons.file_upload_outlined, size: 18),
+                            label: const Text('Pilih File Logo (Gambar)'),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                          if (_logoUrlCtrl.text.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            OutlinedButton.icon(
+                              onPressed: _clearLogo,
+                              icon: const Icon(Icons.delete_outline, size: 16, color: Colors.redAccent),
+                              label: const Text('Gunakan Logo Bawaan', style: TextStyle(color: Colors.redAccent, fontSize: 12)),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Colors.redAccent),
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildKonfigurasiInputTab(ThemeData theme, bool isDark, Color primary) {
+    final modules = [
+      {'id': 'laporan', 'title': 'Laporan Kegiatan', 'icon': Icons.article_outlined},
+      {'id': 'proker', 'title': 'Program Kerja', 'icon': Icons.assignment_outlined},
+      {'id': 'pelanggaran', 'title': 'Catat Pelanggaran', 'icon': Icons.warning_amber_rounded},
+      {'id': 'rekap', 'title': 'Rekap Disiplin', 'icon': Icons.bar_chart_rounded},
+      {'id': 'arsip', 'title': 'Arsip Berkas', 'icon': Icons.folder_outlined},
+    ];
+
+    final currentFields = _customFieldsMap[_selectedConfigModule] ?? [];
+
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Banner Penjelasan
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
@@ -548,19 +984,19 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
             ),
             child: Row(
               children: [
-                Icon(Icons.tune_rounded, color: isDark ? const Color(0xFF38BDF8) : Colors.blue.shade700, size: 22),
-                const SizedBox(width: 10),
+                Icon(Icons.tune_rounded, color: isDark ? const Color(0xFF38BDF8) : Colors.blue.shade700, size: 24),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Pusat Konfigurasi Input Halaman (Admin)',
+                        'Form Builder & Konfigurasi Kolom Input (Admin)',
                         style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.blue.shade900),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Atur kolom & opsi input untuk seluruh halaman aplikasi. Setiap perubahan langsung tersinkronkan ke semua pengguna.',
+                        'Pilih tipe input (Teks, Dropdown, Select, Tanggal, File, Angka), atur placeholder, opsi, dan validasi untuk setiap modul.',
                         style: TextStyle(fontSize: 11, color: isDark ? Colors.white70 : Colors.blue.shade800),
                       ),
                     ],
@@ -571,119 +1007,226 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
           ),
           const SizedBox(height: 20),
 
-          // 1. Input Kolom Laporan Kegiatan
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _sectionHeader(title: 'Kolom Input Laporan Kegiatan (${_laporanFields.length})', icon: Icons.article_outlined, color: _selectedAccent),
-              IconButton(
-                icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.green),
-                tooltip: 'Tambah Kolom Laporan',
-                onPressed: () => _showAddChipDialog('Kolom Input Laporan', (val) => setState(() => _laporanFields.add(val))),
-              ),
-            ],
+          // Module Selector Tabs / Chips
+          Text(
+            'PILIH MODUL / HALAMAN YANG DIKONFIGURASI:',
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: _selectedAccent, letterSpacing: 0.8),
           ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8, runSpacing: 8,
-            children: _laporanFields.map((lf) => Chip(
-              label: Text(lf, style: const TextStyle(fontSize: 12)),
-              onDeleted: () => setState(() => _laporanFields.remove(lf)),
-              deleteIconColor: Colors.redAccent,
-            )).toList(),
+          const SizedBox(height: 10),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: modules.map((m) {
+                final isSel = _selectedConfigModule == m['id'];
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: ChoiceChip(
+                    avatar: Icon(m['icon'] as IconData, size: 16, color: isSel ? Colors.white : (isDark ? Colors.white70 : Colors.black87)),
+                    label: Text(m['title'] as String),
+                    selected: isSel,
+                    selectedColor: _selectedAccent,
+                    labelStyle: TextStyle(
+                      fontSize: 12,
+                      fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+                      color: isSel ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+                    ),
+                    onSelected: (selected) {
+                      if (selected) {
+                        setState(() => _selectedConfigModule = m['id'] as String);
+                      }
+                    },
+                  ),
+                );
+              }).toList(),
+            ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
 
-          // 2. Input Kolom Catat Pelanggaran
+          // Header List Kolom
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _sectionHeader(title: 'Kolom Input Catat Pelanggaran (${_pelanggaranFields.length})', icon: Icons.warning_amber_rounded, color: _selectedAccent),
-              IconButton(
-                icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.green),
-                tooltip: 'Tambah Kolom Pelanggaran',
-                onPressed: () => _showAddChipDialog('Kolom Input Pelanggaran', (val) => setState(() => _pelanggaranFields.add(val))),
+              Text(
+                'DAFTAR KOLOM INPUT (${currentFields.length})',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: isDark ? Colors.white70 : Colors.black87, letterSpacing: 0.6),
+              ),
+              ElevatedButton.icon(
+                onPressed: () => _showAddOrEditCustomFieldDialog(),
+                icon: const Icon(Icons.add_circle_outline_rounded, size: 16),
+                label: const Text('Tambah Input', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green.shade700,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8, runSpacing: 8,
-            children: _pelanggaranFields.map((pf) => Chip(
-              label: Text(pf, style: const TextStyle(fontSize: 12)),
-              onDeleted: () => setState(() => _pelanggaranFields.remove(pf)),
-              deleteIconColor: Colors.redAccent,
-            )).toList(),
-          ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 12),
 
-          // 3. Input Dimensi Rekap
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _sectionHeader(title: 'Dimensi Rekap Disiplin Siswa (${_rekapTypes.length})', icon: Icons.bar_chart_rounded, color: _selectedAccent),
-              IconButton(
-                icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.green),
-                tooltip: 'Tambah Dimensi Rekap',
-                onPressed: () => _showAddChipDialog('Dimensi Rekap Baru', (val) => setState(() => _rekapTypes.add(val))),
+          // Daftar Kolom Form Cards
+          if (currentFields.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF141D2E) : Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: isDark ? const Color(0xFF243452) : Colors.grey.shade200),
               ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8, runSpacing: 8,
-            children: _rekapTypes.map((rt) => Chip(
-              label: Text(rt, style: const TextStyle(fontSize: 12)),
-              onDeleted: () => setState(() => _rekapTypes.remove(rt)),
-              deleteIconColor: Colors.redAccent,
-            )).toList(),
-          ),
-          const SizedBox(height: 24),
+              child: const Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.format_list_bulleted_add, size: 40, color: Colors.grey),
+                    SizedBox(height: 8),
+                    Text('Belum ada kolom input khusus. Klik "Tambah Input" untuk menambahkan.'),
+                  ],
+                ),
+              ),
+            )
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: currentFields.length,
+              itemBuilder: (ctx, idx) {
+                final f = currentFields[idx];
 
-          // 4. Folder & Ekstensi Arsip
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _sectionHeader(title: 'Ekstensi File Arsip Diizinkan (${_arsipAllowedExts.length})', icon: Icons.extension_outlined, color: _selectedAccent),
-              IconButton(
-                icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.green),
-                tooltip: 'Tambah Ekstensi File',
-                onPressed: () => _showAddChipDialog('Ekstensi File (cth: pdf)', (val) => setState(() => _arsipAllowedExts.add(val.replaceAll('.', '').toLowerCase()))),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8, runSpacing: 8,
-            children: _arsipAllowedExts.map((ext) => Chip(
-              label: Text('.$ext', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-              onDeleted: () => setState(() => _arsipAllowedExts.remove(ext)),
-              deleteIconColor: Colors.redAccent,
-            )).toList(),
-          ),
-          const SizedBox(height: 24),
+                IconData typeIcon = Icons.text_fields_rounded;
+                String typeName = 'Teks';
+                Color typeColor = Colors.blue;
 
-          // 5. Sekbid & Unit Proker
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _sectionHeader(title: 'Daftar Sekbid & Unit Proker (${_sekbidList.length})', icon: Icons.assignment_outlined, color: _selectedAccent),
-              IconButton(
-                icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.green),
-                tooltip: 'Tambah Sekbid',
-                onPressed: () => _showAddChipDialog('Sekbid / Unit Baru', (val) => setState(() => _sekbidList.add(val))),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8, runSpacing: 8,
-            children: _sekbidList.map((s) => Chip(
-              label: Text(s, style: const TextStyle(fontSize: 12)),
-              onDeleted: _sekbidList.length > 1 ? () => setState(() => _sekbidList.remove(s)) : null,
-              deleteIconColor: Colors.redAccent,
-            )).toList(),
-          ),
+                switch (f.type) {
+                  case InputFieldType.text:
+                    typeIcon = Icons.text_fields_rounded;
+                    typeName = 'Teks';
+                    typeColor = Colors.blue;
+                    break;
+                  case InputFieldType.dropdown:
+                    typeIcon = Icons.arrow_drop_down_circle_outlined;
+                    typeName = 'Dropdown';
+                    typeColor = Colors.purple;
+                    break;
+                  case InputFieldType.select:
+                    typeIcon = Icons.check_circle_outline_rounded;
+                    typeName = 'Select';
+                    typeColor = Colors.teal;
+                    break;
+                  case InputFieldType.date:
+                    typeIcon = Icons.calendar_today_rounded;
+                    typeName = 'Tanggal';
+                    typeColor = Colors.amber.shade700;
+                    break;
+                  case InputFieldType.file:
+                    typeIcon = Icons.attach_file_rounded;
+                    typeName = 'File';
+                    typeColor = Colors.indigo;
+                    break;
+                  case InputFieldType.number:
+                    typeIcon = Icons.pin_outlined;
+                    typeName = 'Angka';
+                    typeColor = Colors.orange;
+                    break;
+                }
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF141D2E) : Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: typeColor.withAlpha(isDark ? 50 : 30),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: typeColor.withAlpha(100)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(typeIcon, size: 13, color: typeColor),
+                                const SizedBox(width: 4),
+                                Text(typeName, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: typeColor)),
+                              ],
+                            ),
+                          ),
+                          if (f.isRequired) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withAlpha(isDark ? 40 : 25),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text('Wajib', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.redAccent)),
+                            ),
+                          ],
+                          const Spacer(),
+                          IconButton(
+                            icon: const Icon(Icons.edit_outlined, size: 18, color: Colors.blueAccent),
+                            tooltip: 'Edit Kolom',
+                            onPressed: () => _showAddOrEditCustomFieldDialog(existing: f),
+                            constraints: const BoxConstraints(),
+                            padding: const EdgeInsets.all(6),
+                          ),
+                          const SizedBox(width: 6),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.redAccent),
+                            tooltip: 'Hapus Kolom',
+                            onPressed: () {
+                              setState(() {
+                                currentFields.removeAt(idx);
+                                _customFieldsMap[_selectedConfigModule] = currentFields;
+                              });
+                              AppSettingsService.customFieldsNotifier.value = Map.from(_customFieldsMap);
+                            },
+                            constraints: const BoxConstraints(),
+                            padding: const EdgeInsets.all(6),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        f.label,
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87),
+                      ),
+                      if (f.placeholder.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          'Placeholder: "${f.placeholder}"',
+                          style: TextStyle(fontSize: 12, color: isDark ? Colors.white60 : Colors.black54, fontStyle: FontStyle.italic),
+                        ),
+                      ],
+                      if (f.options.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          children: f.options.map((opt) {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF0E1626) : Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: isDark ? const Color(0xFF243452) : Colors.grey.shade300),
+                              ),
+                              child: Text(opt, style: const TextStyle(fontSize: 11)),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              },
+            ),
         ],
       ),
     );

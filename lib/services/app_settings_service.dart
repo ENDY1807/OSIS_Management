@@ -1,10 +1,62 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 import 'localization_service.dart';
 import 'data_service.dart';
 import 'sync_service.dart';
+
+enum InputFieldType {
+  text,
+  dropdown,
+  select,
+  date,
+  file,
+  number,
+}
+
+class AppCustomInputField {
+  String id;
+  String label;
+  InputFieldType type;
+  String placeholder;
+  List<String> options;
+  bool isRequired;
+
+  AppCustomInputField({
+    required this.id,
+    required this.label,
+    required this.type,
+    this.placeholder = '',
+    this.options = const [],
+    this.isRequired = false,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'label': label,
+    'type': type.name,
+    'placeholder': placeholder,
+    'options': options,
+    'isRequired': isRequired,
+  };
+
+  factory AppCustomInputField.fromJson(Map<String, dynamic> json) {
+    return AppCustomInputField(
+      id: json['id']?.toString() ?? const Uuid().v4(),
+      label: json['label']?.toString() ?? 'Kolom Input',
+      type: InputFieldType.values.firstWhere(
+        (t) => t.name == json['type'],
+        orElse: () => InputFieldType.text,
+      ),
+      placeholder: json['placeholder']?.toString() ?? '',
+      options: (json['options'] as List?)?.map((e) => e.toString()).toList() ?? [],
+      isRequired: json['isRequired'] == true,
+    );
+  }
+}
 
 class ThemePreset {
   final String name;
@@ -168,6 +220,115 @@ class AppSettingsService {
     'sp_level',
   ]);
 
+  static const _keyCustomFields = 'cfg_dynamic_custom_fields';
+
+  static final ValueNotifier<Map<String, List<AppCustomInputField>>> customFieldsNotifier = ValueNotifier({
+    'laporan': [
+      AppCustomInputField(id: 'lap_nama', label: 'Nama Kegiatan', type: InputFieldType.text, placeholder: 'Contoh: LDKS 2026', isRequired: true),
+      AppCustomInputField(id: 'lap_kategori', label: 'Kategori Kegiatan', type: InputFieldType.dropdown, options: ['Kegiatan Rutin', 'Program Unggulan', 'Peringatan Hari Besar', 'Lomba & Kompetisi', 'Bakti Sosial', 'Rapat Kerja & Pleno', 'Lainnya']),
+      AppCustomInputField(id: 'lap_tgl', label: 'Tanggal Pelaksanaan', type: InputFieldType.date, isRequired: true),
+      AppCustomInputField(id: 'lap_lokasi', label: 'Lokasi Kegiatan', type: InputFieldType.text, placeholder: 'Contoh: Aula Utama'),
+      AppCustomInputField(id: 'lap_pj', label: 'Ketua Pelaksana', type: InputFieldType.text, placeholder: 'Nama Penanggung Jawab'),
+      AppCustomInputField(id: 'lap_anggaran', label: 'Anggaran Dana (Rp)', type: InputFieldType.number, placeholder: '0'),
+      AppCustomInputField(id: 'lap_desk', label: 'Deskripsi Kegiatan', type: InputFieldType.text, placeholder: 'Uraian ringkas kegiatan...'),
+      AppCustomInputField(id: 'lap_hasil', label: 'Hasil / Capaian', type: InputFieldType.text, placeholder: 'Hasil yang diperoleh...'),
+      AppCustomInputField(id: 'lap_eval', label: 'Kendala & Evaluasi', type: InputFieldType.text, placeholder: 'Evaluasi kegiatan...'),
+      AppCustomInputField(id: 'lap_dok', label: 'Lampiran / Dokumentasi', type: InputFieldType.file),
+    ],
+    'proker': [
+      AppCustomInputField(id: 'prok_nama', label: 'Nama Program Kerja', type: InputFieldType.text, placeholder: 'Nama program...', isRequired: true),
+      AppCustomInputField(id: 'prok_sekbid', label: 'Divisi / Sekbid', type: InputFieldType.dropdown, options: ['Sekbid 1', 'Sekbid 2', 'Sekbid 3', 'Sekbid 4', 'Sekbid 5', 'Sekbid 6', 'Sekbid 7', 'Sekbid 8', 'Sekbid 9', 'Sekbid 10']),
+      AppCustomInputField(id: 'prok_pj', label: 'Penanggung Jawab', type: InputFieldType.text, placeholder: 'Nama PJ proker'),
+      AppCustomInputField(id: 'prok_tgl_rencana', label: 'Tanggal Rencana', type: InputFieldType.date, isRequired: true),
+      AppCustomInputField(id: 'prok_tgl_realisasi', label: 'Tanggal Realisasi', type: InputFieldType.date),
+      AppCustomInputField(id: 'prok_status', label: 'Status Proker', type: InputFieldType.dropdown, options: ['Belum Berjalan', 'Sedang Berjalan', 'Selesai']),
+      AppCustomInputField(id: 'prok_desk', label: 'Deskripsi Program', type: InputFieldType.text, placeholder: 'Rincian proker...'),
+      AppCustomInputField(id: 'prok_ket', label: 'Keterangan Tambahan', type: InputFieldType.text, placeholder: 'Catatan tambahan...'),
+    ],
+    'pelanggaran': [
+      AppCustomInputField(id: 'pel_siswa', label: 'Nama Siswa', type: InputFieldType.select, placeholder: 'Pilih siswa...', isRequired: true),
+      AppCustomInputField(id: 'pel_tgl', label: 'Tanggal Kejadian', type: InputFieldType.date, isRequired: true),
+      AppCustomInputField(id: 'pel_jenis', label: 'Jenis Pelanggaran', type: InputFieldType.select, placeholder: 'Pilih jenis tata tertib...', isRequired: true),
+      AppCustomInputField(id: 'pel_lokasi', label: 'Lokasi Kejadian', type: InputFieldType.text, placeholder: 'Contoh: Kantin / Kelas'),
+      AppCustomInputField(id: 'pel_petugas', label: 'Petugas / Saksi', type: InputFieldType.text, placeholder: 'Nama pencatat atau saksi'),
+      AppCustomInputField(id: 'pel_sanksi', label: 'Sanksi / Tindak Lanjut', type: InputFieldType.dropdown, options: ['Teguran Lisan', 'Teguran Tertulis (SP 1)', 'Peringatan Keras (SP 2)', 'Pemanggilan Orang Tua (SP 3)', 'Pembersihan Lingkungan', 'Skorsing']),
+      AppCustomInputField(id: 'pel_ket', label: 'Keterangan Tambahan', type: InputFieldType.text, placeholder: 'Catatan detail kejadian...'),
+    ],
+    'rekap': [
+      AppCustomInputField(id: 'rek_dimensi', label: 'Dimensi Rekap', type: InputFieldType.dropdown, options: ['Per Kelas', 'Per Siswa', 'Per Jenis Pelanggaran', 'Per Tingkat Kelas', 'Per Status SP']),
+      AppCustomInputField(id: 'rek_sekolah', label: 'Nama Sekolah', type: InputFieldType.text),
+      AppCustomInputField(id: 'rek_kota', label: 'Kota / Wilayah', type: InputFieldType.text),
+      AppCustomInputField(id: 'rek_thn', label: 'Tahun Ajaran', type: InputFieldType.text),
+    ],
+    'arsip': [
+      AppCustomInputField(id: 'ars_nama', label: 'Nama Dokumen / Berkas', type: InputFieldType.text, placeholder: 'Judul berkas...', isRequired: true),
+      AppCustomInputField(id: 'ars_folder', label: 'Folder Kategori', type: InputFieldType.dropdown, options: ['Surat Masuk', 'Surat Keluar', 'Proposal Kegiatan', 'LPJ Kegiatan', 'Dokumentasi', 'SK & Sertifikat']),
+      AppCustomInputField(id: 'ars_file', label: 'File Dokumen', type: InputFieldType.file, isRequired: true),
+      AppCustomInputField(id: 'ars_ket', label: 'Keterangan Berkas', type: InputFieldType.text, placeholder: 'Keterangan tambahan...'),
+    ],
+  });
+
+  /// Widget pembangun Logo yang mendukung Base64 File, Network URL, dan Asset bawaan
+  static Widget buildLogoWidget({
+    double width = 32,
+    double height = 32,
+    BoxFit fit = BoxFit.contain,
+    BorderRadius? borderRadius,
+  }) {
+    return ValueListenableBuilder<String>(
+      valueListenable: logoUrlNotifier,
+      builder: (context, logoData, _) {
+        final radius = borderRadius ?? BorderRadius.circular(6);
+        if (logoData.isEmpty) {
+          return ClipRRect(
+            borderRadius: radius,
+            child: Image.asset('assets/logo.png', width: width, height: height, fit: fit),
+          );
+        }
+
+        if (logoData.startsWith('data:image/') || logoData.length > 100) {
+          try {
+            final pureBase64 = logoData.contains(',') ? logoData.split(',').last : logoData;
+            final bytes = base64Decode(pureBase64.replaceAll('\n', '').trim());
+            return ClipRRect(
+              borderRadius: radius,
+              child: Image.memory(
+                bytes,
+                width: width,
+                height: height,
+                fit: fit,
+                errorBuilder: (_, __, ___) => Image.asset('assets/logo.png', width: width, height: height, fit: fit),
+              ),
+            );
+          } catch (_) {
+            return ClipRRect(
+              borderRadius: radius,
+              child: Image.asset('assets/logo.png', width: width, height: height, fit: fit),
+            );
+          }
+        }
+
+        if (logoData.startsWith('http://') || logoData.startsWith('https://')) {
+          return ClipRRect(
+            borderRadius: radius,
+            child: Image.network(
+              logoData,
+              width: width,
+              height: height,
+              fit: fit,
+              errorBuilder: (_, __, ___) => Image.asset('assets/logo.png', width: width, height: height, fit: fit),
+            ),
+          );
+        }
+
+        return ClipRRect(
+          borderRadius: radius,
+          child: Image.asset('assets/logo.png', width: width, height: height, fit: fit),
+        );
+      },
+    );
+  }
+
   /// Dynamic Proker unit list including Ketua OSIS, Wakil Ketua OSIS, Sekretaris, Bendahara, and all configured Sekbids
   static List<String> get dynamicProkerUnits {
     final list = <String>[
@@ -288,6 +449,22 @@ class AppSettingsService {
       arsipAllowedExtsNotifier.value = savedArsipExts;
     }
 
+    final savedCustomFieldsJson = prefs.getString(_keyCustomFields);
+    if (savedCustomFieldsJson != null && savedCustomFieldsJson.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(savedCustomFieldsJson) as Map<String, dynamic>;
+        final Map<String, List<AppCustomInputField>> map = {};
+        decoded.forEach((key, val) {
+          if (val is List) {
+            map[key] = val.map((e) => AppCustomInputField.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+          }
+        });
+        if (map.isNotEmpty) {
+          customFieldsNotifier.value = map;
+        }
+      } catch (_) {}
+    }
+
     // 6. Initialize Localization
     await LocalizationService.init();
 
@@ -345,6 +522,13 @@ class AppSettingsService {
     enabledLanguagesNotifier.value = langs;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList(_keyEnabledLanguages, langs);
+  }
+
+  static Future<void> setLogoUrl(String url) async {
+    logoUrlNotifier.value = url;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyLogoUrl, url);
+    await _saveToSupabase();
   }
 
   static Future<void> setAppBranding({
@@ -407,8 +591,18 @@ class AppSettingsService {
     List<String>? laporanFields,
     List<String>? pelanggaranFields,
     List<String>? rekapTypes,
+    Map<String, List<AppCustomInputField>>? customFields,
   }) async {
     final prefs = await SharedPreferences.getInstance();
+
+    if (customFields != null) {
+      customFieldsNotifier.value = customFields;
+      final Map<String, dynamic> serializable = {};
+      customFields.forEach((k, v) {
+        serializable[k] = v.map((f) => f.toJson()).toList();
+      });
+      await prefs.setString(_keyCustomFields, jsonEncode(serializable));
+    }
 
     if (schoolName != null) {
       schoolNameNotifier.value = schoolName;

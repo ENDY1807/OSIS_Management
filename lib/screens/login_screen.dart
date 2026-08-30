@@ -151,23 +151,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          ValueListenableBuilder<String>(
-                            valueListenable: AppSettingsService.logoUrlNotifier,
-                            builder: (context, logoUrl, _) {
-                              if (logoUrl.isNotEmpty && Uri.tryParse(logoUrl)?.hasScheme == true) {
-                                return ClipRRect(
-                                  borderRadius: BorderRadius.circular(16),
-                                  child: Image.network(
-                                    logoUrl,
-                                    width: 80,
-                                    height: 80,
-                                    fit: BoxFit.contain,
-                                    errorBuilder: (_, __, ___) => Image.asset('assets/logo.png', width: 80, height: 80, fit: BoxFit.contain),
-                                  ),
-                                );
-                              }
-                              return Image.asset('assets/logo.png', width: 80, height: 80, fit: BoxFit.contain);
-                            },
+                          AppSettingsService.buildLogoWidget(
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.contain,
+                            borderRadius: BorderRadius.circular(16),
                           ),
                           const SizedBox(height: 16),
                           ValueListenableBuilder<String>(

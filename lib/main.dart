@@ -145,9 +145,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (table == 'accounts' || table == 'all') {
         _refreshUser();
       }
-      if (table == 'app_settings' || table == 'all') {
-        AppSettingsService.syncFromSupabase();
-      }
     });
   }
 
@@ -287,24 +284,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ),
           title: Row(
             children: [
-              ValueListenableBuilder<String>(
-                valueListenable: AppSettingsService.logoUrlNotifier,
-                builder: (context, logoUrl, _) {
-                  if (logoUrl.isNotEmpty && Uri.tryParse(logoUrl)?.hasScheme == true) {
-                    return ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
-                      child: Image.network(
-                        logoUrl,
-                        width: 32,
-                        height: 32,
-                        fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => Image.asset('assets/logo.png', width: 32, height: 32, fit: BoxFit.contain),
-                      ),
-                    );
-                  }
-                  return Image.asset('assets/logo.png', width: 32, height: 32, fit: BoxFit.contain);
-                },
-              ),
+              AppSettingsService.buildLogoWidget(width: 32, height: 32, fit: BoxFit.contain),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
