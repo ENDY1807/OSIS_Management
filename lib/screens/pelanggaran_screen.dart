@@ -8,6 +8,9 @@ import '../services/notification_service.dart';
 import '../services/localization_service.dart';
 import '../app_theme.dart';
 
+import '../services/app_settings_service.dart';
+import '../widgets/dynamic_form_field_builder.dart';
+
 List<JenisPelanggaran> _jenisUntukHari(List<JenisPelanggaran> jenis, int weekday) {
   // Jika hariAktif kosong, berlaku untuk semua hari
   return jenis.where((j) => j.hariAktif.isEmpty || j.hariAktif.contains(weekday)).toList();
@@ -93,8 +96,6 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
     }
   }
 
-
-
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -113,7 +114,6 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
   }
 
   void _showCeklis() async {
-    // Pastikan siswa dimuat dari cache lokal jika memori kosong sebelum membuka sheet
     if (_siswa.isEmpty) {
       final loaded = await DataService.getSiswa();
       if (mounted) {
@@ -122,13 +122,46 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
     }
     if (!mounted) return;
 
+    final configuredFields = List<AppCustomInputField>.from(
+      AppSettingsService.customFieldsNotifier.value['pelanggaran'] ?? [],
+    );
+
     Siswa? selectedSiswa;
-    final selectedTanggal = _selectedDate;
+    DateTime selectedTanggal = _selectedDate;
     final jenisHariIni = _jenisUntukHari(_jenis, selectedTanggal.weekday);
     final checkedJenis = <String>{};
-    final ketC = TextEditingController();
+
+    final Map<String, TextEditingController> controllers = {};
+    final Map<String, dynamic> dynamicValues = {};
     final siswaCtrl = TextEditingController();
     final siswaFocus = FocusNode();
+
+    for (final field in configuredFields) {
+      if (field.id == 'pel_tgl') {
+        dynamicValues[field.id] = selectedTanggal;
+      } else if (field.id == 'pel_lokasi') {
+        controllers[field.id] = TextEditingController(text: '');
+        dynamicValues[field.id] = '';
+      } else if (field.id == 'pel_petugas') {
+        controllers[field.id] = TextEditingController(text: widget.username);
+        dynamicValues[field.id] = widget.username;
+      } else if (field.id == 'pel_sanksi') {
+        final options = field.options.isNotEmpty ? field.options : ['Teguran Lisan', 'Teguran Tertulis (SP 1)', 'Peringatan Keras (SP 2)', 'Pemanggilan Orang Tua (SP 3)', 'Pembersihan Lingkungan', 'Skorsing'];
+        dynamicValues[field.id] = options.first;
+      } else if (field.id == 'pel_ket') {
+        controllers[field.id] = TextEditingController(text: '');
+        dynamicValues[field.id] = '';
+      } else {
+        if (field.type == InputFieldType.date) {
+          dynamicValues[field.id] = DateTime.now();
+        } else if (field.type == InputFieldType.dropdown && field.options.isNotEmpty) {
+          dynamicValues[field.id] = field.options.first;
+        } else {
+          controllers[field.id] = TextEditingController(text: '');
+          dynamicValues[field.id] = '';
+        }
+      }
+    }
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
@@ -158,200 +191,235 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
                 const SizedBox(height: 16),
 
-                // ── Pilih Siswa (Autocomplete) ──
-                if (_siswa.isEmpty)
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.amber.withAlpha(isDark ? 30 : 40),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.amber.withAlpha(120)),
-                    ),
-                    child: Column(
-                      children: [
-                        Text(
-                          'Memuat data siswa...',
-                          style: TextStyle(fontSize: 12, color: isDark ? Colors.amberAccent : Colors.amber.shade900),
-                          textAlign: TextAlign.center,
+                // Render semua kolom berdasarkan configuredFields dari Admin Settings
+                ...configuredFields.map((field) {
+                  if (field.id == 'pel_siswa') {
+                    if (_siswa.isEmpty) {
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.withAlpha(isDark ? 30 : 40),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.amber.withAlpha(120)),
                         ),
-                        const SizedBox(height: 8),
-                        ElevatedButton.icon(
-                          onPressed: () async {
-                            final loaded = await DataService.getSiswa();
-                            setModal(() {
-                              _siswa = loaded;
-                            });
-                            setState(() {
-                              _siswa = loaded;
-                            });
-                          },
-                          icon: const Icon(Icons.refresh_rounded, size: 16),
-                          label: const Text('Muat Data Siswa'),
+                        child: Column(
+                          children: [
+                            Text(
+                              'Memuat data siswa...',
+                              style: TextStyle(fontSize: 12, color: isDark ? Colors.amberAccent : Colors.amber.shade900),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 8),
+                            ElevatedButton.icon(
+                              onPressed: () async {
+                                final loaded = await DataService.getSiswa();
+                                setModal(() {
+                                  _siswa = loaded;
+                                });
+                                setState(() {
+                                  _siswa = loaded;
+                                });
+                              },
+                              icon: const Icon(Icons.refresh_rounded, size: 16),
+                              label: const Text('Muat Data Siswa'),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  )
-                else
-                  RawAutocomplete<Siswa>(
-                    textEditingController: siswaCtrl,
-                    focusNode: siswaFocus,
-                    displayStringForOption: (s) => '${s.nama} - ${s.kelas}',
-                    optionsBuilder: (v) {
-                      if (v.text.isEmpty) return _siswa;
-                      final q = v.text.toLowerCase();
-                      return _siswa.where((s) =>
-                        s.nama.toLowerCase().contains(q) ||
-                        s.nis.toLowerCase().contains(q) ||
-                        s.kelas.toLowerCase().contains(q));
-                    },
-                    onSelected: (v) => setModal(() {
-                      selectedSiswa = v;
-                      siswaCtrl.text = '${v.nama} - ${v.kelas}';
-                    }),
-                    fieldViewBuilder: (_, ctrl, fn, onSubmit) => TextField(
-                      controller: ctrl,
-                      focusNode: fn,
-                      onTapOutside: (_) => fn.unfocus(),
-                      style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-                      decoration: InputDecoration(
-                        labelText: LocalizationService.tr('pelanggaran_search_student'),
-                        labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                        prefixIcon: const Icon(Icons.person_search_outlined, color: kAccent),
-                        suffixIcon: selectedSiswa != null
-                            ? const Icon(Icons.check_circle, color: Colors.green, size: 20)
-                            : null,
-                      ),
-                    ),
-                    optionsViewBuilder: (_, onSel, options) => Align(
-                      alignment: Alignment.topLeft,
-                      child: Material(
-                        elevation: 6,
-                        color: isDark ? const Color(0xFF1A2333) : Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxHeight: 220, maxWidth: 380),
-                          child: ListView(
-                            padding: EdgeInsets.zero,
-                            shrinkWrap: true,
-                            children: options.map((s) => ListTile(
-                              dense: true,
-                              leading: Icon(Icons.person_rounded, size: 18, color: isDark ? const Color(0xFF38BDF8) : kAccent),
-                              title: Text(s.nama, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white : kTextDark)),
-                              subtitle: Text('${s.kelas} • NIS: ${s.nis}',
-                                  style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : kTextMid)),
-                              onTap: () => onSel(s),
-                            )).toList(),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+                      );
+                    }
 
-                if (selectedSiswa != null) ...[
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: isDark ? Colors.green.withAlpha(45) : Colors.green.shade50,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: isDark ? Colors.green.withAlpha(120) : Colors.green.shade300),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.check_circle_rounded, color: isDark ? Colors.greenAccent : Colors.green.shade700, size: 18),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            '${selectedSiswa!.nama} — ${selectedSiswa!.kelas}',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: isDark ? Colors.greenAccent : Colors.green.shade800,
-                              fontWeight: FontWeight.bold,
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          RawAutocomplete<Siswa>(
+                            textEditingController: siswaCtrl,
+                            focusNode: siswaFocus,
+                            displayStringForOption: (s) => '${s.nama} - ${s.kelas}',
+                            optionsBuilder: (v) {
+                              if (v.text.isEmpty) return _siswa;
+                              final q = v.text.toLowerCase();
+                              return _siswa.where((s) =>
+                                s.nama.toLowerCase().contains(q) ||
+                                s.nis.toLowerCase().contains(q) ||
+                                s.kelas.toLowerCase().contains(q));
+                            },
+                            onSelected: (v) => setModal(() {
+                              selectedSiswa = v;
+                              siswaCtrl.text = '${v.nama} - ${v.kelas}';
+                            }),
+                            fieldViewBuilder: (_, ctrl, fn, onSubmit) => TextField(
+                              controller: ctrl,
+                              focusNode: fn,
+                              onTapOutside: (_) => fn.unfocus(),
+                              style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                              decoration: InputDecoration(
+                                labelText: field.label + (field.isRequired ? ' *' : ''),
+                                hintText: field.placeholder.isNotEmpty ? field.placeholder : 'Ketik nama siswa atau kelas...',
+                                labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                                prefixIcon: const Icon(Icons.person_search_outlined, color: kAccent),
+                                suffixIcon: selectedSiswa != null
+                                    ? const Icon(Icons.check_circle, color: Colors.green, size: 20)
+                                    : null,
+                              ),
+                            ),
+                            optionsViewBuilder: (_, onSel, options) => Align(
+                              alignment: Alignment.topLeft,
+                              child: Material(
+                                elevation: 6,
+                                color: isDark ? const Color(0xFF1A2333) : Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(maxHeight: 220, maxWidth: 380),
+                                  child: ListView(
+                                    padding: EdgeInsets.zero,
+                                    shrinkWrap: true,
+                                    children: options.map((s) => ListTile(
+                                      dense: true,
+                                      leading: Icon(Icons.person_rounded, size: 18, color: isDark ? const Color(0xFF38BDF8) : kAccent),
+                                      title: Text(s.nama, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white : kTextDark)),
+                                      subtitle: Text('${s.kelas} • NIS: ${s.nis}',
+                                          style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : kTextMid)),
+                                      onTap: () => onSel(s),
+                                    )).toList(),
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
+                          if (selectedSiswa != null) ...[
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: isDark ? Colors.green.withAlpha(45) : Colors.green.shade50,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: isDark ? Colors.green.withAlpha(120) : Colors.green.shade300),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.check_circle_rounded, color: isDark ? Colors.greenAccent : Colors.green.shade700, size: 16),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      '${selectedSiswa!.nama} — ${selectedSiswa!.kelas}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: isDark ? Colors.greenAccent : Colors.green.shade800,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    );
+                  }
+
+                  if (field.id == 'pel_tgl') {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: InkWell(
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: selectedTanggal,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime(2100),
+                          );
+                          if (picked != null) {
+                            setModal(() {
+                              selectedTanggal = picked;
+                              dynamicValues[field.id] = picked;
+                            });
+                          }
+                        },
+                        child: InputDecorator(
+                          decoration: InputDecoration(
+                            labelText: field.label + (field.isRequired ? ' *' : ''),
+                            labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                            prefixIcon: const Icon(Icons.calendar_month_outlined, color: kAccent),
+                          ),
+                          child: Text(
+                            DateFormat('dd MMMM yyyy (EEEE)', LocalizationService.currentLocale.value.languageCode).format(selectedTanggal),
+                            style: TextStyle(fontSize: 14, color: isDark ? Colors.white : kTextDark),
+                          ),
                         ),
-                      ],
-                    ),
-                  ),
-                ],
+                      ),
+                    );
+                  }
+
+                  if (field.id == 'pel_jenis') {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(children: [
+                            Text(field.label + (field.isRequired ? ' *' : ''),
+                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(color: kAccent.withAlpha(30), borderRadius: BorderRadius.circular(10)),
+                              child: Text(
+                                LocalizationService.formatDay(selectedTanggal.weekday),
+                                style: const TextStyle(fontSize: 11, color: kAccent, fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ]),
+                          const SizedBox(height: 8),
+                          if (_jenis.isEmpty)
+                            _warningBox('Belum ada jenis tata tertib. Silakan tambahkan tata tertib di Admin Settings.')
+                          else if (jenisHariIni.isEmpty)
+                            _warningBox('Tidak ada jenis pelanggaran khusus untuk hari ${_namaHari(selectedTanggal.weekday)}.')
+                          else ...[
+                            ...jenisHariIni.map((j) => Container(
+                              margin: const EdgeInsets.only(bottom: 6),
+                              decoration: BoxDecoration(
+                                color: checkedJenis.contains(j.id)
+                                    ? (isDark ? kAccent.withAlpha(50) : kPrimary.withAlpha(80))
+                                    : (isDark ? const Color(0xFF1B2433) : kBg),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: checkedJenis.contains(j.id) ? kAccent : (isDark ? const Color(0xFF263348) : kPrimary)),
+                              ),
+                              child: CheckboxListTile(
+                                title: Text(j.nama,
+                                    style: TextStyle(fontSize: 13, color: isDark ? Colors.white : kTextDark)),
+                                value: checkedJenis.contains(j.id),
+                                activeColor: kAccent,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                onChanged: (v) => setModal(() {
+                                  if (v == true) { checkedJenis.add(j.id); } else { checkedJenis.remove(j.id); }
+                                }),
+                                dense: true,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                              ),
+                            )),
+                          ],
+                        ],
+                      ),
+                    );
+                  }
+
+                  return DynamicFormFieldBuilder.buildField(
+                    context: context,
+                    field: field,
+                    isDark: isDark,
+                    controllers: controllers,
+                    dynamicValues: dynamicValues,
+                    setModalState: setModal,
+                  );
+                }),
 
                 const SizedBox(height: 12),
 
-                // ── Tanggal (dari header) ──
-                InputDecorator(
-                  decoration: InputDecoration(
-                    labelText: LocalizationService.tr('pelanggaran_date'),
-                    labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                    prefixIcon: const Icon(Icons.calendar_month_outlined, color: kAccent)),
-                  child: Text(DateFormat('dd MMMM yyyy (EEEE)', LocalizationService.currentLocale.value.languageCode).format(selectedTanggal),
-                      style: TextStyle(fontSize: 14, color: isDark ? Colors.white : kTextDark)),
-                ),
-
-                const SizedBox(height: 16),
-                Row(children: [
-                  Text(LocalizationService.tr('pelanggaran_type'),
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(color: kAccent.withAlpha(30), borderRadius: BorderRadius.circular(10)),
-                    child: Text(
-                      LocalizationService.formatDay(selectedTanggal.weekday),
-                      style: const TextStyle(fontSize: 11, color: kAccent, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ]),
-                const SizedBox(height: 8),
-
-                if (_jenis.isEmpty)
-                  _warningBox('Belum ada jenis pelanggaran. Tambahkan di menu Manajemen → Jenis Pelanggaran.')
-                else if (jenisHariIni.isEmpty)
-                  _warningBox('Tidak ada jenis pelanggaran untuk hari ${_namaHari(selectedTanggal.weekday)}.')
-                else ...[
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Text(
-                      '${jenisHariIni.length} jenis pelanggaran untuk hari ${_namaHari(selectedTanggal.weekday)}',
-                      style: const TextStyle(fontSize: 11, color: kAccent),
-                    ),
-                  ),
-                  ...jenisHariIni.map((j) => Container(
-                    margin: const EdgeInsets.only(bottom: 6),
-                    decoration: BoxDecoration(
-                      color: checkedJenis.contains(j.id)
-                          ? (isDark ? kAccent.withAlpha(50) : kPrimary.withAlpha(80))
-                          : (isDark ? const Color(0xFF1B2433) : kBg),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: checkedJenis.contains(j.id) ? kAccent : (isDark ? const Color(0xFF263348) : kPrimary)),
-                    ),
-                    child: CheckboxListTile(
-                      title: Text(j.nama,
-                          style: TextStyle(fontSize: 13, color: isDark ? Colors.white : kTextDark)),
-                      value: checkedJenis.contains(j.id),
-                      activeColor: kAccent,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      onChanged: (v) => setModal(() {
-                        if (v == true) { checkedJenis.add(j.id); } else { checkedJenis.remove(j.id); }
-                      }),
-                      dense: true,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                    ),
-                  )),
-                ],
-
-                const SizedBox(height: 12),
-                TextField(
-                  controller: ketC,
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-                  decoration: InputDecoration(
-                    labelText: 'Keterangan (opsional)',
-                    labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                    prefixIcon: const Icon(Icons.notes_outlined, color: kAccent),
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                if (selectedSiswa == null || checkedJenis.isEmpty)
+                if (selectedSiswa == null || (configuredFields.any((f) => f.id == 'pel_jenis') && checkedJenis.isEmpty))
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: Row(
@@ -362,7 +430,7 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
                         Text(
                           selectedSiswa == null
                               ? 'Pilih siswa terlebih dahulu'
-                              : 'Pilih minimal 1 jenis pelanggaran',
+                              : 'Pilih minimal 1 jenis tata tertib / pelanggaran',
                           style: const TextStyle(fontSize: 12, color: Colors.orange),
                           textAlign: TextAlign.center,
                         ),
@@ -371,20 +439,33 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
                   ),
 
                 ElevatedButton(
-                  onPressed: (selectedSiswa == null || checkedJenis.isEmpty)
+                  onPressed: (selectedSiswa == null || (configuredFields.any((f) => f.id == 'pel_jenis') && checkedJenis.isEmpty))
                       ? null
                       : () async {
                           try {
-                            for (final jenisId in checkedJenis) {
+                            final targetJenisList = checkedJenis.isNotEmpty ? checkedJenis : (_jenis.isNotEmpty ? {_jenis.first.id} : <String>{});
+                            final keterangan = controllers['pel_ket']?.text.trim() ?? dynamicValues['pel_ket']?.toString().trim() ?? '';
+                            final lokasi = controllers['pel_lokasi']?.text.trim() ?? dynamicValues['pel_lokasi']?.toString().trim() ?? '';
+                            final petugas = controllers['pel_petugas']?.text.trim() ?? dynamicValues['pel_petugas']?.toString().trim() ?? widget.username;
+                            final sanksi = dynamicValues['pel_sanksi']?.toString() ?? '';
+
+                            final fullKeterangan = [
+                              if (keterangan.isNotEmpty) keterangan,
+                              if (lokasi.isNotEmpty) 'Lokasi: $lokasi',
+                              if (sanksi.isNotEmpty) 'Tindak Lanjut: $sanksi',
+                              if (petugas.isNotEmpty && petugas != widget.username) 'Petugas: $petugas',
+                            ].join(' | ');
+
+                            for (final jenisId in targetJenisList) {
                               await DataService.addPelanggaran(
-                                selectedSiswa!.id, jenisId, ketC.text.trim(),
+                                selectedSiswa!.id, jenisId, fullKeterangan,
                                 tanggal: selectedTanggal,
                               );
                             }
                             final actorName = widget.username.isNotEmpty ? widget.username : 'Sistem';
                             await NotificationService.notifyUpdate(
                               title: 'Catatan Pelanggaran Baru',
-                              message: '${checkedJenis.length} catatan pelanggaran ditambahkan untuk ${selectedSiswa!.nama} (${selectedSiswa!.kelas}) oleh $actorName',
+                              message: '${targetJenisList.length} catatan pelanggaran ditambahkan untuk ${selectedSiswa!.nama} (${selectedSiswa!.kelas}) oleh $actorName',
                               category: 'pelanggaran',
                               actor: actorName,
                             );
@@ -395,7 +476,7 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
                                   children: [
                                     const Icon(Icons.check_circle_outline, color: Colors.white, size: 16),
                                     const SizedBox(width: 8),
-                                    Expanded(child: Text('${checkedJenis.length} pelanggaran tersimpan untuk ${selectedSiswa!.nama}')),
+                                    Expanded(child: Text('${targetJenisList.length} pelanggaran tersimpan untuk ${selectedSiswa!.nama}')),
                                   ],
                                 ),
                                 backgroundColor: Colors.green,
@@ -405,10 +486,10 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
                             }
                           } catch (e) {
                             if (ctx.mounted) {
-                            ScaffoldMessenger.of(ctx).showSnackBar(
-                              SnackBar(content: Text('Gagal simpan: $e'), backgroundColor: Colors.red,
-                                  duration: const Duration(seconds: 5)));
-                          }
+                              ScaffoldMessenger.of(ctx).showSnackBar(
+                                SnackBar(content: Text('Gagal simpan: $e'), backgroundColor: Colors.red,
+                                    duration: const Duration(seconds: 5)));
+                            }
                           }
                         },
                   style: ElevatedButton.styleFrom(
@@ -417,7 +498,7 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
                   ),
                   child: Text(
                     checkedJenis.isEmpty
-                        ? 'Simpan Pelanggaran'
+                        ? 'Simpan Catatan'
                         : 'Simpan ${checkedJenis.length} Pelanggaran',
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),

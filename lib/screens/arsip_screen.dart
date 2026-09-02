@@ -17,6 +17,7 @@ import '../services/auth_service.dart';
 import '../services/notification_service.dart';
 import '../services/localization_service.dart';
 import '../services/app_settings_service.dart';
+import '../widgets/dynamic_form_field_builder.dart';
 import '../app_theme.dart';
 
 const _uuid = Uuid();
@@ -1105,17 +1106,43 @@ class ArsipScreenState extends State<ArsipScreen> {
 
   // ── Upload / Add File Modal ────────────────────────────────────────────────
   void _showFileForm({Arsip? existing}) async {
-    final judulC = TextEditingController(text: existing?.judul ?? '');
-    final nomorC = TextEditingController(text: existing?.nomorSurat ?? '');
-    final deskC = TextEditingController(text: existing?.deskripsi ?? '');
-    final ketC = TextEditingController(text: existing?.keterangan ?? '');
-    DateTime tanggal = existing?.tanggal ?? DateTime.now();
+    final configuredFields = List<AppCustomInputField>.from(
+      AppSettingsService.customFieldsNotifier.value['arsip'] ?? [],
+    );
+
+    final Map<String, TextEditingController> controllers = {};
+    final Map<String, dynamic> dynamicValues = {};
+
     String fileUrl = existing?.fileUrl ?? '';
     String? pickedFileName;
     Uint8List? pickedFileBytes;
     bool uploading = false;
     final sekbid = await AuthService.getUserName() ?? '';
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    for (final field in configuredFields) {
+      if (field.id == 'ars_nama') {
+        controllers[field.id] = TextEditingController(text: existing?.judul ?? '');
+        dynamicValues[field.id] = existing?.judul ?? '';
+      } else if (field.id == 'ars_folder') {
+        final options = field.options.isNotEmpty ? field.options : ['Surat Masuk', 'Surat Keluar', 'Proposal Kegiatan', 'LPJ Kegiatan', 'Dokumentasi', 'SK & Sertifikat'];
+        dynamicValues[field.id] = _currentPath.isNotEmpty ? _currentPath : options.first;
+      } else if (field.id == 'ars_file') {
+        dynamicValues[field.id] = fileUrl;
+      } else if (field.id == 'ars_ket') {
+        controllers[field.id] = TextEditingController(text: existing?.keterangan ?? '');
+        dynamicValues[field.id] = existing?.keterangan ?? '';
+      } else {
+        if (field.type == InputFieldType.date) {
+          dynamicValues[field.id] = existing?.tanggal ?? DateTime.now();
+        } else if (field.type == InputFieldType.dropdown && field.options.isNotEmpty) {
+          dynamicValues[field.id] = field.options.first;
+        } else {
+          controllers[field.id] = TextEditingController(text: '');
+          dynamicValues[field.id] = '';
+        }
+      }
+    }
 
     if (!mounted) return;
     showModalBottomSheet(
@@ -1150,135 +1177,112 @@ class ArsipScreenState extends State<ArsipScreen> {
                       style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : kTextMid)),
                 ]),
                 const SizedBox(height: 16),
-                TextField(
-                  controller: judulC,
-                  autofocus: existing == null,
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-                  decoration: InputDecoration(
-                    labelText: LocalizationService.tr('arsip_file_name'),
-                    labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                    prefixIcon: const Icon(Icons.insert_drive_file_outlined, color: kAccent),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: nomorC,
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-                  decoration: InputDecoration(
-                    labelText: LocalizationService.tr('arsip_doc_number'),
-                    labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                    prefixIcon: const Icon(Icons.tag, color: kAccent),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                InkWell(
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: context, initialDate: tanggal,
-                      firstDate: DateTime(2020), lastDate: DateTime(2100),
-                    );
-                    if (picked != null) setModal(() => tanggal = picked);
-                  },
-                  child: InputDecorator(
-                    decoration: InputDecoration(
-                      labelText: LocalizationService.tr('arsip_date'),
-                      labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                      prefixIcon: const Icon(Icons.calendar_month_outlined, color: kAccent),
-                    ),
-                    child: Text(DateFormat('dd MMMM yyyy', LocalizationService.currentLocale.value.languageCode).format(tanggal),
-                        style: TextStyle(fontSize: 14, color: isDark ? Colors.white : kTextDark)),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: deskC,
-                  maxLines: 2,
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-                  decoration: InputDecoration(
-                    labelText: LocalizationService.tr('arsip_desc'),
-                    labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                    prefixIcon: const Icon(Icons.description_outlined, color: kAccent),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                // File Picker
-                InkWell(
-                  onTap: () async {
+
+                // Render semua kolom berdasarkan configuredFields dari Admin Settings
+                ...configuredFields.map((field) {
+                  if (field.id == 'ars_file') {
                     final maxMb = AppSettingsService.arsipMaxMbNotifier.value;
                     final allowedExts = AppSettingsService.arsipAllowedExtsNotifier.value;
-                    final result = await FilePicker.pickFiles(
-                      type: FileType.custom,
-                      allowedExtensions: allowedExts.isNotEmpty
-                          ? allowedExts
-                          : ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png', 'zip', 'txt'],
-                    );
-                    if (result == null) return;
-                    final f = result.files.first;
-                    final fBytes = await f.readAsBytes();
-                    if (fBytes.lengthInBytes > maxMb * 1024 * 1024) {
-                      if (ctx.mounted) {
-                        ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
-                          content: Text('Ukuran file (${(fBytes.lengthInBytes / (1024 * 1024)).toStringAsFixed(1)} MB) melebihi batas maksimal $maxMb MB yang ditentukan Admin'),
-                          backgroundColor: Colors.red,
-                          duration: const Duration(seconds: 4),
-                        ));
-                      }
-                      return;
-                    }
-                    setModal(() {
-                      pickedFileName = f.name;
-                      pickedFileBytes = fBytes;
-                      if (judulC.text.trim().isEmpty) {
-                        judulC.text = f.name.replaceAll(RegExp(r'\.[^.]+$'), '');
-                      }
-                    });
-                  },
-                  child: InputDecorator(
-                    decoration: InputDecoration(
-                      labelText: '${LocalizationService.tr('btn_upload')} (Maks ${AppSettingsService.arsipMaxMbNotifier.value} MB)',
-                      labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                      prefixIcon: const Icon(Icons.upload_file_outlined, color: kAccent),
-                      suffixIcon: pickedFileName != null
-                          ? IconButton(
-                              icon: Icon(Icons.close, size: 18, color: isDark ? Colors.white70 : kTextLight),
-                              onPressed: () => setModal(() {
-                                pickedFileName = null;
-                                pickedFileBytes = null;
-                              }),
-                            )
-                          : null,
-                    ),
-                    child: Text(
-                      pickedFileName ?? (fileUrl.isNotEmpty ? '(File tersimpan di cloud)' : LocalizationService.tr('btn_choose_file')),
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: pickedFileName != null
-                            ? (isDark ? Colors.white : kTextDark)
-                            : (isDark ? const Color(0xFF94A3B8) : kTextLight),
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: InkWell(
+                        onTap: () async {
+                          final result = await FilePicker.pickFiles(
+                            type: FileType.custom,
+                            allowedExtensions: allowedExts.isNotEmpty
+                                ? allowedExts
+                                : ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png', 'zip', 'txt'],
+                          );
+                          if (result == null) return;
+                          final f = result.files.first;
+                          Uint8List? fBytes;
+                          if (f.bytes != null) {
+                            fBytes = f.bytes;
+                          } else if (f.path != null) {
+                            fBytes = await File(f.path!).readAsBytes();
+                          }
+                          if (fBytes == null) return;
+
+                          if (fBytes.lengthInBytes > maxMb * 1024 * 1024) {
+                            if (ctx.mounted) {
+                              ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                                content: Text('Ukuran file (${(fBytes.lengthInBytes / (1024 * 1024)).toStringAsFixed(1)} MB) melebihi batas maksimal $maxMb MB'),
+                                backgroundColor: Colors.red,
+                                duration: const Duration(seconds: 4),
+                              ));
+                            }
+                            return;
+                          }
+                          setModal(() {
+                            pickedFileName = f.name;
+                            pickedFileBytes = fBytes;
+                            dynamicValues[field.id] = f.name;
+                            if (controllers['ars_nama'] != null && controllers['ars_nama']!.text.trim().isEmpty) {
+                              controllers['ars_nama']!.text = f.name.replaceAll(RegExp(r'\.[^.]+$'), '');
+                              dynamicValues['ars_nama'] = controllers['ars_nama']!.text;
+                            }
+                          });
+                        },
+                        child: InputDecorator(
+                          decoration: InputDecoration(
+                            labelText: '${field.label}${field.isRequired ? ' *' : ''} (Maks ${AppSettingsService.arsipMaxMbNotifier.value} MB)',
+                            labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                            prefixIcon: const Icon(Icons.upload_file_outlined, color: kAccent),
+                            suffixIcon: pickedFileName != null
+                                ? IconButton(
+                                    icon: Icon(Icons.close, size: 18, color: isDark ? Colors.white70 : kTextLight),
+                                    onPressed: () => setModal(() {
+                                      pickedFileName = null;
+                                      pickedFileBytes = null;
+                                      dynamicValues[field.id] = '';
+                                    }),
+                                  )
+                                : null,
+                          ),
+                          child: Text(
+                            pickedFileName ?? (fileUrl.isNotEmpty ? '(File tersimpan di cloud)' : (field.placeholder.isNotEmpty ? field.placeholder : LocalizationService.tr('btn_choose_file'))),
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: pickedFileName != null
+                                  ? (isDark ? Colors.white : kTextDark)
+                                  : (isDark ? const Color(0xFF94A3B8) : kTextLight),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                       ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ),
+                    );
+                  }
+
+                  return DynamicFormFieldBuilder.buildField(
+                    context: context,
+                    field: field,
+                    isDark: isDark,
+                    controllers: controllers,
+                    dynamicValues: dynamicValues,
+                    setModalState: setModal,
+                  );
+                }),
+
                 const SizedBox(height: 12),
-                TextField(
-                  controller: ketC,
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-                  decoration: InputDecoration(
-                    labelText: LocalizationService.tr('proker_notes'),
-                    labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                    prefixIcon: const Icon(Icons.notes_outlined, color: kAccent),
-                  ),
-                ),
-                const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: uploading ? null : () async {
-                    if (judulC.text.trim().isEmpty) {
+                    final judul = controllers['ars_nama']?.text.trim() ??
+                        dynamicValues['ars_nama']?.toString().trim() ??
+                        (existing != null ? existing.judul : '');
+
+                    if (judul.isEmpty && configuredFields.any((f) => f.id == 'ars_nama' && f.isRequired)) {
                       ScaffoldMessenger.of(ctx).showSnackBar(
                         const SnackBar(content: Text('Nama file tidak boleh kosong'), backgroundColor: Colors.orange),
                       );
                       return;
                     }
+
+                    final keterangan = controllers['ars_ket']?.text.trim() ?? dynamicValues['ars_ket']?.toString().trim() ?? '';
+                    final folder = dynamicValues['ars_folder']?.toString() ?? _currentPath;
+                    final targetPath = folder.isNotEmpty ? folder : _currentPath;
+
                     setModal(() => uploading = true);
                     try {
                       if (pickedFileBytes != null && pickedFileName != null) {
@@ -1286,18 +1290,18 @@ class ArsipScreenState extends State<ArsipScreen> {
                       }
                       final a = Arsip(
                         id: existing?.id ?? _uuid.v4(),
-                        judul: judulC.text.trim(),
-                        kategori: _currentPath,
-                        deskripsi: deskC.text.trim(),
-                        nomorSurat: nomorC.text.trim(),
-                        tanggal: tanggal,
+                        judul: judul.isNotEmpty ? judul : 'Berkas Arsip',
+                        kategori: targetPath,
+                        deskripsi: existing?.deskripsi ?? '',
+                        nomorSurat: existing?.nomorSurat ?? '',
+                        tanggal: existing?.tanggal ?? DateTime.now(),
                         pembuatId: sekbid,
                         fileUrl: fileUrl,
-                        keterangan: ketC.text.trim(),
+                        keterangan: keterangan,
                       );
                       if (existing == null) {
                         await DataService.addArsip(a);
-                        final folderName = _currentPath.isEmpty ? 'Root (/)' : _currentPath;
+                        final folderName = targetPath.isEmpty ? 'Root (/)' : targetPath;
                         await NotificationService.notifyUpdate(
                           title: 'File Arsip Ditambahkan',
                           message: 'File "${a.judul}" ditambahkan di folder $folderName oleh ${widget.username}',
@@ -1306,7 +1310,7 @@ class ArsipScreenState extends State<ArsipScreen> {
                         );
                       } else {
                         await DataService.updateArsip(a);
-                        final folderName = _currentPath.isEmpty ? 'Root (/)' : _currentPath;
+                        final folderName = targetPath.isEmpty ? 'Root (/)' : targetPath;
                         await NotificationService.notifyUpdate(
                           title: 'File Arsip Diperbarui',
                           message: 'File "${a.judul}" di folder $folderName diperbarui oleh ${widget.username}',

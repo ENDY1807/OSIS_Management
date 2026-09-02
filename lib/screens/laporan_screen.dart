@@ -11,6 +11,7 @@ import '../services/pdf_service.dart';
 import '../services/notification_service.dart';
 import '../services/localization_service.dart';
 import '../services/app_settings_service.dart';
+import '../widgets/dynamic_form_field_builder.dart';
 import '../app_theme.dart';
 
 const _uuid = Uuid();
@@ -79,24 +80,56 @@ class _LaporanScreenState extends State<LaporanScreen> {
       AuthService.getRole(widget.username) == 'KESISWAAN';
 
   void _showForm({LaporanKegiatan? existing}) async {
-    final judulC = TextEditingController(text: existing?.judul ?? '');
-    final lokasiC = TextEditingController(text: existing?.lokasi ?? '');
-    final ketuplakC = TextEditingController(text: existing?.penanggungJawab ?? '');
-    final deskC = TextEditingController(text: existing?.deskripsi ?? '');
-    final hasilC = TextEditingController(text: existing?.hasilCapaian ?? '');
-    final kendalaC = TextEditingController(text: existing?.kendalaSaran ?? '');
-    final pesertaC = TextEditingController(text: existing?.peserta.join(', ') ?? '');
-    String status = existing?.status ?? StatusLaporan.draft;
-    DateTime tanggal = existing?.tanggalKegiatan ?? DateTime.now();
+    final configuredFields = List<AppCustomInputField>.from(
+      AppSettingsService.customFieldsNotifier.value['laporan'] ?? [],
+    );
 
+    final Map<String, TextEditingController> controllers = {};
+    final Map<String, dynamic> dynamicValues = {};
+
+    // Inisialisasi nilai untuk setiap field yang dikonfigurasi
+    for (final field in configuredFields) {
+      if (field.id == 'lap_nama') {
+        controllers[field.id] = TextEditingController(text: existing?.judul ?? '');
+        dynamicValues[field.id] = existing?.judul ?? '';
+      } else if (field.id == 'lap_lokasi') {
+        controllers[field.id] = TextEditingController(text: existing?.lokasi ?? '');
+        dynamicValues[field.id] = existing?.lokasi ?? '';
+      } else if (field.id == 'lap_pj') {
+        controllers[field.id] = TextEditingController(text: existing?.penanggungJawab ?? '');
+        dynamicValues[field.id] = existing?.penanggungJawab ?? '';
+      } else if (field.id == 'lap_desk') {
+        controllers[field.id] = TextEditingController(text: existing?.deskripsi ?? '');
+        dynamicValues[field.id] = existing?.deskripsi ?? '';
+      } else if (field.id == 'lap_hasil') {
+        controllers[field.id] = TextEditingController(text: existing?.hasilCapaian ?? '');
+        dynamicValues[field.id] = existing?.hasilCapaian ?? '';
+      } else if (field.id == 'lap_eval') {
+        controllers[field.id] = TextEditingController(text: existing?.kendalaSaran ?? '');
+        dynamicValues[field.id] = existing?.kendalaSaran ?? '';
+      } else if (field.id == 'lap_tgl') {
+        dynamicValues[field.id] = existing?.tanggalKegiatan ?? DateTime.now();
+      } else if (field.id == 'lap_kategori') {
+        final options = field.options.isNotEmpty ? field.options : ['Kegiatan Rutin', 'Program Unggulan', 'Peringatan Hari Besar', 'Lomba & Kompetisi', 'Bakti Sosial', 'Rapat Kerja & Pleno', 'Lainnya'];
+        dynamicValues[field.id] = options.first;
+      } else {
+        if (field.type == InputFieldType.date) {
+          dynamicValues[field.id] = DateTime.now();
+        } else if (field.type == InputFieldType.dropdown && field.options.isNotEmpty) {
+          dynamicValues[field.id] = field.options.first;
+        } else {
+          controllers[field.id] = TextEditingController(text: '');
+          dynamicValues[field.id] = '';
+        }
+      }
+    }
+
+    String status = existing?.status ?? StatusLaporan.draft;
     final prokerUnits = AuthService.prokerUnits;
     String selectedSekbid = existing?.sekbid ?? (_isAdmin || _isPembina ? (prokerUnits.contains(widget.username) ? widget.username : prokerUnits.first) : widget.username);
     if (!prokerUnits.contains(selectedSekbid) && prokerUnits.isNotEmpty) {
       selectedSekbid = prokerUnits.first;
     }
-
-    final categories = AppSettingsService.laporanCategoriesNotifier.value;
-    String selectedCategory = categories.isNotEmpty ? categories.first : 'Kegiatan Rutin';
 
     if (!mounted) return;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -129,177 +162,107 @@ class _LaporanScreenState extends State<LaporanScreen> {
 
                 // Unit / Sekbid Selection
                 if (_isAdmin || _isPembina)
-                  DropdownButtonFormField<String>(
-                    initialValue: selectedSekbid,
-                    decoration: InputDecoration(
-                      labelText: 'Unit / Sekbid Penyelenggara',
-                      labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                      prefixIcon: const Icon(Icons.groups_outlined, color: kAccent),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: DropdownButtonFormField<String>(
+                      value: selectedSekbid,
+                      decoration: InputDecoration(
+                        labelText: 'Unit / Sekbid Penyelenggara',
+                        labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                        prefixIcon: const Icon(Icons.groups_outlined, color: kAccent),
+                      ),
+                      items: prokerUnits
+                          .map((s) => DropdownMenuItem(value: s, child: Text(AuthService.getDisplayName(s))))
+                          .toList(),
+                      onChanged: (v) => setModal(() => selectedSekbid = v ?? selectedSekbid),
                     ),
-                    items: prokerUnits
-                        .map((s) => DropdownMenuItem(value: s, child: Text(AuthService.getDisplayName(s))))
-                        .toList(),
-                    onChanged: (v) => setModal(() => selectedSekbid = v ?? selectedSekbid),
                   )
                 else
-                  InputDecorator(
-                    decoration: InputDecoration(
-                      labelText: 'Unit / Sekbid Penyelenggara',
-                      labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                      prefixIcon: const Icon(Icons.groups_outlined, color: kAccent),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: InputDecorator(
+                      decoration: InputDecoration(
+                        labelText: 'Unit / Sekbid Penyelenggara',
+                        labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                        prefixIcon: const Icon(Icons.groups_outlined, color: kAccent),
+                      ),
+                      child: Text(AuthService.getDisplayName(selectedSekbid), style: TextStyle(fontSize: 14, color: isDark ? Colors.white : kTextDark)),
                     ),
-                    child: Text(AuthService.getDisplayName(selectedSekbid), style: TextStyle(fontSize: 14, color: isDark ? Colors.white : kTextDark)),
                   ),
-                const SizedBox(height: 12),
 
-                // Kategori Laporan Selection
-                if (categories.isNotEmpty) ...[
-                  DropdownButtonFormField<String>(
-                    initialValue: categories.contains(selectedCategory) ? selectedCategory : categories.first,
+                // Render semua kolom input yang aktif di Konfigurasi Input
+                ...configuredFields.map((field) {
+                  return DynamicFormFieldBuilder.buildField(
+                    context: context,
+                    field: field,
+                    isDark: isDark,
+                    controllers: controllers,
+                    dynamicValues: dynamicValues,
+                    setModalState: setModal,
+                  );
+                }),
+
+                // Status
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: DropdownButtonFormField<String>(
+                    value: status,
                     decoration: InputDecoration(
-                      labelText: 'Kategori Kegiatan',
+                      labelText: 'Status Laporan',
                       labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                      prefixIcon: const Icon(Icons.category_outlined, color: kAccent),
+                      prefixIcon: const Icon(Icons.flag_outlined, color: kAccent),
                     ),
-                    items: categories
-                        .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                    items: StatusLaporan.all
+                        .map((s) => DropdownMenuItem(value: s, child: Text(LocalizationService.formatStatus(s))))
                         .toList(),
-                    onChanged: (v) => setModal(() => selectedCategory = v ?? selectedCategory),
+                    onChanged: (v) => setModal(() => status = v!),
                   ),
-                  const SizedBox(height: 12),
-                ],
+                ),
+                const SizedBox(height: 12),
 
-                TextField(
-                  controller: judulC,
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-                  decoration: InputDecoration(
-                    labelText: LocalizationService.tr('laporan_name'),
-                    labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                    prefixIcon: const Icon(Icons.event_outlined, color: kAccent),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                InkWell(
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: context, initialDate: tanggal,
-                      firstDate: DateTime(2020), lastDate: DateTime(2100),
-                    );
-                    if (picked != null) setModal(() => tanggal = picked);
-                  },
-                  child: InputDecorator(
-                    decoration: InputDecoration(
-                      labelText: LocalizationService.tr('laporan_date'),
-                      labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                      prefixIcon: const Icon(Icons.calendar_month_outlined, color: kAccent),
-                    ),
-                    child: Text(DateFormat('dd MMMM yyyy', LocalizationService.currentLocale.value.languageCode).format(tanggal),
-                        style: TextStyle(fontSize: 14, color: isDark ? Colors.white : kTextDark)),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: lokasiC,
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-                  decoration: InputDecoration(
-                    labelText: LocalizationService.tr('laporan_location'),
-                    labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                    prefixIcon: const Icon(Icons.location_on_outlined, color: kAccent),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: ketuplakC,
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-                  decoration: InputDecoration(
-                    labelText: LocalizationService.tr('laporan_leader'),
-                    labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                    prefixIcon: const Icon(Icons.person_outlined, color: kAccent),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: deskC,
-                  maxLines: 3,
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-                  decoration: InputDecoration(
-                    labelText: LocalizationService.tr('proker_desc'),
-                    labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                    prefixIcon: const Icon(Icons.description_outlined, color: kAccent),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: hasilC,
-                  maxLines: 3,
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-                  decoration: InputDecoration(
-                    labelText: LocalizationService.tr('laporan_result'),
-                    labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                    prefixIcon: const Icon(Icons.check_circle_outline, color: kAccent),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: kendalaC,
-                  maxLines: 2,
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-                  decoration: InputDecoration(
-                    labelText: LocalizationService.tr('laporan_eval'),
-                    labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                    prefixIcon: const Icon(Icons.warning_amber_outlined, color: kAccent),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: pesertaC,
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-                  decoration: InputDecoration(
-                    labelText: LocalizationService.tr('laporan_participants'),
-                    labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                    prefixIcon: const Icon(Icons.group_outlined, color: kAccent),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  initialValue: status,
-                  decoration: InputDecoration(
-                    labelText: 'Status',
-                    labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                    prefixIcon: const Icon(Icons.flag_outlined, color: kAccent),
-                  ),
-                  items: StatusLaporan.all
-                      .map((s) => DropdownMenuItem(value: s, child: Text(LocalizationService.formatStatus(s))))
-                      .toList(),
-                  onChanged: (v) => setModal(() => status = v!),
-                ),
-                const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: () async {
-                    if (judulC.text.trim().isEmpty) return;
-                    final peserta = pesertaC.text.trim().isEmpty
-                        ? <String>[]
-                        : pesertaC.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+                    final judul = controllers['lap_nama']?.text.trim() ??
+                        dynamicValues['lap_nama']?.toString().trim() ??
+                        (existing != null ? existing.judul : 'Laporan Kegiatan');
+
+                    if (judul.isEmpty && configuredFields.any((f) => f.id == 'lap_nama' && f.isRequired)) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        content: Text('Nama kegiatan wajib diisi!'),
+                        backgroundColor: Colors.redAccent,
+                      ));
+                      return;
+                    }
+
+                    final tanggal = dynamicValues['lap_tgl'] is DateTime
+                        ? dynamicValues['lap_tgl'] as DateTime
+                        : (existing?.tanggalKegiatan ?? DateTime.now());
+                    final lokasi = controllers['lap_lokasi']?.text.trim() ?? dynamicValues['lap_lokasi']?.toString().trim() ?? '';
+                    final penanggungJawab = controllers['lap_pj']?.text.trim() ?? dynamicValues['lap_pj']?.toString().trim() ?? '';
+                    final deskripsi = controllers['lap_desk']?.text.trim() ?? dynamicValues['lap_desk']?.toString().trim() ?? '';
+                    final hasilCapaian = controllers['lap_hasil']?.text.trim() ?? dynamicValues['lap_hasil']?.toString().trim() ?? '';
+                    final kendalaSaran = controllers['lap_eval']?.text.trim() ?? dynamicValues['lap_eval']?.toString().trim() ?? '';
+
                     final l = LaporanKegiatan(
                       id: existing?.id ?? _uuid.v4(),
-                      judul: judulC.text.trim(),
+                      judul: judul.isNotEmpty ? judul : 'Laporan Kegiatan',
                       sekbid: selectedSekbid,
-                      penanggungJawab: ketuplakC.text.trim(),
+                      penanggungJawab: penanggungJawab,
                       tanggalKegiatan: tanggal,
-                      lokasi: lokasiC.text.trim(),
-                      deskripsi: deskC.text.trim(),
-                      hasilCapaian: hasilC.text.trim(),
-                      kendalaSaran: kendalaC.text.trim(),
+                      lokasi: lokasi,
+                      deskripsi: deskripsi,
+                      hasilCapaian: hasilCapaian,
+                      kendalaSaran: kendalaSaran,
                       status: status,
                       tanggalBuat: existing?.tanggalBuat ?? DateTime.now(),
-                      peserta: peserta,
+                      peserta: existing?.peserta ?? [],
                       pembuatId: existing?.pembuatId ?? widget.username,
                     );
                     try {
                       if (existing == null) {
                         await DataService.addLaporan(l);
                         await NotificationService.notifyUpdate(
-                          title: 'Laporan Keuplak Dibuat',
+                          title: 'Laporan Kegiatan Dibuat',
                           message: 'Laporan "${l.judul}" dibuat untuk ${l.sekbid} oleh ${widget.username}',
                           category: 'laporan',
                           actor: widget.username,
@@ -307,7 +270,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
                       } else {
                         await DataService.updateLaporan(l);
                         await NotificationService.notifyUpdate(
-                          title: 'Laporan Keuplak Diperbarui',
+                          title: 'Laporan Kegiatan Diperbarui',
                           message: 'Laporan "${l.judul}" (${l.sekbid} - Status: ${l.status}) diperbarui oleh ${widget.username}',
                           category: 'laporan',
                           actor: widget.username,
@@ -330,11 +293,11 @@ class _LaporanScreenState extends State<LaporanScreen> {
                     _load();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: kAccent,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    backgroundColor: kPrimary,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: Text(LocalizationService.tr('btn_save'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                  child: Text(LocalizationService.tr('btn_save'), style: const TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ],
             ),

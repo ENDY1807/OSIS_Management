@@ -6,6 +6,8 @@ import '../services/data_service.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
 import '../services/localization_service.dart';
+import '../services/app_settings_service.dart';
+import '../widgets/dynamic_form_field_builder.dart';
 import '../app_theme.dart';
 import 'package:uuid/uuid.dart';
 
@@ -41,14 +43,6 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
         if (mounted) _load();
       }
     });
-    AuthService.getUserName().then((v) {
-      setState(() {
-        _currentUser = widget.username.isNotEmpty ? widget.username : (v ?? '');
-        _filterSekbid = (_isSuperUser || _isPembina) ? 'Semua' : _currentUser;
-        _userLoaded = true;
-      });
-      _load();
-    });
   }
 
   @override
@@ -65,7 +59,6 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
   }
 
   List<Proker> get _filtered {
-    // Semua role lihat semua proker, tapi superUser/Pembina bisa filter per sekbid/unit
     List<Proker> list = _proker;
     if ((_isSuperUser || _isPembina) && _filterSekbid != 'Semua') {
       list = list.where((p) => p.sekbid == _filterSekbid).toList();
@@ -95,18 +88,51 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
   }
 
   void _showForm([Proker? existing]) async {
-    final namaC = TextEditingController(text: existing?.nama);
-    final deskC = TextEditingController(text: existing?.deskripsi);
-    final pjC = TextEditingController(text: existing?.penanggungJawab ?? AuthService.getDisplayName(_currentUser));
-    final ketC = TextEditingController(text: existing?.keterangan);
+    final configuredFields = List<AppCustomInputField>.from(
+      AppSettingsService.customFieldsNotifier.value['proker'] ?? [],
+    );
+
+    final Map<String, TextEditingController> controllers = {};
+    final Map<String, dynamic> dynamicValues = {};
+
     final prokerUnits = AuthService.prokerUnits;
     String selectedSekbid = existing?.sekbid ?? ((_isSuperUser || _isPembina) ? (_currentUser.isNotEmpty && prokerUnits.contains(_currentUser) ? _currentUser : prokerUnits.first) : _currentUser);
     if (!prokerUnits.contains(selectedSekbid) && prokerUnits.isNotEmpty) {
       selectedSekbid = prokerUnits.first;
     }
-    String selectedStatus = existing?.status ?? StatusProker.belum;
-    DateTime tanggalRencana = existing?.tanggalRencana ?? DateTime.now();
-    DateTime? tanggalRealisasi = existing?.tanggalRealisasi;
+
+    for (final field in configuredFields) {
+      if (field.id == 'prok_nama') {
+        controllers[field.id] = TextEditingController(text: existing?.nama ?? '');
+        dynamicValues[field.id] = existing?.nama ?? '';
+      } else if (field.id == 'prok_desk') {
+        controllers[field.id] = TextEditingController(text: existing?.deskripsi ?? '');
+        dynamicValues[field.id] = existing?.deskripsi ?? '';
+      } else if (field.id == 'prok_pj') {
+        controllers[field.id] = TextEditingController(text: existing?.penanggungJawab ?? AuthService.getDisplayName(_currentUser));
+        dynamicValues[field.id] = existing?.penanggungJawab ?? AuthService.getDisplayName(_currentUser);
+      } else if (field.id == 'prok_sekbid') {
+        dynamicValues[field.id] = selectedSekbid;
+      } else if (field.id == 'prok_tgl_rencana') {
+        dynamicValues[field.id] = existing?.tanggalRencana ?? DateTime.now();
+      } else if (field.id == 'prok_tgl_realisasi') {
+        dynamicValues[field.id] = existing?.tanggalRealisasi ?? DateTime.now();
+      } else if (field.id == 'prok_status') {
+        dynamicValues[field.id] = existing?.status ?? StatusProker.belum;
+      } else if (field.id == 'prok_ket') {
+        controllers[field.id] = TextEditingController(text: existing?.keterangan ?? '');
+        dynamicValues[field.id] = existing?.keterangan ?? '';
+      } else {
+        if (field.type == InputFieldType.date) {
+          dynamicValues[field.id] = DateTime.now();
+        } else if (field.type == InputFieldType.dropdown && field.options.isNotEmpty) {
+          dynamicValues[field.id] = field.options.first;
+        } else {
+          controllers[field.id] = TextEditingController(text: '');
+          dynamicValues[field.id] = '';
+        }
+      }
+    }
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     await showModalBottomSheet(
@@ -136,146 +162,107 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
                 const SizedBox(height: 16),
 
-                TextField(
-                  controller: namaC,
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-                  decoration: InputDecoration(
-                    labelText: LocalizationService.tr('proker_name'),
-                    labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                    prefixIcon: const Icon(Icons.assignment, color: kAccent),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: deskC,
-                  maxLines: 3,
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-                  decoration: InputDecoration(
-                    labelText: LocalizationService.tr('proker_desc'),
-                    labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                    prefixIcon: const Icon(Icons.description, color: kAccent),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                if (_isSuperUser || _isPembina)
-                  DropdownButtonFormField<String>(
-                    initialValue: selectedSekbid,
-                    decoration: InputDecoration(
-                      labelText: LocalizationService.tr('proker_sekbid'),
-                      labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                      prefixIcon: const Icon(Icons.group, color: kAccent),
-                    ),
-                    items: prokerUnits
-                        .map((s) => DropdownMenuItem(value: s, child: Text(AuthService.getDisplayName(s))))
-                        .toList(),
-                    onChanged: (v) => setModal(() => selectedSekbid = v ?? selectedSekbid),
-                  )
-                else
-                  InputDecorator(
-                    decoration: InputDecoration(
-                      labelText: LocalizationService.tr('proker_sekbid'),
-                      labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                      prefixIcon: const Icon(Icons.group, color: kAccent),
-                    ),
-                    child: Text(AuthService.getDisplayName(selectedSekbid), style: TextStyle(fontSize: 14, color: isDark ? Colors.white : kTextDark)),
-                  ),
-                const SizedBox(height: 12),
-
-                TextField(
-                  controller: pjC,
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-                  decoration: InputDecoration(
-                    labelText: LocalizationService.tr('proker_pj'),
-                    labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                    prefixIcon: const Icon(Icons.person, color: kAccent),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // Tanggal Rencana
-                InkWell(
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: context, initialDate: tanggalRencana,
-                      firstDate: DateTime(2020), lastDate: DateTime(2100),
-                    );
-                    if (picked != null) setModal(() => tanggalRencana = picked);
-                  },
-                  child: InputDecorator(
-                    decoration: InputDecoration(
-                      labelText: LocalizationService.tr('proker_plan_date'),
-                      labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                      prefixIcon: const Icon(Icons.event, color: kAccent),
-                    ),
-                    child: Text(DateFormat('dd MMMM yyyy', LocalizationService.currentLocale.value.languageCode).format(tanggalRencana),
-                        style: TextStyle(fontSize: 14, color: isDark ? Colors.white : kTextDark)),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                DropdownButtonFormField<String>(
-                  initialValue: selectedStatus,
-                  decoration: InputDecoration(
-                    labelText: 'Status',
-                    labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                    prefixIcon: const Icon(Icons.flag, color: kAccent),
-                  ),
-                  items: StatusProker.all.map((s) => DropdownMenuItem(value: s, child: Text(LocalizationService.formatStatus(s)))).toList(),
-                  onChanged: (v) => setModal(() => selectedStatus = v ?? selectedStatus),
-                ),
-                const SizedBox(height: 12),
-
-                if (selectedStatus == StatusProker.selesai) ...[
-                  InkWell(
-                    onTap: () async {
-                      final picked = await showDatePicker(
-                        context: context, initialDate: tanggalRealisasi ?? DateTime.now(),
-                        firstDate: DateTime(2020), lastDate: DateTime(2100),
+                ...configuredFields.map((field) {
+                  if (field.id == 'prok_sekbid') {
+                    if (_isSuperUser || _isPembina) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: DropdownButtonFormField<String>(
+                          value: prokerUnits.contains(dynamicValues[field.id]) ? dynamicValues[field.id] : (prokerUnits.isNotEmpty ? prokerUnits.first : selectedSekbid),
+                          decoration: InputDecoration(
+                            labelText: field.label + (field.isRequired ? ' *' : ''),
+                            labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                            prefixIcon: const Icon(Icons.group, color: kAccent),
+                          ),
+                          items: prokerUnits
+                              .map((s) => DropdownMenuItem(value: s, child: Text(AuthService.getDisplayName(s))))
+                              .toList(),
+                          onChanged: (v) => setModal(() {
+                            dynamicValues[field.id] = v ?? selectedSekbid;
+                            selectedSekbid = v ?? selectedSekbid;
+                          }),
+                        ),
                       );
-                      if (picked != null) setModal(() => tanggalRealisasi = picked);
-                    },
-                    child: InputDecorator(
-                      decoration: InputDecoration(
-                        labelText: LocalizationService.tr('proker_real_date'),
-                        labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                        prefixIcon: const Icon(Icons.event_available, color: Colors.green),
-                      ),
-                      child: Text(
-                        tanggalRealisasi != null
-                            ? DateFormat('dd MMMM yyyy', LocalizationService.currentLocale.value.languageCode).format(tanggalRealisasi!)
-                            : LocalizationService.tr('btn_choose_file'),
-                        style: TextStyle(fontSize: 14, color: tanggalRealisasi != null ? (isDark ? Colors.white : kTextDark) : (isDark ? Colors.white60 : kTextLight)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
+                    } else {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: InputDecorator(
+                          decoration: InputDecoration(
+                            labelText: field.label + (field.isRequired ? ' *' : ''),
+                            labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                            prefixIcon: const Icon(Icons.group, color: kAccent),
+                          ),
+                          child: Text(AuthService.getDisplayName(selectedSekbid), style: TextStyle(fontSize: 14, color: isDark ? Colors.white : kTextDark)),
+                        ),
+                      );
+                    }
+                  }
 
-                TextField(
-                  controller: ketC,
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-                  decoration: InputDecoration(
-                    labelText: LocalizationService.tr('proker_notes'),
-                    labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                    prefixIcon: const Icon(Icons.notes, color: kAccent),
-                  ),
-                ),
-                const SizedBox(height: 20),
+                  if (field.id == 'prok_status') {
+                    final currentStatus = dynamicValues[field.id]?.toString() ?? StatusProker.belum;
+                    final options = field.options.isNotEmpty ? field.options : StatusProker.all;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: DropdownButtonFormField<String>(
+                        value: options.contains(currentStatus) ? currentStatus : options.first,
+                        decoration: InputDecoration(
+                          labelText: field.label + (field.isRequired ? ' *' : ''),
+                          labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                          prefixIcon: const Icon(Icons.flag, color: kAccent),
+                        ),
+                        items: options.map((s) => DropdownMenuItem(value: s, child: Text(LocalizationService.formatStatus(s)))).toList(),
+                        onChanged: (v) => setModal(() => dynamicValues[field.id] = v ?? currentStatus),
+                      ),
+                    );
+                  }
+
+                  return DynamicFormFieldBuilder.buildField(
+                    context: context,
+                    field: field,
+                    isDark: isDark,
+                    controllers: controllers,
+                    dynamicValues: dynamicValues,
+                    setModalState: setModal,
+                  );
+                }),
+
+                const SizedBox(height: 12),
 
                 ElevatedButton(
                   onPressed: () async {
-                    if (namaC.text.isEmpty) return;
+                    final nama = controllers['prok_nama']?.text.trim() ??
+                        dynamicValues['prok_nama']?.toString().trim() ??
+                        (existing != null ? existing.nama : '');
+
+                    if (nama.isEmpty && configuredFields.any((f) => f.id == 'prok_nama' && f.isRequired)) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        content: Text('Nama program kerja wajib diisi!'),
+                        backgroundColor: Colors.redAccent,
+                      ));
+                      return;
+                    }
+
+                    final deskripsi = controllers['prok_desk']?.text.trim() ?? dynamicValues['prok_desk']?.toString().trim() ?? '';
+                    final penanggungJawab = controllers['prok_pj']?.text.trim() ?? dynamicValues['prok_pj']?.toString().trim() ?? '';
+                    final keterangan = controllers['prok_ket']?.text.trim() ?? dynamicValues['prok_ket']?.toString().trim() ?? '';
+                    final status = dynamicValues['prok_status']?.toString() ?? StatusProker.belum;
+                    final tanggalRencana = dynamicValues['prok_tgl_rencana'] is DateTime
+                        ? dynamicValues['prok_tgl_rencana'] as DateTime
+                        : (existing?.tanggalRencana ?? DateTime.now());
+                    final tanggalRealisasi = dynamicValues['prok_tgl_realisasi'] is DateTime
+                        ? dynamicValues['prok_tgl_realisasi'] as DateTime
+                        : (status == StatusProker.selesai ? (existing?.tanggalRealisasi ?? DateTime.now()) : null);
+
                     final p = Proker(
                       id: existing?.id ?? const Uuid().v4(),
-                      nama: namaC.text,
-                      deskripsi: deskC.text,
-                      sekbid: selectedSekbid,
-                      penanggungJawab: pjC.text,
+                      nama: nama.isNotEmpty ? nama : 'Program Kerja',
+                      deskripsi: deskripsi,
+                      sekbid: dynamicValues['prok_sekbid']?.toString() ?? selectedSekbid,
+                      penanggungJawab: penanggungJawab,
                       tanggalRencana: tanggalRencana,
-                      tanggalRealisasi: selectedStatus == StatusProker.selesai ? tanggalRealisasi : null,
-                      status: selectedStatus,
-                      keterangan: ketC.text,
+                      tanggalRealisasi: status == StatusProker.selesai ? tanggalRealisasi : null,
+                      status: status,
+                      keterangan: keterangan,
                     );
                     if (existing == null) {
                       await DataService.addProker(p);
