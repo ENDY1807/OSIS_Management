@@ -1,6 +1,12 @@
 -- ==============================================================================
 -- SKRIP LENGKAP TABEL, HAK AKSES, REALTIME & SEED DATA (OSIS MANAGEMENT)
 -- Jalankan skrip ini di Supabase SQL Editor (Dashboard Supabase -> SQL Editor)
+-- Skrip ini memastikan:
+-- 1. Konfigurasi input di SEMUA page (Laporan, Proker, Pelanggaran, Rekap, Arsip)
+--    tersimpan di custom_fields dan tersinkronisasi realtime ke semua user.
+-- 2. Warna tema (primary_color) tersinkronisasi realtime ke SEMUA user tanpa delay.
+-- 3. Semua tabel memiliki kolom extra_fields untuk menyimpan input fleksibel/kustom.
+-- 4. RLS, Publikasi Realtime, dan Hak Akses anon/authenticated aktif penuh.
 -- ==============================================================================
 
 -- 1. Buat Tabel 'accounts'
@@ -23,7 +29,7 @@ CREATE TABLE IF NOT EXISTS public.sekbid (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 3. Buat Tabel 'app_settings' (Konfigurasi Global & Realtime Sync)
+-- 3. Buat Tabel 'app_settings' (Konfigurasi Global, Form Builder & Realtime Theme Sync)
 CREATE TABLE IF NOT EXISTS public.app_settings (
     id TEXT PRIMARY KEY DEFAULT 'global_config',
     app_name TEXT DEFAULT 'OSIS Management',
@@ -32,21 +38,6 @@ CREATE TABLE IF NOT EXISTS public.app_settings (
     primary_color TEXT DEFAULT '0xFF00B4D8',
     default_theme_mode TEXT DEFAULT 'system',
     default_language TEXT DEFAULT 'id',
-    school_name TEXT DEFAULT 'SMK Bakti Nusantara 666',
-    city TEXT DEFAULT 'Bandung',
-    academic_year TEXT DEFAULT '2026/2027',
-    kepsek_name TEXT DEFAULT 'Drs. H. Ahmad Sudrajat, M.M.',
-    kepsek_nip TEXT DEFAULT '19750815 199903 1 004',
-    pembina_name TEXT DEFAULT 'Rina Marlina, S.Pd.',
-    pembina_nip TEXT DEFAULT '19880210 201502 2 001',
-    ketos_name TEXT DEFAULT 'Endy Mahavira',
-    ketos_nis TEXT DEFAULT '22231001',
-    sekretaris_name TEXT DEFAULT 'Siti Nurhaliza',
-    sekretaris_nis TEXT DEFAULT '22231045',
-    ttd_kepsek TEXT DEFAULT '',
-    ttd_pembina TEXT DEFAULT '',
-    ttd_ketos TEXT DEFAULT '',
-    ttd_sekretaris TEXT DEFAULT '',
     sp1_threshold INTEGER DEFAULT 20,
     sp2_threshold INTEGER DEFAULT 50,
     sp3_threshold INTEGER DEFAULT 75,
@@ -59,22 +50,32 @@ CREATE TABLE IF NOT EXISTS public.app_settings (
     laporan_fields JSONB DEFAULT '["Nama Kegiatan","Tanggal","Lokasi","Peserta / Sasaran","Deskripsi","Hasil / Capaian","Kendala & Evaluasi"]'::jsonb,
     pelanggaran_fields JSONB DEFAULT '["Saksi / Petugas","Lokasi Kejadian","Sanksi / Tindak Lanjut","Keterangan Tambahan"]'::jsonb,
     rekap_types JSONB DEFAULT '["Per Kelas","Per Siswa","Per Jenis Pelanggaran","Per Tingkat Kelas","Per Status SP"]'::jsonb,
-    custom_fields JSONB DEFAULT '{"laporan":[{"id":"lap_nama","label":"Nama Kegiatan","type":"text","placeholder":"Contoh: LDKS 2026","isRequired":true,"options":[]},{"id":"lap_kategori","label":"Kategori Kegiatan","type":"dropdown","placeholder":"","isRequired":false,"options":["Kegiatan Rutin","Program Unggulan","Peringatan Hari Besar","Lomba & Kompetisi","Bakti Sosial","Rapat Kerja & Pleno","Lainnya"]},{"id":"lap_tgl","label":"Tanggal Pelaksanaan","type":"date","placeholder":"","isRequired":true,"options":[]},{"id":"lap_lokasi","label":"Lokasi Kegiatan","type":"text","placeholder":"Contoh: Aula Utama","isRequired":false,"options":[]},{"id":"lap_pj","label":"Ketua Pelaksana","type":"text","placeholder":"Nama Penanggung Jawab","isRequired":false,"options":[]},{"id":"lap_anggaran","label":"Anggaran Dana (Rp)","type":"number","placeholder":"0","isRequired":false,"options":[]},{"id":"lap_desk","label":"Deskripsi Kegiatan","type":"text","placeholder":"Uraian ringkas kegiatan...","isRequired":false,"options":[]},{"id":"lap_hasil","label":"Hasil / Capaian","type":"text","placeholder":"Hasil yang diperoleh...","isRequired":false,"options":[]},{"id":"lap_eval","label":"Kendala & Evaluasi","type":"text","placeholder":"Evaluasi kegiatan...","isRequired":false,"options":[]},{"id":"lap_dok","label":"Lampiran / Dokumentasi","type":"file","placeholder":"","isRequired":false,"options":[]}],"proker":[{"id":"prok_nama","label":"Nama Program Kerja","type":"text","placeholder":"Nama program...","isRequired":true,"options":[]},{"id":"prok_sekbid","label":"Divisi / Sekbid","type":"dropdown","placeholder":"","isRequired":false,"options":["SEKBID1","SEKBID2","SEKBID3","SEKBID4","SEKBID5","SEKBID6","SEKBID7","SEKBID8","SEKBID9","SEKBID10"]}],"pelanggaran":[{"id":"pel_saksi","label":"Saksi / Petugas Pencatat","type":"text","placeholder":"Nama petugas...","isRequired":false,"options":[]},{"id":"pel_lokasi","label":"Lokasi Kejadian","type":"text","placeholder":"Contoh: Kantin / Lapangan","isRequired":false,"options":[]},{"id":"pel_sanksi","label":"Sanksi / Tindak Lanjut","type":"text","placeholder":"Tindakan yang diberikan...","isRequired":false,"options":[]},{"id":"pel_ket","label":"Keterangan Tambahan","type":"text","placeholder":"Catatan tambahan...","isRequired":false,"options":[]}],"rekap":[{"id":"rek_dimensi","label":"Dimensi Rekap","type":"select","placeholder":"","isRequired":false,"options":["Per Kelas","Per Siswa","Per Jenis Pelanggaran","Per Tingkat Kelas","Per Status SP"]}],"arsip":[{"id":"ars_folder","label":"Kategori Berkas","type":"dropdown","placeholder":"","isRequired":true,"options":["Surat Masuk","Surat Keluar","Proposal Kegiatan","LPJ Kegiatan","Dokumentasi","SK & Sertifikat"]}]}'::jsonb,
+    custom_fields JSONB DEFAULT '{"laporan":[{"id":"lap_nama","label":"Nama Kegiatan","type":"text","placeholder":"Contoh: LDKS 2026","isRequired":true,"options":[]},{"id":"lap_kategori","label":"Kategori Kegiatan","type":"dropdown","placeholder":"","isRequired":false,"options":["Kegiatan Rutin","Program Unggulan","Peringatan Hari Besar","Lomba & Kompetisi","Bakti Sosial","Rapat Kerja & Pleno","Lainnya"]},{"id":"lap_tgl","label":"Tanggal Pelaksanaan","type":"date","placeholder":"","isRequired":true,"options":[]},{"id":"lap_lokasi","label":"Lokasi Kegiatan","type":"text","placeholder":"Contoh: Aula Utama","isRequired":false,"options":[]},{"id":"lap_pj","label":"Ketua Pelaksana","type":"text","placeholder":"Nama Penanggung Jawab","isRequired":false,"options":[]},{"id":"lap_anggaran","label":"Anggaran Dana (Rp)","type":"number","placeholder":"0","isRequired":false,"options":[]},{"id":"lap_desk","label":"Deskripsi Kegiatan","type":"text","placeholder":"Uraian ringkas kegiatan...","isRequired":false,"options":[]},{"id":"lap_hasil","label":"Hasil / Capaian","type":"text","placeholder":"Hasil yang diperoleh...","isRequired":false,"options":[]},{"id":"lap_eval","label":"Kendala & Evaluasi","type":"text","placeholder":"Evaluasi kegiatan...","isRequired":false,"options":[]},{"id":"lap_dok","label":"Lampiran / Dokumentasi","type":"file","placeholder":"","isRequired":false,"options":[]}],"proker":[{"id":"prok_nama","label":"Nama Program Kerja","type":"text","placeholder":"Nama program...","isRequired":true,"options":[]},{"id":"prok_sekbid","label":"Divisi / Sekbid","type":"dropdown","placeholder":"","isRequired":false,"options":["Sekbid 1","Sekbid 2","Sekbid 3","Sekbid 4","Sekbid 5","Sekbid 6","Sekbid 7","Sekbid 8","Sekbid 9","Sekbid 10"]},{"id":"prok_pj","label":"Penanggung Jawab","type":"text","placeholder":"Nama PJ proker","isRequired":false,"options":[]},{"id":"prok_tgl_rencana","label":"Tanggal Rencana","type":"date","placeholder":"","isRequired":true,"options":[]},{"id":"prok_tgl_realisasi","label":"Tanggal Realisasi","type":"date","placeholder":"","isRequired":false,"options":[]},{"id":"prok_status","label":"Status Proker","type":"dropdown","placeholder":"","isRequired":false,"options":["Belum Berjalan","Sedang Berjalan","Selesai"]},{"id":"prok_desk","label":"Deskripsi Program","type":"text","placeholder":"Rincian proker...","isRequired":false,"options":[]},{"id":"prok_ket","label":"Keterangan Tambahan","type":"text","placeholder":"Catatan tambahan...","isRequired":false,"options":[]}],"pelanggaran":[{"id":"pel_siswa","label":"Nama Siswa","type":"select","placeholder":"Pilih siswa...","isRequired":true,"options":[]},{"id":"pel_tgl","label":"Tanggal Kejadian","type":"date","placeholder":"","isRequired":true,"options":[]},{"id":"pel_jenis","label":"Jenis Pelanggaran","type":"select","placeholder":"Pilih jenis tata tertib...","isRequired":true,"options":[]},{"id":"pel_lokasi","label":"Lokasi Kejadian","type":"text","placeholder":"Contoh: Kantin / Kelas","isRequired":false,"options":[]},{"id":"pel_petugas","label":"Petugas / Saksi","type":"text","placeholder":"Nama pencatat atau saksi","isRequired":false,"options":[]},{"id":"pel_sanksi","label":"Sanksi / Tindak Lanjut","type":"dropdown","placeholder":"","isRequired":false,"options":["Teguran Lisan","Teguran Tertulis (SP 1)","Peringatan Keras (SP 2)","Pemanggilan Orang Tua (SP 3)","Pembersihan Lingkungan","Skorsing"]},{"id":"pel_ket","label":"Keterangan Tambahan","type":"text","placeholder":"Catatan detail kejadian...","isRequired":false,"options":[]}],"rekap":[{"id":"rek_dimensi","label":"Dimensi Rekap","type":"dropdown","placeholder":"","isRequired":false,"options":["Per Kelas","Per Siswa","Per Jenis Pelanggaran","Per Tingkat Kelas","Per Status SP"]}],"arsip":[{"id":"ars_nama","label":"Nama Dokumen / Berkas","type":"text","placeholder":"Judul berkas...","isRequired":true,"options":[]},{"id":"ars_folder","label":"Folder Kategori","type":"dropdown","placeholder":"","isRequired":true,"options":["Surat Masuk","Surat Keluar","Proposal Kegiatan","LPJ Kegiatan","Dokumentasi","SK & Sertifikat"]},{"id":"ars_file","label":"File Dokumen","type":"file","placeholder":"","isRequired":true,"options":[]},{"id":"ars_ket","label":"Keterangan Berkas","type":"text","placeholder":"Keterangan tambahan...","isRequired":false,"options":[]}]}'::jsonb,
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Auto-migration kolom baru pada app_settings
-ALTER TABLE public.app_settings ADD COLUMN IF NOT EXISTS ttd_kepsek TEXT DEFAULT '';
-ALTER TABLE public.app_settings ADD COLUMN IF NOT EXISTS ttd_pembina TEXT DEFAULT '';
-ALTER TABLE public.app_settings ADD COLUMN IF NOT EXISTS ttd_ketos TEXT DEFAULT '';
-ALTER TABLE public.app_settings ADD COLUMN IF NOT EXISTS ttd_sekretaris TEXT DEFAULT '';
+-- Pastikan kolom selalu ada jika tabel app_settings sudah dibuat sebelumnya di Supabase
+ALTER TABLE public.app_settings ADD COLUMN IF NOT EXISTS app_name TEXT DEFAULT 'OSIS Management';
+ALTER TABLE public.app_settings ADD COLUMN IF NOT EXISTS app_subtitle TEXT DEFAULT 'Sistem Manajemen OSIS Digital';
+ALTER TABLE public.app_settings ADD COLUMN IF NOT EXISTS logo_url TEXT DEFAULT '';
+ALTER TABLE public.app_settings ADD COLUMN IF NOT EXISTS primary_color TEXT DEFAULT '0xFF00B4D8';
+ALTER TABLE public.app_settings ADD COLUMN IF NOT EXISTS default_theme_mode TEXT DEFAULT 'system';
+ALTER TABLE public.app_settings ADD COLUMN IF NOT EXISTS default_language TEXT DEFAULT 'id';
+ALTER TABLE public.app_settings ADD COLUMN IF NOT EXISTS sp1_threshold INTEGER DEFAULT 20;
+ALTER TABLE public.app_settings ADD COLUMN IF NOT EXISTS sp2_threshold INTEGER DEFAULT 50;
+ALTER TABLE public.app_settings ADD COLUMN IF NOT EXISTS sp3_threshold INTEGER DEFAULT 75;
+ALTER TABLE public.app_settings ADD COLUMN IF NOT EXISTS skorsing_threshold INTEGER DEFAULT 100;
+ALTER TABLE public.app_settings ADD COLUMN IF NOT EXISTS arsip_max_mb INTEGER DEFAULT 25;
+ALTER TABLE public.app_settings ADD COLUMN IF NOT EXISTS arsip_folders JSONB DEFAULT '["Surat Masuk","Surat Keluar","Proposal Kegiatan","LPJ Kegiatan","Dokumentasi","SK & Sertifikat"]'::jsonb;
 ALTER TABLE public.app_settings ADD COLUMN IF NOT EXISTS arsip_allowed_exts JSONB DEFAULT '["pdf","docx","xlsx","pptx","png","jpg","jpeg","zip"]'::jsonb;
+ALTER TABLE public.app_settings ADD COLUMN IF NOT EXISTS sekbid_list JSONB DEFAULT '["SEKBID1","SEKBID2","SEKBID3","SEKBID4","SEKBID5","SEKBID6","SEKBID7","SEKBID8","SEKBID9","SEKBID10"]'::jsonb;
+ALTER TABLE public.app_settings ADD COLUMN IF NOT EXISTS laporan_categories JSONB DEFAULT '["Kegiatan Rutin","Program Unggulan","Peringatan Hari Besar","Lomba & Kompetisi","Bakti Sosial","Rapat Kerja & Pleno","Lainnya"]'::jsonb;
 ALTER TABLE public.app_settings ADD COLUMN IF NOT EXISTS laporan_fields JSONB DEFAULT '["Nama Kegiatan","Tanggal","Lokasi","Peserta / Sasaran","Deskripsi","Hasil / Capaian","Kendala & Evaluasi"]'::jsonb;
 ALTER TABLE public.app_settings ADD COLUMN IF NOT EXISTS pelanggaran_fields JSONB DEFAULT '["Saksi / Petugas","Lokasi Kejadian","Sanksi / Tindak Lanjut","Keterangan Tambahan"]'::jsonb;
 ALTER TABLE public.app_settings ADD COLUMN IF NOT EXISTS rekap_types JSONB DEFAULT '["Per Kelas","Per Siswa","Per Jenis Pelanggaran","Per Tingkat Kelas","Per Status SP"]'::jsonb;
 ALTER TABLE public.app_settings ADD COLUMN IF NOT EXISTS custom_fields JSONB DEFAULT '{}'::jsonb;
 
--- 4. Buat Tabel Data Operasional Jika Belum Ada
+-- 4. Buat Tabel Data Operasional Jika Belum Ada & Tambahkan Kolom extra_fields
 CREATE TABLE IF NOT EXISTS public.siswa (
     id TEXT PRIMARY KEY,
     nama TEXT NOT NULL,
@@ -102,9 +103,11 @@ CREATE TABLE IF NOT EXISTS public.pelanggaran (
     keterangan TEXT DEFAULT '',
     petugas TEXT DEFAULT '',
     foto TEXT DEFAULT '',
+    extra_fields JSONB DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE public.pelanggaran ADD COLUMN IF NOT EXISTS extra_fields JSONB DEFAULT '{}'::jsonb;
 
 CREATE TABLE IF NOT EXISTS public.proker (
     id TEXT PRIMARY KEY,
@@ -116,9 +119,11 @@ CREATE TABLE IF NOT EXISTS public.proker (
     tanggal_realisasi TIMESTAMPTZ,
     status TEXT DEFAULT 'belum',
     keterangan TEXT DEFAULT '',
+    extra_fields JSONB DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE public.proker ADD COLUMN IF NOT EXISTS extra_fields JSONB DEFAULT '{}'::jsonb;
 
 CREATE TABLE IF NOT EXISTS public.laporan_kegiatan (
     id TEXT PRIMARY KEY,
@@ -134,9 +139,11 @@ CREATE TABLE IF NOT EXISTS public.laporan_kegiatan (
     dokumentasi TEXT DEFAULT '',
     sekbid TEXT DEFAULT '',
     created_by TEXT DEFAULT '',
+    extra_fields JSONB DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE public.laporan_kegiatan ADD COLUMN IF NOT EXISTS extra_fields JSONB DEFAULT '{}'::jsonb;
 
 CREATE TABLE IF NOT EXISTS public.arsip (
     id TEXT PRIMARY KEY,
@@ -148,9 +155,11 @@ CREATE TABLE IF NOT EXISTS public.arsip (
     tanggal_unggah TIMESTAMPTZ DEFAULT now(),
     diunggah_oleh TEXT DEFAULT '',
     keterangan TEXT DEFAULT '',
+    extra_fields JSONB DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE public.arsip ADD COLUMN IF NOT EXISTS extra_fields JSONB DEFAULT '{}'::jsonb;
 
 CREATE TABLE IF NOT EXISTS public.file_riwayat (
     id TEXT PRIMARY KEY,
@@ -185,7 +194,9 @@ ALTER TABLE public.laporan_kegiatan REPLICA IDENTITY FULL;
 ALTER TABLE public.arsip REPLICA IDENTITY FULL;
 ALTER TABLE public.file_riwayat REPLICA IDENTITY FULL;
 
--- 6. Kebijakan Akses (Policy) untuk Public & Authenticated
+-- 6. Hak Akses (Policy & Grant) untuk anon, authenticated, dan service_role
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+
 DO $$
 DECLARE
     tbl text;
@@ -197,7 +208,9 @@ BEGIN
     ])
     LOOP
         EXECUTE format('DROP POLICY IF EXISTS "Allow all access to %I for all" ON public.%I', tbl, tbl);
+        EXECUTE format('DROP POLICY IF EXISTS "Enable all access for all users" ON public.%I', tbl, tbl);
         EXECUTE format('CREATE POLICY "Allow all access to %I for all" ON public.%I FOR ALL TO anon, authenticated USING (true) WITH CHECK (true)', tbl, tbl);
+        EXECUTE format('GRANT ALL ON public.%I TO anon, authenticated, service_role', tbl, tbl);
     END LOOP;
 END $$;
 
@@ -221,10 +234,41 @@ BEGIN
     END LOOP;
 END $$;
 
--- 8. Masukkan / Seed Konfigurasi Bawaan (Default App Settings)
-INSERT INTO public.app_settings (id, app_name, app_subtitle, logo_url, primary_color, default_theme_mode, default_language)
-VALUES ('global_config', 'OSIS Management', 'Sistem Manajemen OSIS Digital', '', '0xFF00B4D8', 'system', 'id')
+-- 8. Masukkan / Seed Konfigurasi Bawaan (Default App Settings & Form Builder Custom Fields)
+INSERT INTO public.app_settings (
+    id, app_name, app_subtitle, logo_url, primary_color, default_theme_mode, default_language,
+    sp1_threshold, sp2_threshold, sp3_threshold, skorsing_threshold, arsip_max_mb, arsip_folders, arsip_allowed_exts,
+    sekbid_list, laporan_categories, laporan_fields, pelanggaran_fields, rekap_types, custom_fields
+)
+VALUES (
+    'global_config',
+    'OSIS Management',
+    'Sistem Manajemen OSIS Digital',
+    '',
+    '0xFF00B4D8',
+    'system',
+    'id',
+    20,
+    50,
+    75,
+    100,
+    25,
+    '["Surat Masuk","Surat Keluar","Proposal Kegiatan","LPJ Kegiatan","Dokumentasi","SK & Sertifikat"]'::jsonb,
+    '["pdf","docx","xlsx","pptx","png","jpg","jpeg","zip"]'::jsonb,
+    '["SEKBID1","SEKBID2","SEKBID3","SEKBID4","SEKBID5","SEKBID6","SEKBID7","SEKBID8","SEKBID9","SEKBID10"]'::jsonb,
+    '["Kegiatan Rutin","Program Unggulan","Peringatan Hari Besar","Lomba & Kompetisi","Bakti Sosial","Rapat Kerja & Pleno","Lainnya"]'::jsonb,
+    '["Nama Kegiatan","Tanggal","Lokasi","Peserta / Sasaran","Deskripsi","Hasil / Capaian","Kendala & Evaluasi"]'::jsonb,
+    '["Saksi / Petugas","Lokasi Kejadian","Sanksi / Tindak Lanjut","Keterangan Tambahan"]'::jsonb,
+    '["Per Kelas","Per Siswa","Per Jenis Pelanggaran","Per Tingkat Kelas","Per Status SP"]'::jsonb,
+    '{"laporan":[{"id":"lap_nama","label":"Nama Kegiatan","type":"text","placeholder":"Contoh: LDKS 2026","isRequired":true,"options":[]},{"id":"lap_kategori","label":"Kategori Kegiatan","type":"dropdown","placeholder":"","isRequired":false,"options":["Kegiatan Rutin","Program Unggulan","Peringatan Hari Besar","Lomba & Kompetisi","Bakti Sosial","Rapat Kerja & Pleno","Lainnya"]},{"id":"lap_tgl","label":"Tanggal Pelaksanaan","type":"date","placeholder":"","isRequired":true,"options":[]},{"id":"lap_lokasi","label":"Lokasi Kegiatan","type":"text","placeholder":"Contoh: Aula Utama","isRequired":false,"options":[]},{"id":"lap_pj","label":"Ketua Pelaksana","type":"text","placeholder":"Nama Penanggung Jawab","isRequired":false,"options":[]},{"id":"lap_anggaran","label":"Anggaran Dana (Rp)","type":"number","placeholder":"0","isRequired":false,"options":[]},{"id":"lap_desk","label":"Deskripsi Kegiatan","type":"text","placeholder":"Uraian ringkas kegiatan...","isRequired":false,"options":[]},{"id":"lap_hasil","label":"Hasil / Capaian","type":"text","placeholder":"Hasil yang diperoleh...","isRequired":false,"options":[]},{"id":"lap_eval","label":"Kendala & Evaluasi","type":"text","placeholder":"Evaluasi kegiatan...","isRequired":false,"options":[]},{"id":"lap_dok","label":"Lampiran / Dokumentasi","type":"file","placeholder":"","isRequired":false,"options":[]}],"proker":[{"id":"prok_nama","label":"Nama Program Kerja","type":"text","placeholder":"Nama program...","isRequired":true,"options":[]},{"id":"prok_sekbid","label":"Divisi / Sekbid","type":"dropdown","placeholder":"","isRequired":false,"options":["Sekbid 1","Sekbid 2","Sekbid 3","Sekbid 4","Sekbid 5","Sekbid 6","Sekbid 7","Sekbid 8","Sekbid 9","Sekbid 10"]},{"id":"prok_pj","label":"Penanggung Jawab","type":"text","placeholder":"Nama PJ proker","isRequired":false,"options":[]},{"id":"prok_tgl_rencana","label":"Tanggal Rencana","type":"date","placeholder":"","isRequired":true,"options":[]},{"id":"prok_tgl_realisasi","label":"Tanggal Realisasi","type":"date","placeholder":"","isRequired":false,"options":[]},{"id":"prok_status","label":"Status Proker","type":"dropdown","placeholder":"","isRequired":false,"options":["Belum Berjalan","Sedang Berjalan","Selesai"]},{"id":"prok_desk","label":"Deskripsi Program","type":"text","placeholder":"Rincian proker...","isRequired":false,"options":[]},{"id":"prok_ket","label":"Keterangan Tambahan","type":"text","placeholder":"Catatan tambahan...","isRequired":false,"options":[]}],"pelanggaran":[{"id":"pel_siswa","label":"Nama Siswa","type":"select","placeholder":"Pilih siswa...","isRequired":true,"options":[]},{"id":"pel_tgl","label":"Tanggal Kejadian","type":"date","placeholder":"","isRequired":true,"options":[]},{"id":"pel_jenis","label":"Jenis Pelanggaran","type":"select","placeholder":"Pilih jenis tata tertib...","isRequired":true,"options":[]},{"id":"pel_lokasi","label":"Lokasi Kejadian","type":"text","placeholder":"Contoh: Kantin / Kelas","isRequired":false,"options":[]},{"id":"pel_petugas","label":"Petugas / Saksi","type":"text","placeholder":"Nama pencatat atau saksi","isRequired":false,"options":[]},{"id":"pel_sanksi","label":"Sanksi / Tindak Lanjut","type":"dropdown","placeholder":"","isRequired":false,"options":["Teguran Lisan","Teguran Tertulis (SP 1)","Peringatan Keras (SP 2)","Pemanggilan Orang Tua (SP 3)","Pembersihan Lingkungan","Skorsing"]},{"id":"pel_ket","label":"Keterangan Tambahan","type":"text","placeholder":"Catatan detail kejadian...","isRequired":false,"options":[]}],"rekap":[{"id":"rek_dimensi","label":"Dimensi Rekap","type":"dropdown","placeholder":"","isRequired":false,"options":["Per Kelas","Per Siswa","Per Jenis Pelanggaran","Per Tingkat Kelas","Per Status SP"]},{"id":"rek_sekolah","label":"Nama Sekolah","type":"text","placeholder":"","isRequired":false,"options":[]},{"id":"rek_kota","label":"Kota / Wilayah","type":"text","placeholder":"","isRequired":false,"options":[]},{"id":"rek_thn","label":"Tahun Ajaran","type":"text","placeholder":"","isRequired":false,"options":[]}],"arsip":[{"id":"ars_nama","label":"Nama Dokumen / Berkas","type":"text","placeholder":"Judul berkas...","isRequired":true,"options":[]},{"id":"ars_folder","label":"Folder Kategori","type":"dropdown","placeholder":"","isRequired":true,"options":["Surat Masuk","Surat Keluar","Proposal Kegiatan","LPJ Kegiatan","Dokumentasi","SK & Sertifikat"]},{"id":"ars_file","label":"File Dokumen","type":"file","placeholder":"","isRequired":true,"options":[]},{"id":"ars_ket","label":"Keterangan Berkas","type":"text","placeholder":"Keterangan tambahan...","isRequired":false,"options":[]}]}'::jsonb
+)
 ON CONFLICT (id) DO UPDATE SET
+    primary_color = COALESCE(public.app_settings.primary_color, EXCLUDED.primary_color),
+    custom_fields = CASE 
+        WHEN public.app_settings.custom_fields IS NULL OR public.app_settings.custom_fields = '{}'::jsonb 
+        THEN EXCLUDED.custom_fields 
+        ELSE public.app_settings.custom_fields 
+    END,
     updated_at = now();
 
 -- 9. Masukkan / Seed Data Akun Bawaan (Sesuai Struktur Database OSIS)
@@ -251,3 +295,4 @@ ON CONFLICT (username) DO UPDATE SET
     role = EXCLUDED.role,
     display_name = EXCLUDED.display_name,
     updated_at = now();
+

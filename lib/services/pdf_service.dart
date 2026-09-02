@@ -28,11 +28,7 @@ class PdfService {
       ]);
 
   static pw.Widget _schoolHeader({required String judul, required String periodeLabel, required String tanggal}) {
-    final schoolName = AppSettingsService.schoolNameNotifier.value.isNotEmpty
-        ? AppSettingsService.schoolNameNotifier.value
-        : AppSettingsService.appNameNotifier.value;
-    final academicYear = AppSettingsService.academicYearNotifier.value;
-    final city = AppSettingsService.cityNotifier.value;
+    final appName = AppSettingsService.appNameNotifier.value;
 
     return pw.Column(children: [
       pw.Row(
@@ -40,17 +36,13 @@ class PdfService {
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-            pw.Text(schoolName.toUpperCase(),
+            pw.Text(appName.toUpperCase(),
                 style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: _primaryColor)),
-            if (academicYear.isNotEmpty)
-              pw.Text('Tahun Ajaran / Periode: $academicYear',
-                  style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: _secondaryColor)),
             pw.SizedBox(height: 2),
             pw.Text(judul.toUpperCase(),
                 style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: _headerBgColor)),
           ]),
           pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.end, children: [
-            pw.Text('Wilayah: $city', style: const pw.TextStyle(fontSize: 9)),
             pw.Text('Tanggal Cetak: $tanggal', style: const pw.TextStyle(fontSize: 9)),
             pw.Text('Periode: $periodeLabel',
                 style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: _secondaryColor)),

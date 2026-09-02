@@ -50,20 +50,6 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
   // 5. Tata Tertib & Pelanggaran Lists
   List<String> _pelanggaranFields = [];
 
-  // 6. Data Sekolah & Rekap Lists
-  final _schoolNameCtrl = TextEditingController();
-  final _cityCtrl = TextEditingController();
-  final _academicYearCtrl = TextEditingController();
-  final _kepsekNameCtrl = TextEditingController();
-  final _kepsekNipCtrl = TextEditingController();
-  final _pembinaNameCtrl = TextEditingController();
-  final _pembinaNipCtrl = TextEditingController();
-  final _ketosNameCtrl = TextEditingController();
-  final _ketosNisCtrl = TextEditingController();
-  final _sekretarisNameCtrl = TextEditingController();
-  final _sekretarisNisCtrl = TextEditingController();
-  List<String> _rekapTypes = [];
-
   bool _saving = false;
   bool _isSyncing = false;
   StreamSubscription<String>? _dataSub;
@@ -72,7 +58,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 7, vsync: this);
+    _tabCtrl = TabController(length: 6, vsync: this);
 
     _loadCurrentConfigs();
     _loadAccounts();
@@ -121,19 +107,6 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
     _arsipMaxMbCtrl.text = AppSettingsService.arsipMaxMbNotifier.value.toString();
     _arsipFolders = List<String>.from(AppSettingsService.arsipFoldersNotifier.value);
     _arsipAllowedExts = List<String>.from(AppSettingsService.arsipAllowedExtsNotifier.value);
-
-    _schoolNameCtrl.text = AppSettingsService.schoolNameNotifier.value;
-    _cityCtrl.text = AppSettingsService.cityNotifier.value;
-    _academicYearCtrl.text = AppSettingsService.academicYearNotifier.value;
-    _kepsekNameCtrl.text = AppSettingsService.kepsekNameNotifier.value;
-    _kepsekNipCtrl.text = AppSettingsService.kepsekNipNotifier.value;
-    _pembinaNameCtrl.text = AppSettingsService.pembinaNameNotifier.value;
-    _pembinaNipCtrl.text = AppSettingsService.pembinaNipNotifier.value;
-    _ketosNameCtrl.text = AppSettingsService.ketosNameNotifier.value;
-    _ketosNisCtrl.text = AppSettingsService.ketosNisNotifier.value;
-    _sekretarisNameCtrl.text = AppSettingsService.sekretarisNameNotifier.value;
-    _sekretarisNisCtrl.text = AppSettingsService.sekretarisNisNotifier.value;
-    _rekapTypes = List<String>.from(AppSettingsService.rekapTypesNotifier.value);
   }
 
   @override
@@ -150,18 +123,6 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
     _skorsingCtrl.dispose();
 
     _arsipMaxMbCtrl.dispose();
-
-    _schoolNameCtrl.dispose();
-    _cityCtrl.dispose();
-    _academicYearCtrl.dispose();
-    _kepsekNameCtrl.dispose();
-    _kepsekNipCtrl.dispose();
-    _pembinaNameCtrl.dispose();
-    _pembinaNipCtrl.dispose();
-    _ketosNameCtrl.dispose();
-    _ketosNisCtrl.dispose();
-    _sekretarisNameCtrl.dispose();
-    _sekretarisNisCtrl.dispose();
 
     _dataSub?.cancel();
     super.dispose();
@@ -194,17 +155,6 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
 
     // 2. Simpan Konfigurasi Lainnya
     await AppSettingsService.saveAdminConfigs(
-      schoolName: _schoolNameCtrl.text.trim(),
-      city: _cityCtrl.text.trim(),
-      academicYear: _academicYearCtrl.text.trim(),
-      kepsekName: _kepsekNameCtrl.text.trim(),
-      kepsekNip: _kepsekNipCtrl.text.trim(),
-      pembinaName: _pembinaNameCtrl.text.trim(),
-      pembinaNip: _pembinaNipCtrl.text.trim(),
-      ketosName: _ketosNameCtrl.text.trim(),
-      ketosNis: _ketosNisCtrl.text.trim(),
-      sekretarisName: _sekretarisNameCtrl.text.trim(),
-      sekretarisNis: _sekretarisNisCtrl.text.trim(),
       sp1: int.tryParse(_sp1Ctrl.text.trim()),
       sp2: int.tryParse(_sp2Ctrl.text.trim()),
       sp3: int.tryParse(_sp3Ctrl.text.trim()),
@@ -216,7 +166,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
       sekbidList: _sekbidList,
       laporanCategories: _laporanCategories,
       laporanFields: _laporanFields,
-      rekapTypes: _rekapTypes,
+      customFields: _customFieldsMap,
     );
 
     if (!mounted) return;
@@ -433,7 +383,6 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
             Tab(text: 'Tata Tertib', icon: Icon(Icons.warning_amber_rounded, size: 18)),
             Tab(text: 'Proker & Sekbid', icon: Icon(Icons.assignment_outlined, size: 18)),
             Tab(text: 'Arsip & Berkas', icon: Icon(Icons.folder_outlined, size: 18)),
-            Tab(text: 'Sekolah & Legalitas', icon: Icon(Icons.school_outlined, size: 18)),
             Tab(text: 'Akun Pengguna', icon: Icon(Icons.manage_accounts_outlined, size: 18)),
           ],
         ),
@@ -446,7 +395,6 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
           _buildTataTertibTab(theme, isDark, primary),
           _buildProkerLaporanTab(theme, isDark, primary),
           _buildArsipTab(theme, isDark, primary),
-          _buildSekolahTab(theme, isDark, primary),
           _buildAccountsTab(theme, isDark, primary),
         ],
       ),
@@ -731,6 +679,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
                   });
 
                   AppSettingsService.customFieldsNotifier.value = Map.from(_customFieldsMap);
+                  AppSettingsService.saveAdminConfigs(customFields: _customFieldsMap);
 
                   Navigator.pop(ctx);
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -1186,6 +1135,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
                                 _customFieldsMap[_selectedConfigModule] = currentFields;
                               });
                               AppSettingsService.customFieldsNotifier.value = Map.from(_customFieldsMap);
+                              AppSettingsService.saveAdminConfigs(customFields: _customFieldsMap);
                             },
                             constraints: const BoxConstraints(),
                             padding: const EdgeInsets.all(6),
@@ -1431,43 +1381,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
     );
   }
 
-  Widget _buildSekolahTab(ThemeData theme, bool isDark, Color primary) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _sectionHeader(title: 'Identitas Sekolah & Tahun Ajaran', icon: Icons.domain_rounded, color: _selectedAccent),
-          const SizedBox(height: 12),
-          TextField(controller: _schoolNameCtrl, decoration: const InputDecoration(labelText: 'Nama Sekolah', prefixIcon: Icon(Icons.school_outlined))),
-          const SizedBox(height: 12),
-          TextField(controller: _cityCtrl, decoration: const InputDecoration(labelText: 'Kota / Wilayah', prefixIcon: Icon(Icons.location_city_outlined))),
-          const SizedBox(height: 12),
-          TextField(controller: _academicYearCtrl, decoration: const InputDecoration(labelText: 'Tahun Ajaran / Periode', prefixIcon: Icon(Icons.calendar_today_outlined))),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _sectionHeader(title: 'Dimensi Rekap Disiplin Siswa (${_rekapTypes.length})', icon: Icons.analytics_outlined, color: _selectedAccent),
-              IconButton(
-                icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.green),
-                onPressed: () => _showAddChipDialog('Dimensi Rekap Baru', (val) => setState(() => _rekapTypes.add(val))),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8, runSpacing: 8,
-            children: _rekapTypes.map((rt) => Chip(
-              label: Text(rt, style: const TextStyle(fontSize: 12)),
-              onDeleted: () => setState(() => _rekapTypes.remove(rt)),
-              deleteIconColor: Colors.redAccent,
-            )).toList(),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   Widget _buildAccountsTab(ThemeData theme, bool isDark, Color primary) {
     return Column(

@@ -79,6 +79,24 @@ class DataService {
             if (payload['logo_url'] != null) {
               AppSettingsService.logoUrlNotifier.value = payload['logo_url'].toString();
             }
+            if (payload['custom_fields'] != null) {
+              try {
+                dynamic raw = payload['custom_fields'];
+                if (raw is String) raw = jsonDecode(raw);
+                if (raw is Map) {
+                  final Map<String, List<AppCustomInputField>> map = {};
+                  raw.forEach((key, val) {
+                    if (val is List) {
+                      map[key.toString()] = val.map((e) => AppCustomInputField.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+                    }
+                  });
+                  if (map.isNotEmpty) {
+                    AppSettingsService.customFieldsNotifier.value = map;
+                    SharedPreferences.getInstance().then((p) => p.setString('cfg_dynamic_custom_fields', jsonEncode(raw)));
+                  }
+                }
+              } catch (_) {}
+            }
             AppSettingsService.syncFromSupabase();
           }
           notifyDataChanged(table);
@@ -109,6 +127,45 @@ class DataService {
               AuthService.syncWithSupabase();
             }
             if (table == 'app_settings' || table == 'sekbid') {
+              if (payload.newRecord.isNotEmpty) {
+                final newRec = payload.newRecord;
+                if (newRec['primary_color'] != null) {
+                  final colorStr = newRec['primary_color'].toString();
+                  try {
+                    final parsedInt = int.parse(colorStr.replaceFirst('#', '').replaceFirst('0x', ''), radix: 16);
+                    final fullColor = (parsedInt <= 0xFFFFFF) ? 0xFF000000 | parsedInt : parsedInt;
+                    AppSettingsService.accentColorNotifier.value = Color(fullColor);
+                    SharedPreferences.getInstance().then((p) => p.setInt('app_accent_color', fullColor));
+                  } catch (_) {}
+                }
+                if (newRec['app_name'] != null) {
+                  AppSettingsService.appNameNotifier.value = newRec['app_name'].toString();
+                }
+                if (newRec['app_subtitle'] != null) {
+                  AppSettingsService.appSubtitleNotifier.value = newRec['app_subtitle'].toString();
+                }
+                if (newRec['logo_url'] != null) {
+                  AppSettingsService.logoUrlNotifier.value = newRec['logo_url'].toString();
+                }
+                if (newRec['custom_fields'] != null) {
+                  try {
+                    dynamic raw = newRec['custom_fields'];
+                    if (raw is String) raw = jsonDecode(raw);
+                    if (raw is Map) {
+                      final Map<String, List<AppCustomInputField>> map = {};
+                      raw.forEach((key, val) {
+                        if (val is List) {
+                          map[key.toString()] = val.map((e) => AppCustomInputField.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+                        }
+                      });
+                      if (map.isNotEmpty) {
+                        AppSettingsService.customFieldsNotifier.value = map;
+                        SharedPreferences.getInstance().then((p) => p.setString('cfg_dynamic_custom_fields', jsonEncode(raw)));
+                      }
+                    }
+                  } catch (_) {}
+                }
+              }
               AppSettingsService.syncFromSupabase();
             }
             notifyDataChanged(table);

@@ -81,21 +81,6 @@ class AppSettingsService {
   static const _keyEnabledLanguages = 'app_enabled_languages';
 
   // Admin Config Keys
-  static const _keySchoolName = 'cfg_school_name';
-  static const _keyCity = 'cfg_city';
-  static const _keyAcademicYear = 'cfg_academic_year';
-  static const _keyKepsekName = 'cfg_kepsek_name';
-  static const _keyKepsekNip = 'cfg_kepsek_nip';
-  static const _keyPembinaName = 'cfg_pembina_name';
-  static const _keyPembinaNip = 'cfg_pembina_nip';
-  static const _keyKetosName = 'cfg_ketos_name';
-  static const _keyKetosNis = 'cfg_ketos_nis';
-  static const _keySekretarisName = 'cfg_sekretaris_name';
-  static const _keySekretarisNis = 'cfg_sekretaris_nis';
-  static const _keyTtdKepsek = 'cfg_ttd_kepsek';
-  static const _keyTtdPembina = 'cfg_ttd_pembina';
-  static const _keyTtdKetos = 'cfg_ttd_ketos';
-  static const _keyTtdSekretaris = 'cfg_ttd_sekretaris';
   static const _keySp1Threshold = 'cfg_sp1_threshold';
   static const _keySp2Threshold = 'cfg_sp2_threshold';
   static const _keySp3Threshold = 'cfg_sp3_threshold';
@@ -133,24 +118,6 @@ class AppSettingsService {
   static final ValueNotifier<List<String>> enabledLanguagesNotifier = ValueNotifier(['id', 'en', 'su', 'jv', 'ar', 'ja']);
 
   // Admin Config Value Notifiers
-  static final ValueNotifier<String> schoolNameNotifier = ValueNotifier('SMK Bakti Nusantara 666');
-  static final ValueNotifier<String> cityNotifier = ValueNotifier('Bandung');
-  static final ValueNotifier<String> academicYearNotifier = ValueNotifier('2026/2027');
-
-  static final ValueNotifier<String> kepsekNameNotifier = ValueNotifier('Drs. H. Ahmad Sudrajat, M.M.');
-  static final ValueNotifier<String> kepsekNipNotifier = ValueNotifier('19750815 199903 1 004');
-  static final ValueNotifier<String> pembinaNameNotifier = ValueNotifier('Rina Marlina, S.Pd.');
-  static final ValueNotifier<String> pembinaNipNotifier = ValueNotifier('19880210 201502 2 001');
-  static final ValueNotifier<String> ketosNameNotifier = ValueNotifier('Endy Mahavira');
-  static final ValueNotifier<String> ketosNisNotifier = ValueNotifier('22231001');
-  static final ValueNotifier<String> sekretarisNameNotifier = ValueNotifier('Siti Nurhaliza');
-  static final ValueNotifier<String> sekretarisNisNotifier = ValueNotifier('22231045');
-
-  static final ValueNotifier<String> ttdKepsekNotifier = ValueNotifier('');
-  static final ValueNotifier<String> ttdPembinaNotifier = ValueNotifier('');
-  static final ValueNotifier<String> ttdKetosNotifier = ValueNotifier('');
-  static final ValueNotifier<String> ttdSekretarisNotifier = ValueNotifier('');
-
   static final ValueNotifier<int> sp1ThresholdNotifier = ValueNotifier(20);
   static final ValueNotifier<int> sp2ThresholdNotifier = ValueNotifier(50);
   static final ValueNotifier<int> sp3ThresholdNotifier = ValueNotifier(75);
@@ -389,24 +356,6 @@ class AppSettingsService {
     }
 
     // 5. Load Admin Configs
-    schoolNameNotifier.value = prefs.getString(_keySchoolName) ?? schoolNameNotifier.value;
-    cityNotifier.value = prefs.getString(_keyCity) ?? cityNotifier.value;
-    academicYearNotifier.value = prefs.getString(_keyAcademicYear) ?? academicYearNotifier.value;
-
-    kepsekNameNotifier.value = prefs.getString(_keyKepsekName) ?? kepsekNameNotifier.value;
-    kepsekNipNotifier.value = prefs.getString(_keyKepsekNip) ?? kepsekNipNotifier.value;
-    pembinaNameNotifier.value = prefs.getString(_keyPembinaName) ?? pembinaNameNotifier.value;
-    pembinaNipNotifier.value = prefs.getString(_keyPembinaNip) ?? pembinaNipNotifier.value;
-    ketosNameNotifier.value = prefs.getString(_keyKetosName) ?? ketosNameNotifier.value;
-    ketosNisNotifier.value = prefs.getString(_keyKetosNis) ?? ketosNisNotifier.value;
-    sekretarisNameNotifier.value = prefs.getString(_keySekretarisName) ?? sekretarisNameNotifier.value;
-    sekretarisNisNotifier.value = prefs.getString(_keySekretarisNis) ?? sekretarisNisNotifier.value;
-
-    ttdKepsekNotifier.value = prefs.getString(_keyTtdKepsek) ?? '';
-    ttdPembinaNotifier.value = prefs.getString(_keyTtdPembina) ?? '';
-    ttdKetosNotifier.value = prefs.getString(_keyTtdKetos) ?? '';
-    ttdSekretarisNotifier.value = prefs.getString(_keyTtdSekretaris) ?? '';
-
     sp1ThresholdNotifier.value = prefs.getInt(_keySp1Threshold) ?? sp1ThresholdNotifier.value;
     sp2ThresholdNotifier.value = prefs.getInt(_keySp2Threshold) ?? sp2ThresholdNotifier.value;
     sp3ThresholdNotifier.value = prefs.getInt(_keySp3Threshold) ?? sp3ThresholdNotifier.value;
@@ -564,21 +513,6 @@ class AppSettingsService {
   }
 
   static Future<void> saveAdminConfigs({
-    String? schoolName,
-    String? city,
-    String? academicYear,
-    String? kepsekName,
-    String? kepsekNip,
-    String? pembinaName,
-    String? pembinaNip,
-    String? ketosName,
-    String? ketosNis,
-    String? sekretarisName,
-    String? sekretarisNis,
-    String? ttdKepsek,
-    String? ttdPembina,
-    String? ttdKetos,
-    String? ttdSekretaris,
     int? sp1,
     int? sp2,
     int? sp3,
@@ -602,69 +536,6 @@ class AppSettingsService {
         serializable[k] = v.map((f) => f.toJson()).toList();
       });
       await prefs.setString(_keyCustomFields, jsonEncode(serializable));
-    }
-
-    if (schoolName != null) {
-      schoolNameNotifier.value = schoolName;
-      await prefs.setString(_keySchoolName, schoolName);
-    }
-    if (city != null) {
-      cityNotifier.value = city;
-      await prefs.setString(_keyCity, city);
-    }
-    if (academicYear != null) {
-      academicYearNotifier.value = academicYear;
-      await prefs.setString(_keyAcademicYear, academicYear);
-    }
-
-    if (kepsekName != null) {
-      kepsekNameNotifier.value = kepsekName;
-      await prefs.setString(_keyKepsekName, kepsekName);
-    }
-    if (kepsekNip != null) {
-      kepsekNipNotifier.value = kepsekNip;
-      await prefs.setString(_keyKepsekNip, kepsekNip);
-    }
-    if (pembinaName != null) {
-      pembinaNameNotifier.value = pembinaName;
-      await prefs.setString(_keyPembinaName, pembinaName);
-    }
-    if (pembinaNip != null) {
-      pembinaNipNotifier.value = pembinaNip;
-      await prefs.setString(_keyPembinaNip, pembinaNip);
-    }
-    if (ketosName != null) {
-      ketosNameNotifier.value = ketosName;
-      await prefs.setString(_keyKetosName, ketosName);
-    }
-    if (ketosNis != null) {
-      ketosNisNotifier.value = ketosNis;
-      await prefs.setString(_keyKetosNis, ketosNis);
-    }
-    if (sekretarisName != null) {
-      sekretarisNameNotifier.value = sekretarisName;
-      await prefs.setString(_keySekretarisName, sekretarisName);
-    }
-    if (sekretarisNis != null) {
-      sekretarisNisNotifier.value = sekretarisNis;
-      await prefs.setString(_keySekretarisNis, sekretarisNis);
-    }
-
-    if (ttdKepsek != null) {
-      ttdKepsekNotifier.value = ttdKepsek;
-      await prefs.setString(_keyTtdKepsek, ttdKepsek);
-    }
-    if (ttdPembina != null) {
-      ttdPembinaNotifier.value = ttdPembina;
-      await prefs.setString(_keyTtdPembina, ttdPembina);
-    }
-    if (ttdKetos != null) {
-      ttdKetosNotifier.value = ttdKetos;
-      await prefs.setString(_keyTtdKetos, ttdKetos);
-    }
-    if (ttdSekretaris != null) {
-      ttdSekretarisNotifier.value = ttdSekretaris;
-      await prefs.setString(_keyTtdSekretaris, ttdSekretaris);
     }
 
     if (sp1 != null) {
@@ -737,21 +608,6 @@ class AppSettingsService {
       'app_subtitle': appSubtitleNotifier.value,
       'logo_url': logoUrlNotifier.value,
       'primary_color': colorHex,
-      'school_name': schoolNameNotifier.value,
-      'city': cityNotifier.value,
-      'academic_year': academicYearNotifier.value,
-      'kepsek_name': kepsekNameNotifier.value,
-      'kepsek_nip': kepsekNipNotifier.value,
-      'pembina_name': pembinaNameNotifier.value,
-      'pembina_nip': pembinaNipNotifier.value,
-      'ketos_name': ketosNameNotifier.value,
-      'ketos_nis': ketosNisNotifier.value,
-      'sekretaris_name': sekretarisNameNotifier.value,
-      'sekretaris_nis': sekretarisNisNotifier.value,
-      'ttd_kepsek': ttdKepsekNotifier.value,
-      'ttd_pembina': ttdPembinaNotifier.value,
-      'ttd_ketos': ttdKetosNotifier.value,
-      'ttd_sekretaris': ttdSekretarisNotifier.value,
       'sp1_threshold': sp1ThresholdNotifier.value,
       'sp2_threshold': sp2ThresholdNotifier.value,
       'sp3_threshold': sp3ThresholdNotifier.value,
@@ -788,9 +644,6 @@ class AppSettingsService {
               'app_subtitle': appSubtitleNotifier.value,
               'logo_url': logoUrlNotifier.value,
               'primary_color': colorHex,
-              'school_name': schoolNameNotifier.value,
-              'city': cityNotifier.value,
-              'academic_year': academicYearNotifier.value,
               'sp1_threshold': sp1ThresholdNotifier.value,
               'sp2_threshold': sp2ThresholdNotifier.value,
               'sp3_threshold': sp3ThresholdNotifier.value,
@@ -863,68 +716,7 @@ class AppSettingsService {
           }
         }
 
-        if (data['school_name'] != null) {
-          schoolNameNotifier.value = data['school_name'].toString();
-          await prefs.setString(_keySchoolName, schoolNameNotifier.value);
-        }
-        if (data['city'] != null) {
-          cityNotifier.value = data['city'].toString();
-          await prefs.setString(_keyCity, cityNotifier.value);
-        }
-        if (data['academic_year'] != null) {
-          academicYearNotifier.value = data['academic_year'].toString();
-          await prefs.setString(_keyAcademicYear, academicYearNotifier.value);
-        }
 
-        if (data['kepsek_name'] != null) {
-          kepsekNameNotifier.value = data['kepsek_name'].toString();
-          await prefs.setString(_keyKepsekName, kepsekNameNotifier.value);
-        }
-        if (data['kepsek_nip'] != null) {
-          kepsekNipNotifier.value = data['kepsek_nip'].toString();
-          await prefs.setString(_keyKepsekNip, kepsekNipNotifier.value);
-        }
-        if (data['pembina_name'] != null) {
-          pembinaNameNotifier.value = data['pembina_name'].toString();
-          await prefs.setString(_keyPembinaName, pembinaNameNotifier.value);
-        }
-        if (data['pembina_nip'] != null) {
-          pembinaNipNotifier.value = data['pembina_nip'].toString();
-          await prefs.setString(_keyPembinaNip, pembinaNipNotifier.value);
-        }
-        if (data['ketos_name'] != null) {
-          ketosNameNotifier.value = data['ketos_name'].toString();
-          await prefs.setString(_keyKetosName, ketosNameNotifier.value);
-        }
-        if (data['ketos_nis'] != null) {
-          ketosNisNotifier.value = data['ketos_nis'].toString();
-          await prefs.setString(_keyKetosNis, ketosNisNotifier.value);
-        }
-        if (data['sekretaris_name'] != null) {
-          sekretarisNameNotifier.value = data['sekretaris_name'].toString();
-          await prefs.setString(_keySekretarisName, sekretarisNameNotifier.value);
-        }
-        if (data['sekretaris_nis'] != null) {
-          sekretarisNisNotifier.value = data['sekretaris_nis'].toString();
-          await prefs.setString(_keySekretarisNis, sekretarisNisNotifier.value);
-        }
-
-        if (data['ttd_kepsek'] != null) {
-          ttdKepsekNotifier.value = data['ttd_kepsek'].toString();
-          await prefs.setString(_keyTtdKepsek, ttdKepsekNotifier.value);
-        }
-        if (data['ttd_pembina'] != null) {
-          ttdPembinaNotifier.value = data['ttd_pembina'].toString();
-          await prefs.setString(_keyTtdPembina, ttdPembinaNotifier.value);
-        }
-        if (data['ttd_ketos'] != null) {
-          ttdKetosNotifier.value = data['ttd_ketos'].toString();
-          await prefs.setString(_keyTtdKetos, ttdKetosNotifier.value);
-        }
-        if (data['ttd_sekretaris'] != null) {
-          ttdSekretarisNotifier.value = data['ttd_sekretaris'].toString();
-          await prefs.setString(_keyTtdSekretaris, ttdSekretarisNotifier.value);
-        }
 
         if (data['sp1_threshold'] != null) {
           sp1ThresholdNotifier.value = int.tryParse(data['sp1_threshold'].toString()) ?? 20;
