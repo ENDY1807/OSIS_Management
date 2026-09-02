@@ -285,9 +285,11 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
                     await _load();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: kAccent,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    elevation: 2,
                   ),
                   child: Text(
                     LocalizationService.tr('btn_save'),

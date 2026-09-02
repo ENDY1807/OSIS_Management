@@ -287,7 +287,13 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
                   const SnackBar(content: Text('Akun berhasil disimpan'), backgroundColor: Colors.green),
                 );
               },
-              child: Text(LocalizationService.tr('btn_save')),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: Text(LocalizationService.tr('btn_save'), style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -366,8 +372,15 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
             padding: const EdgeInsets.only(right: 8),
             child: ElevatedButton.icon(
               onPressed: _saving ? null : _saveAllConfigs,
-              icon: _saving ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Icon(Icons.cloud_upload_rounded, size: 18),
-              label: Text(_saving ? '...' : LocalizationService.tr('btn_save_changes')),
+              icon: _saving ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: isDark ? Colors.white : theme.colorScheme.primary, strokeWidth: 2)) : const Icon(Icons.cloud_upload_rounded, size: 18),
+              label: Text(_saving ? '...' : LocalizationService.tr('btn_save_changes'), style: const TextStyle(fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isDark ? theme.colorScheme.primary : Colors.white,
+                foregroundColor: isDark ? Colors.white : theme.colorScheme.primary,
+                elevation: 2,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
             ),
           ),
         ],
@@ -690,7 +703,13 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
                     ),
                   );
                 },
-                child: Text(LocalizationService.tr('btn_save')),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: Text(LocalizationService.tr('btn_save'), style: const TextStyle(fontWeight: FontWeight.bold)),
               ),
             ],
           );

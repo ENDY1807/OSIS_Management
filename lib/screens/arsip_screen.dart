@@ -1019,9 +1019,11 @@ class ArsipScreenState extends State<ArsipScreen> {
                 await _load();
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: kAccent,
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 2,
               ),
             ),
           ],
@@ -1093,9 +1095,11 @@ class ArsipScreenState extends State<ArsipScreen> {
                 await _load();
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: kAccent,
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 2,
               ),
             ),
           ],
@@ -1330,9 +1334,11 @@ class ArsipScreenState extends State<ArsipScreen> {
                     }
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: kAccent,
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    elevation: 2,
                   ),
                   child: uploading
                       ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))

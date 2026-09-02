@@ -102,10 +102,12 @@ ThemeData buildAppTheme({
         style: ElevatedButton.styleFrom(
           backgroundColor: accent,
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, letterSpacing: 0.3),
+          disabledBackgroundColor: const Color(0xFF1E293B),
+          disabledForegroundColor: const Color(0xFF64748B),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          elevation: 2,
+          padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, letterSpacing: 0.3),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -241,10 +243,12 @@ ThemeData buildAppTheme({
       style: ElevatedButton.styleFrom(
         backgroundColor: accent,
         foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        elevation: 0,
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        disabledBackgroundColor: const Color(0xFFE2E8F0),
+        disabledForegroundColor: const Color(0xFF94A3B8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        elevation: 2,
+        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+        textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, letterSpacing: 0.3),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(

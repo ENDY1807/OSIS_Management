@@ -293,11 +293,16 @@ class _LaporanScreenState extends State<LaporanScreen> {
                     _load();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: kPrimary,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    elevation: 2,
                   ),
-                  child: Text(LocalizationService.tr('btn_save'), style: const TextStyle(fontWeight: FontWeight.bold)),
+                  child: Text(
+                    LocalizationService.tr('btn_save'),
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
                 ),
               ],
             ),
