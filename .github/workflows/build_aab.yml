@@ -53,8 +53,8 @@ jobs:
         if: startsWith(github.ref, 'refs/heads/main') || startsWith(github.ref, 'refs/heads/master')
         continue-on-error: true
         with:
-          tag_name: v1.0.2-aab-build${{ github.run_number }}
-          name: OSIS Management AppBundle v1.0.2 (Build #${{ github.run_number }})
+          tag_name: v1.0.4-aab-build${{ github.run_number }}
+          name: OSIS Management AppBundle v1.0.4 (Build #${{ github.run_number }})
           body: |
             ## 📦 Android App Bundle (.aab) Release
             File Android App Bundle siap diunggah ke Google Play Store / console.

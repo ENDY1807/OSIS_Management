@@ -53,8 +53,8 @@ jobs:
         if: startsWith(github.ref, 'refs/heads/main') || startsWith(github.ref, 'refs/heads/master')
         continue-on-error: true
         with:
-          tag_name: v1.0.2-build${{ github.run_number }}
-          name: OSIS Management Release v1.0.2 (Build #${{ github.run_number }})
+          tag_name: v1.0.4-build${{ github.run_number }}
+          name: OSIS Management Release v1.0.4 (Build #${{ github.run_number }})
           body: |
             ## 📱 Unduh Aplikasi OSIS Management (Release Terbaru)
             Klik file `OSIS_Management.apk` di bawah untuk langsung mengunduh dan menginstal aplikasi di HP Android.
