@@ -26,37 +26,75 @@ class _ProkerScreenState extends State<ProkerScreen>
   String _currentUser = '';
   String _filterSekbid = 'Semua';
   bool _userLoaded = false;
-  bool get _isAdmin =>
-      _currentUser == 'ADMIN' || AuthService.getRole(_currentUser) == 'ADMIN';
-  bool get _isSuperUser =>
-      _isAdmin ||
-      ['KETUA', 'WAKIL', 'SEKRETARIS', 'BENDAHARA'].contains(_currentUser);
-  bool get _isPembina =>
-      _isAdmin ||
-      _currentUser == 'PEMBINA' ||
-      _currentUser == 'KESISWAAN' ||
-      AuthService.getRole(_currentUser) == 'PEMBINA' ||
-      AuthService.getRole(_currentUser) == 'KESISWAAN';
-  bool get _isProkerUnit => AuthService.prokerUnits.contains(_currentUser);
-  bool get _canEdit => _isSuperUser || _isPembina || _isProkerUnit;
-  // Unit hanya bisa CRUD proker miliknya sendiri, kecuali SuperUser/Pembina
-  bool _canEditProker(Proker p) =>
-      _isAdmin ||
-      _isPembina ||
-      p.sekbid == _currentUser ||
-      (_isSuperUser &&
-          ['KETUA', 'WAKIL', 'SEKRETARIS', 'BENDAHARA'].contains(p.sekbid));
+
+  bool get _isAdmin {
+    final u = _currentUser.toUpperCase();
+    return u == 'ADMIN' || AuthService.getRole(u).toUpperCase() == 'ADMIN';
+  }
+
+  /// Kesiswaan, Pembina, Ketua, Wakil, Sekre, Bendahara, dan Admin
+  /// memiliki akses penuh untuk edit, hapus, dan kelola proker semua sekbid.
+  bool get _isSuperStaff {
+    final u = _currentUser.toUpperCase();
+    final role = AuthService.getRole(u).toUpperCase();
+    const superRoles = {
+      'ADMIN',
+      'PEMBINA',
+      'KESISWAAN',
+      'KETUA',
+      'WAKIL',
+      'SEKRETARIS',
+      'BENDAHARA',
+    };
+    return _isAdmin || superRoles.contains(u) || superRoles.contains(role);
+  }
+
+  bool get _canCreateProker =>
+      _isSuperStaff || AuthService.prokerUnits.contains(_currentUser);
+
+  /// Cek hak akses edit/hapus untuk suatu proker:
+  /// - SuperStaff (Admin, Pembina, Kesiswaan, Ketua, Wakil, Sekre, Bendahara) -> BEBAS edit proker sekbid mana saja.
+  /// - User Sekbid (contoh: sekbid1) -> HANYA bisa edit & hapus proker sekbid miliknya sendiri.
+  bool _canEditProker(Proker p) {
+    if (_isSuperStaff) return true;
+    final u = _currentUser.toUpperCase();
+    final pSekbid = p.sekbid.toUpperCase();
+    return pSekbid == u;
+  }
 
   @override
   void initState() {
     super.initState();
     _tab = TabController(length: 3, vsync: this);
     _tab.addListener(() => setState(() {}));
+    _initUser();
     _dataSub = DataService.onDataChanged.listen((table) {
       if (table == 'proker' || table == 'app_settings' || table == 'all') {
         if (mounted) _load();
       }
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant ProkerScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.username != widget.username) {
+      _initUser();
+    }
+  }
+
+  Future<void> _initUser() async {
+    String u = widget.username;
+    if (u.isEmpty) {
+      u = (await AuthService.getUserName()) ?? '';
+    }
+    if (mounted) {
+      setState(() {
+        _currentUser = AuthService.normalizeUsername(u);
+        _userLoaded = true;
+      });
+      _load();
+    }
   }
 
   @override
@@ -75,8 +113,8 @@ class _ProkerScreenState extends State<ProkerScreen>
 
   List<Proker> get _filtered {
     List<Proker> list = _proker;
-    if ((_isSuperUser || _isPembina) && _filterSekbid != 'Semua') {
-      list = list.where((p) => p.sekbid == _filterSekbid).toList();
+    if (_filterSekbid != 'Semua') {
+      list = list.where((p) => p.sekbid.toUpperCase() == _filterSekbid.toUpperCase()).toList();
     }
     switch (_tab.index) {
       case 0:
@@ -122,7 +160,7 @@ class _ProkerScreenState extends State<ProkerScreen>
 
     final prokerUnits = AuthService.prokerUnits;
     String selectedSekbid = existing?.sekbid ??
-        ((_isSuperUser || _isPembina)
+        (_isSuperStaff
             ? (_currentUser.isNotEmpty && prokerUnits.contains(_currentUser)
                 ? _currentUser
                 : prokerUnits.first)
@@ -216,7 +254,7 @@ class _ProkerScreenState extends State<ProkerScreen>
                 const SizedBox(height: 16),
                 ...configuredFields.map((field) {
                   if (field.id == 'prok_sekbid') {
-                    if (_isSuperUser || _isPembina) {
+                    if (_isSuperStaff) {
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: DropdownButtonFormField<String>(
@@ -615,9 +653,9 @@ class _ProkerScreenState extends State<ProkerScreen>
     final isDark = theme.brightness == Brightness.dark;
     final primary = theme.colorScheme.primary;
 
-    final allSekbid = (_isSuperUser || _isPembina)
+    final allSekbid = _isSuperStaff
         ? [LocalizationService.tr('btn_all'), ...AuthService.prokerUnits]
-        : [_currentUser];
+        : [LocalizationService.tr('btn_all'), _currentUser];
     final totalBelum =
         _proker.where((p) => p.status == StatusProker.belum).length;
     final totalBerjalan =
@@ -652,7 +690,7 @@ class _ProkerScreenState extends State<ProkerScreen>
             ),
           ),
 
-          if (_isSuperUser || _isPembina)
+          if (_isSuperStaff)
             Container(
               color: isDark ? const Color(0xFF141D2E) : Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -759,7 +797,7 @@ class _ProkerScreenState extends State<ProkerScreen>
           ),
         ],
       ),
-      floatingActionButton: (_userLoaded && (_canEdit || _isProkerUnit))
+      floatingActionButton: (_userLoaded && _canCreateProker)
           ? FloatingActionButton.extended(
               onPressed: () => _showForm(),
               icon: const Icon(Icons.add),
