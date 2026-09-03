@@ -10,27 +10,30 @@ import '../models/models.dart';
 import 'auth_service.dart';
 import 'sync_service.dart';
 import 'app_settings_service.dart';
+import 'baknus_drive_service.dart';
 
 const _uuid = Uuid();
 
 class DataService {
   static const _supabaseUrl = 'https://vvvrzxaxnumtstlgovqw.supabase.co';
-  static const _supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2dnJ6eGF4bnVtdHN0bGdvdnF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2MzMxOTksImV4cCI6MjA5ODIwOTE5OX0.XHGfzuADTS9BCILR6FAm0RIOxpslwX6DJkABYaan1Eo';
+  static const _supabaseKey =
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2dnJ6eGF4bnVtdHN0bGdvdnF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2MzMxOTksImV4cCI6MjA5ODIwOTE5OX0.XHGfzuADTS9BCILR6FAm0RIOxpslwX6DJkABYaan1Eo';
 
   static const _keyFileRiwayat = 'file_riwayat';
 
   // Cache keys (fallback offline)
-  static const _keySiswa        = 'siswa';
-  static const _keyJenis        = 'jenis_pelanggaran';
-  static const _keyPelanggaran  = 'pelanggaran';
-  static const _keyProker       = 'proker';
-  static const _keyArsip        = 'arsip';
-  static const _keyArsipFolder  = 'arsip_folder';
-  static const _keyLaporan      = 'laporan_kegiatan_v2';
-  static const _keySekbid       = 'sekbid';
+  static const _keySiswa = 'siswa';
+  static const _keyJenis = 'jenis_pelanggaran';
+  static const _keyPelanggaran = 'pelanggaran';
+  static const _keyProker = 'proker';
+  static const _keyArsip = 'arsip';
+  static const _keyArsipFolder = 'arsip_folder';
+  static const _keyLaporan = 'laporan_kegiatan_v2';
+  static const _keySekbid = 'sekbid';
   static final String _localClientId = const Uuid().v4();
 
-  static final StreamController<String> _dataChangeController = StreamController<String>.broadcast();
+  static final StreamController<String> _dataChangeController =
+      StreamController<String>.broadcast();
   static Stream<String> get onDataChanged => _dataChangeController.stream;
   static RealtimeChannel? _realtimeChannel;
 
@@ -56,7 +59,8 @@ class DataService {
           }
 
           final table = payload['table']?.toString() ?? 'all';
-          debugPrint('Realtime broadcast data changed from remote device: $table');
+          debugPrint(
+              'Realtime broadcast data changed from remote device: $table');
           if (table == 'accounts' || table == 'all') {
             AuthService.syncWithSupabase();
           }
@@ -64,20 +68,28 @@ class DataService {
             if (payload['primary_color'] != null) {
               final colorStr = payload['primary_color'].toString();
               try {
-                final parsedInt = int.parse(colorStr.replaceFirst('#', '').replaceFirst('0x', ''), radix: 16);
-                final fullColor = (parsedInt <= 0xFFFFFF) ? 0xFF000000 | parsedInt : parsedInt;
+                final parsedInt = int.parse(
+                    colorStr.replaceFirst('#', '').replaceFirst('0x', ''),
+                    radix: 16);
+                final fullColor = (parsedInt <= 0xFFFFFF)
+                    ? 0xFF000000 | parsedInt
+                    : parsedInt;
                 AppSettingsService.accentColorNotifier.value = Color(fullColor);
-                SharedPreferences.getInstance().then((p) => p.setInt('app_accent_color', fullColor));
+                SharedPreferences.getInstance()
+                    .then((p) => p.setInt('app_accent_color', fullColor));
               } catch (_) {}
             }
             if (payload['app_name'] != null) {
-              AppSettingsService.appNameNotifier.value = payload['app_name'].toString();
+              AppSettingsService.appNameNotifier.value =
+                  payload['app_name'].toString();
             }
             if (payload['app_subtitle'] != null) {
-              AppSettingsService.appSubtitleNotifier.value = payload['app_subtitle'].toString();
+              AppSettingsService.appSubtitleNotifier.value =
+                  payload['app_subtitle'].toString();
             }
             if (payload['logo_url'] != null) {
-              AppSettingsService.logoUrlNotifier.value = payload['logo_url'].toString();
+              AppSettingsService.logoUrlNotifier.value =
+                  payload['logo_url'].toString();
             }
             if (payload['custom_fields'] != null) {
               try {
@@ -87,12 +99,16 @@ class DataService {
                   final Map<String, List<AppCustomInputField>> map = {};
                   raw.forEach((key, val) {
                     if (val is List) {
-                      map[key.toString()] = val.map((e) => AppCustomInputField.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+                      map[key.toString()] = val
+                          .map((e) => AppCustomInputField.fromJson(
+                              Map<String, dynamic>.from(e as Map)))
+                          .toList();
                     }
                   });
                   if (map.isNotEmpty) {
                     AppSettingsService.customFieldsNotifier.value = map;
-                    SharedPreferences.getInstance().then((p) => p.setString('cfg_dynamic_custom_fields', jsonEncode(raw)));
+                    SharedPreferences.getInstance().then((p) => p.setString(
+                        'cfg_dynamic_custom_fields', jsonEncode(raw)));
                   }
                 }
               } catch (_) {}
@@ -132,20 +148,29 @@ class DataService {
                 if (newRec['primary_color'] != null) {
                   final colorStr = newRec['primary_color'].toString();
                   try {
-                    final parsedInt = int.parse(colorStr.replaceFirst('#', '').replaceFirst('0x', ''), radix: 16);
-                    final fullColor = (parsedInt <= 0xFFFFFF) ? 0xFF000000 | parsedInt : parsedInt;
-                    AppSettingsService.accentColorNotifier.value = Color(fullColor);
-                    SharedPreferences.getInstance().then((p) => p.setInt('app_accent_color', fullColor));
+                    final parsedInt = int.parse(
+                        colorStr.replaceFirst('#', '').replaceFirst('0x', ''),
+                        radix: 16);
+                    final fullColor = (parsedInt <= 0xFFFFFF)
+                        ? 0xFF000000 | parsedInt
+                        : parsedInt;
+                    AppSettingsService.accentColorNotifier.value =
+                        Color(fullColor);
+                    SharedPreferences.getInstance()
+                        .then((p) => p.setInt('app_accent_color', fullColor));
                   } catch (_) {}
                 }
                 if (newRec['app_name'] != null) {
-                  AppSettingsService.appNameNotifier.value = newRec['app_name'].toString();
+                  AppSettingsService.appNameNotifier.value =
+                      newRec['app_name'].toString();
                 }
                 if (newRec['app_subtitle'] != null) {
-                  AppSettingsService.appSubtitleNotifier.value = newRec['app_subtitle'].toString();
+                  AppSettingsService.appSubtitleNotifier.value =
+                      newRec['app_subtitle'].toString();
                 }
                 if (newRec['logo_url'] != null) {
-                  AppSettingsService.logoUrlNotifier.value = newRec['logo_url'].toString();
+                  AppSettingsService.logoUrlNotifier.value =
+                      newRec['logo_url'].toString();
                 }
                 if (newRec['custom_fields'] != null) {
                   try {
@@ -155,12 +180,16 @@ class DataService {
                       final Map<String, List<AppCustomInputField>> map = {};
                       raw.forEach((key, val) {
                         if (val is List) {
-                          map[key.toString()] = val.map((e) => AppCustomInputField.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+                          map[key.toString()] = val
+                              .map((e) => AppCustomInputField.fromJson(
+                                  Map<String, dynamic>.from(e as Map)))
+                              .toList();
                         }
                       });
                       if (map.isNotEmpty) {
                         AppSettingsService.customFieldsNotifier.value = map;
-                        SharedPreferences.getInstance().then((p) => p.setString('cfg_dynamic_custom_fields', jsonEncode(raw)));
+                        SharedPreferences.getInstance().then((p) => p.setString(
+                            'cfg_dynamic_custom_fields', jsonEncode(raw)));
                       }
                     }
                   } catch (_) {}
@@ -185,7 +214,10 @@ class DataService {
     }
     final cache = await _readCache(_keySekbid);
     if (cache.isNotEmpty) {
-      final list = cache.map((e) => (e['name'] ?? e['nama'] ?? '').toString()).where((s) => s.isNotEmpty).toList();
+      final list = cache
+          .map((e) => (e['name'] ?? e['nama'] ?? '').toString())
+          .where((s) => s.isNotEmpty)
+          .toList();
       if (list.isNotEmpty) {
         AppSettingsService.sekbidListNotifier.value = list;
         return list;
@@ -213,7 +245,8 @@ class DataService {
     }
   }
 
-  static Future<void> broadcastDataChange(String table, [Map<String, dynamic>? extra]) async {
+  static Future<void> broadcastDataChange(String table,
+      [Map<String, dynamic>? extra]) async {
     notifyDataChanged(table);
     try {
       if (_realtimeChannel == null) initRealtime();
@@ -263,7 +296,8 @@ class DataService {
   }
 
   // ── helpers cache ────────────────────────────────────────────────────────
-  static Future<void> _saveCache(String key, List<Map<String, dynamic>> list) async {
+  static Future<void> _saveCache(
+      String key, List<Map<String, dynamic>> list) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setStringList(key, list.map((e) => jsonEncode(e)).toList());
@@ -276,13 +310,16 @@ class DataService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final list = prefs.getStringList(key) ?? [];
-      return list.map((e) {
-        try {
-          return Map<String, dynamic>.from(jsonDecode(e) as Map);
-        } catch (_) {
-          return <String, dynamic>{};
-        }
-      }).where((m) => m.isNotEmpty).toList();
+      return list
+          .map((e) {
+            try {
+              return Map<String, dynamic>.from(jsonDecode(e) as Map);
+            } catch (_) {
+              return <String, dynamic>{};
+            }
+          })
+          .where((m) => m.isNotEmpty)
+          .toList();
     } catch (e) {
       debugPrint('Error reading cache for $key: $e');
       return [];
@@ -292,15 +329,60 @@ class DataService {
   // Default dataset siswa untuk inisialisasi awal offline jika belum ada data sama sekali
   static const List<Map<String, dynamic>> _defaultSiswa = [
     {'id': 's-1', 'nama': 'Ahmad Fauzi', 'kelas': 'X RPL 1', 'nis': '23241001'},
-    {'id': 's-2', 'nama': 'Annisa Rahmawati', 'kelas': 'X RPL 1', 'nis': '23241002'},
-    {'id': 's-3', 'nama': 'Bagas Pratama', 'kelas': 'X TKJ 1', 'nis': '23241003'},
-    {'id': 's-4', 'nama': 'Dewi Lestari', 'kelas': 'XI RPL 2', 'nis': '22231015'},
-    {'id': 's-5', 'nama': 'Dimas Saputra', 'kelas': 'XI TKJ 2', 'nis': '22231020'},
-    {'id': 's-6', 'nama': 'Fajar Hidayat', 'kelas': 'XII RPL 1', 'nis': '21221005'},
-    {'id': 's-7', 'nama': 'Gita Nurul', 'kelas': 'XII DKV 1', 'nis': '21221012'},
-    {'id': 's-8', 'nama': 'Rizky Ramadhan', 'kelas': 'X DKV 2', 'nis': '23241030'},
-    {'id': 's-9', 'nama': 'Siti Aisyah', 'kelas': 'XI DKV 2', 'nis': '22231040'},
-    {'id': 's-10', 'nama': 'Zahra Putri', 'kelas': 'XII TKJ 1', 'nis': '21221055'},
+    {
+      'id': 's-2',
+      'nama': 'Annisa Rahmawati',
+      'kelas': 'X RPL 1',
+      'nis': '23241002'
+    },
+    {
+      'id': 's-3',
+      'nama': 'Bagas Pratama',
+      'kelas': 'X TKJ 1',
+      'nis': '23241003'
+    },
+    {
+      'id': 's-4',
+      'nama': 'Dewi Lestari',
+      'kelas': 'XI RPL 2',
+      'nis': '22231015'
+    },
+    {
+      'id': 's-5',
+      'nama': 'Dimas Saputra',
+      'kelas': 'XI TKJ 2',
+      'nis': '22231020'
+    },
+    {
+      'id': 's-6',
+      'nama': 'Fajar Hidayat',
+      'kelas': 'XII RPL 1',
+      'nis': '21221005'
+    },
+    {
+      'id': 's-7',
+      'nama': 'Gita Nurul',
+      'kelas': 'XII DKV 1',
+      'nis': '21221012'
+    },
+    {
+      'id': 's-8',
+      'nama': 'Rizky Ramadhan',
+      'kelas': 'X DKV 2',
+      'nis': '23241030'
+    },
+    {
+      'id': 's-9',
+      'nama': 'Siti Aisyah',
+      'kelas': 'XI DKV 2',
+      'nis': '22231040'
+    },
+    {
+      'id': 's-10',
+      'nama': 'Zahra Putri',
+      'kelas': 'XII TKJ 1',
+      'nis': '21221055'
+    },
   ];
 
   // ── Siswa ────────────────────────────────────────────────────────────────
@@ -317,8 +399,14 @@ class DataService {
 
     // 2. Jika online, tarik dari Supabase dengan timeout aman
     try {
-      final rows = await _db.from('siswa').select().order('nama').timeout(const Duration(seconds: 4));
-      final list = (rows as List).map((e) => Siswa.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+      final rows = await _db
+          .from('siswa')
+          .select()
+          .order('nama')
+          .timeout(const Duration(seconds: 4));
+      final list = (rows as List)
+          .map((e) => Siswa.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
       if (list.isNotEmpty) {
         await _saveCache(_keySiswa, list.map((e) => e.toJson()).toList());
       }
@@ -479,7 +567,10 @@ class DataService {
 
     // 2. Jika online, ambil dari Supabase
     try {
-      final rows = await _db.from('jenis_pelanggaran').select().timeout(const Duration(seconds: 4));
+      final rows = await _db
+          .from('jenis_pelanggaran')
+          .select()
+          .timeout(const Duration(seconds: 4));
       if (rows.isEmpty) {
         final defaults = _defaultJenis();
         for (final j in defaults) {
@@ -490,7 +581,10 @@ class DataService {
         await _saveCache(_keyJenis, defaults.map((e) => e.toJson()).toList());
         return defaults;
       }
-      final list = (rows as List).map((e) => JenisPelanggaran.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+      final list = (rows as List)
+          .map((e) =>
+              JenisPelanggaran.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
       await _saveCache(_keyJenis, list.map((e) => e.toJson()).toList());
       return list;
     } catch (_) {
@@ -502,25 +596,46 @@ class DataService {
 
   static List<JenisPelanggaran> _defaultJenis() => [
         // Senin saja
-        JenisPelanggaran(id: _uuid.v4(), nama: 'Tidak pakai Dasi',     hariAktif: [1]),
-        JenisPelanggaran(id: _uuid.v4(), nama: 'Tidak pakai Rompi',    hariAktif: [1]),
-        JenisPelanggaran(id: _uuid.v4(), nama: 'Tidak pakai Pin BNCC', hariAktif: [1]),
+        JenisPelanggaran(
+            id: _uuid.v4(), nama: 'Tidak pakai Dasi', hariAktif: [1]),
+        JenisPelanggaran(
+            id: _uuid.v4(), nama: 'Tidak pakai Rompi', hariAktif: [1]),
+        JenisPelanggaran(
+            id: _uuid.v4(), nama: 'Tidak pakai Pin BNCC', hariAktif: [1]),
         // Selasa saja
-        JenisPelanggaran(id: _uuid.v4(), nama: 'Tidak pakai Kacu',     hariAktif: [2]),
+        JenisPelanggaran(
+            id: _uuid.v4(), nama: 'Tidak pakai Kacu', hariAktif: [2]),
         // Senin–Jumat
-        JenisPelanggaran(id: _uuid.v4(), nama: 'Tidak pakai Sabuk',         hariAktif: [1,2,3,4,5]),
-        JenisPelanggaran(id: _uuid.v4(), nama: 'Kaos kaki tidak sesuai',    hariAktif: [1,2,3,4,5]),
-        JenisPelanggaran(id: _uuid.v4(), nama: 'Tidak pakai ID Card',       hariAktif: [1,2,3,4,5]),
-        JenisPelanggaran(id: _uuid.v4(), nama: 'Sepatu tidak sesuai',       hariAktif: [1,2,3,4,5]),
-        JenisPelanggaran(id: _uuid.v4(), nama: 'Tidak pakai Sepatu',        hariAktif: [1,2,3,4,5]),
+        JenisPelanggaran(
+            id: _uuid.v4(),
+            nama: 'Tidak pakai Sabuk',
+            hariAktif: [1, 2, 3, 4, 5]),
+        JenisPelanggaran(
+            id: _uuid.v4(),
+            nama: 'Kaos kaki tidak sesuai',
+            hariAktif: [1, 2, 3, 4, 5]),
+        JenisPelanggaran(
+            id: _uuid.v4(),
+            nama: 'Tidak pakai ID Card',
+            hariAktif: [1, 2, 3, 4, 5]),
+        JenisPelanggaran(
+            id: _uuid.v4(),
+            nama: 'Sepatu tidak sesuai',
+            hariAktif: [1, 2, 3, 4, 5]),
+        JenisPelanggaran(
+            id: _uuid.v4(),
+            nama: 'Tidak pakai Sepatu',
+            hariAktif: [1, 2, 3, 4, 5]),
       ];
 
   static Future<void> saveJenis(List<JenisPelanggaran> list) async {
     await _saveCache(_keyJenis, list.map((e) => e.toJson()).toList());
   }
 
-  static Future<JenisPelanggaran> addJenis(String nama, {List<int> hariAktif = const []}) async {
-    final j = JenisPelanggaran(id: _uuid.v4(), nama: nama, hariAktif: hariAktif);
+  static Future<JenisPelanggaran> addJenis(String nama,
+      {List<int> hariAktif = const []}) async {
+    final j =
+        JenisPelanggaran(id: _uuid.v4(), nama: nama, hariAktif: hariAktif);
     final dbData = {'id': j.id, 'nama': j.nama, 'hari_aktif': j.hariAktif};
 
     // 1. Update cache lokal instan
@@ -644,17 +759,23 @@ class DataService {
 
     // 2. Jika online, ambil dari Supabase dengan timeout
     try {
-      final rows = await _db.from('pelanggaran').select().order('tanggal', ascending: false).timeout(const Duration(seconds: 4));
-      final list = (rows as List).map((e) => Pelanggaran(
-            id: e['id'],
-            siswaId: e['siswa_id'] ?? '',
-            jenisId: e['jenis_id'] ?? '',
-            tanggal: DateTime.parse(e['tanggal']),
-            keterangan: e['keterangan'] ?? '',
-            namaSiswa: e['nama_siswa'] ?? e['siswa_nama'],
-            kelasSiswa: e['kelas_siswa'] ?? e['siswa_kelas'],
-            nisSiswa: e['nis_siswa'] ?? e['siswa_nis'],
-          )).toList();
+      final rows = await _db
+          .from('pelanggaran')
+          .select()
+          .order('tanggal', ascending: false)
+          .timeout(const Duration(seconds: 4));
+      final list = (rows as List)
+          .map((e) => Pelanggaran(
+                id: e['id'],
+                siswaId: e['siswa_id'] ?? '',
+                jenisId: e['jenis_id'] ?? '',
+                tanggal: DateTime.parse(e['tanggal']),
+                keterangan: e['keterangan'] ?? '',
+                namaSiswa: e['nama_siswa'] ?? e['siswa_nama'],
+                kelasSiswa: e['kelas_siswa'] ?? e['siswa_kelas'],
+                nisSiswa: e['nis_siswa'] ?? e['siswa_nis'],
+              ))
+          .toList();
 
       // Backfill snapshot info if missing using active Siswa list
       if (list.any((p) => p.namaSiswa == null || p.namaSiswa!.isEmpty)) {
@@ -740,7 +861,7 @@ class DataService {
       kelasSiswa: snapKelas,
       nisSiswa: snapNis,
     );
-    
+
     // Data untuk database (snake_case)
     final dbData = {
       'id': pelanggaran.id,
@@ -749,7 +870,7 @@ class DataService {
       'tanggal': pelanggaran.tanggal.toIso8601String(),
       'keterangan': pelanggaran.keterangan,
     };
-    
+
     // 1. Update cache lokal instan
     final cache = await _readCache(_keyPelanggaran);
     cache.insert(0, pelanggaran.toJson());
@@ -813,18 +934,26 @@ class DataService {
       return cache.map(Proker.fromJson).toList();
     }
     try {
-      final rows = await _db.from('proker').select().order('tanggal_rencana').timeout(const Duration(seconds: 4));
-      final list = (rows as List).map((e) => Proker(
-            id: e['id'],
-            nama: e['nama'],
-            deskripsi: e['deskripsi'] ?? '',
-            sekbid: e['sekbid'] ?? '',
-            penanggungJawab: e['penanggung_jawab'] ?? '',
-            tanggalRencana: DateTime.parse(e['tanggal_rencana']),
-            tanggalRealisasi: e['tanggal_realisasi'] != null ? DateTime.parse(e['tanggal_realisasi']) : null,
-            status: e['status'] ?? StatusProker.belum,
-            keterangan: e['keterangan'] ?? '',
-          )).toList();
+      final rows = await _db
+          .from('proker')
+          .select()
+          .order('tanggal_rencana')
+          .timeout(const Duration(seconds: 4));
+      final list = (rows as List)
+          .map((e) => Proker(
+                id: e['id'],
+                nama: e['nama'],
+                deskripsi: e['deskripsi'] ?? '',
+                sekbid: e['sekbid'] ?? '',
+                penanggungJawab: e['penanggung_jawab'] ?? '',
+                tanggalRencana: DateTime.parse(e['tanggal_rencana']),
+                tanggalRealisasi: e['tanggal_realisasi'] != null
+                    ? DateTime.parse(e['tanggal_realisasi'])
+                    : null,
+                status: e['status'] ?? StatusProker.belum,
+                keterangan: e['keterangan'] ?? '',
+              ))
+          .toList();
       final cacheData = list.map((p) => p.toJson()).toList();
       await _saveCache(_keyProker, cacheData);
       return list;
@@ -959,18 +1088,24 @@ class DataService {
       return cache.map(Arsip.fromJson).toList();
     }
     try {
-      final rows = await _db.from('arsip').select().order('tanggal', ascending: false).timeout(const Duration(seconds: 4));
-      final list = (rows as List).map((e) => Arsip(
-            id: e['id'],
-            judul: e['judul'],
-            kategori: e['kategori'] ?? KategoriArsip.lainnya,
-            deskripsi: e['deskripsi'] ?? '',
-            nomorSurat: e['nomor_surat'] ?? '',
-            tanggal: DateTime.parse(e['tanggal']),
-            pembuatId: e['pembuat_id'] ?? '',
-            fileUrl: e['file_url'] ?? '',
-            keterangan: e['keterangan'] ?? '',
-          )).toList();
+      final rows = await _db
+          .from('arsip')
+          .select()
+          .order('tanggal', ascending: false)
+          .timeout(const Duration(seconds: 4));
+      final list = (rows as List)
+          .map((e) => Arsip(
+                id: e['id'],
+                judul: e['judul'],
+                kategori: e['kategori'] ?? KategoriArsip.lainnya,
+                deskripsi: e['deskripsi'] ?? '',
+                nomorSurat: e['nomor_surat'] ?? '',
+                tanggal: DateTime.parse(e['tanggal']),
+                pembuatId: e['pembuat_id'] ?? '',
+                fileUrl: e['file_url'] ?? '',
+                keterangan: e['keterangan'] ?? '',
+              ))
+          .toList();
       final cacheData = list.map((a) => a.toJson()).toList();
       await _saveCache(_keyArsip, cacheData);
       return list;
@@ -1216,7 +1351,8 @@ class DataService {
     await broadcastDataChange('arsip');
   }
 
-  static Future<void> moveArsipToFolder(List<String> ids, String targetFolder) async {
+  static Future<void> moveArsipToFolder(
+      List<String> ids, String targetFolder) async {
     final allArsip = await getArsip();
     for (final a in allArsip) {
       if (ids.contains(a.id)) {
@@ -1227,7 +1363,8 @@ class DataService {
     await broadcastDataChange('arsip');
   }
 
-  static Future<void> copyArsipToFolder(List<Arsip> list, String targetFolder) async {
+  static Future<void> copyArsipToFolder(
+      List<Arsip> list, String targetFolder) async {
     for (final a in list) {
       final copy = Arsip(
         id: _uuid.v4(),
@@ -1275,26 +1412,37 @@ class DataService {
   static const _mimeTypes = {
     'pdf': 'application/pdf',
     'doc': 'application/msword',
-    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'docx':
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'xls': 'application/vnd.ms-excel',
     'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     'ppt': 'application/vnd.ms-powerpoint',
-    'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'pptx':
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
     'jpg': 'image/jpeg',
     'jpeg': 'image/jpeg',
     'png': 'image/png',
   };
 
-  static Future<String> uploadArsipFile(Uint8List bytes, String fileName) async {
-    final ext = fileName.contains('.') ? fileName.split('.').last.toLowerCase() : '';
-    final path = '${_uuid.v4()}${ext.isNotEmpty ? '.$ext' : ''}';
-    final mime = _mimeTypes[ext] ?? 'application/octet-stream';
-    await _db.storage.from('arsip').uploadBinary(
-      path,
-      bytes,
-      fileOptions: FileOptions(contentType: mime, upsert: false),
-    );
-    return _db.storage.from('arsip').getPublicUrl(path);
+  static Future<String> uploadArsipFile(
+      Uint8List bytes, String fileName) async {
+    try {
+      // 1. Prioritaskan upload ke BaknusDrive (https://baknusdrive.smkbn666.sch.id)
+      return await BaknusDriveService.uploadFile(bytes, fileName);
+    } catch (e) {
+      debugPrint('BaknusDrive upload failed ($e), falling back to Supabase storage...');
+      // 2. Fallback jika ada kendala jaringan khusus BaknusDrive
+      final ext =
+          fileName.contains('.') ? fileName.split('.').last.toLowerCase() : '';
+      final path = '${_uuid.v4()}${ext.isNotEmpty ? '.$ext' : ''}';
+      final mime = _mimeTypes[ext] ?? 'application/octet-stream';
+      await _db.storage.from('arsip').uploadBinary(
+            path,
+            bytes,
+            fileOptions: FileOptions(contentType: mime, upsert: false),
+          );
+      return _db.storage.from('arsip').getPublicUrl(path);
+    }
   }
 
   // ── Laporan Kegiatan ─────────────────────────────────────────────────────
@@ -1304,22 +1452,31 @@ class DataService {
       return cache.map(LaporanKegiatan.fromJson).toList();
     }
     try {
-      final rows = await _db.from('laporan_kegiatan').select().order('tanggal_kegiatan', ascending: false).timeout(const Duration(seconds: 4));
-      final list = (rows as List).map((e) => LaporanKegiatan(
-            id: e['id'],
-            judul: e['judul'],
-            sekbid: e['sekbid'] ?? '',
-            penanggungJawab: e['penanggung_jawab'] ?? '',
-            tanggalKegiatan: DateTime.parse(e['tanggal_kegiatan']),
-            lokasi: e['lokasi'] ?? '',
-            deskripsi: e['deskripsi'] ?? '',
-            hasilCapaian: e['hasil_capaian'] ?? '',
-            kendalaSaran: e['kendala_saran'] ?? '',
-            status: e['status'] ?? StatusLaporan.draft,
-            tanggalBuat: DateTime.parse(e['tanggal_buat']),
-            peserta: (e['peserta'] as List?)?.map((p) => p.toString()).toList() ?? [],
-            pembuatId: e['pembuat_id'] ?? '',
-          )).toList();
+      final rows = await _db
+          .from('laporan_kegiatan')
+          .select()
+          .order('tanggal_kegiatan', ascending: false)
+          .timeout(const Duration(seconds: 4));
+      final list = (rows as List)
+          .map((e) => LaporanKegiatan(
+                id: e['id'],
+                judul: e['judul'],
+                sekbid: e['sekbid'] ?? '',
+                penanggungJawab: e['penanggung_jawab'] ?? '',
+                tanggalKegiatan: DateTime.parse(e['tanggal_kegiatan']),
+                lokasi: e['lokasi'] ?? '',
+                deskripsi: e['deskripsi'] ?? '',
+                hasilCapaian: e['hasil_capaian'] ?? '',
+                kendalaSaran: e['kendala_saran'] ?? '',
+                status: e['status'] ?? StatusLaporan.draft,
+                tanggalBuat: DateTime.parse(e['tanggal_buat']),
+                peserta: (e['peserta'] as List?)
+                        ?.map((p) => p.toString())
+                        .toList() ??
+                    [],
+                pembuatId: e['pembuat_id'] ?? '',
+              ))
+          .toList();
       final cacheData = list.map((l) => l.toJson()).toList();
       await _saveCache(_keyLaporan, cacheData);
       return list;
@@ -1458,22 +1615,32 @@ class DataService {
   // ── File Riwayat ─────────────────────────────────────────────────────────
   static Future<List<FileRiwayat>> getFileRiwayat() async {
     try {
-      final rows = await _db.from('file_riwayat').select().order('tanggal_upload', ascending: false);
-      final list = rows.map((e) => FileRiwayat(
-        id: e['id'],
-        namaFile: e['nama_file'] ?? '',
-        tanggalUpload: DateTime.parse(e['tanggal_upload']),
-        nisList: (e['nis_list'] as List?)?.map((n) => n.toString()).toList() ?? [],
-      )).toList();
+      final rows = await _db
+          .from('file_riwayat')
+          .select()
+          .order('tanggal_upload', ascending: false);
+      final list = rows
+          .map((e) => FileRiwayat(
+                id: e['id'],
+                namaFile: e['nama_file'] ?? '',
+                tanggalUpload: DateTime.parse(e['tanggal_upload']),
+                nisList: (e['nis_list'] as List?)
+                        ?.map((n) => n.toString())
+                        .toList() ??
+                    [],
+              ))
+          .toList();
       // Simpan ke cache lokal sebagai fallback
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setStringList(_keyFileRiwayat, list.map((e) => jsonEncode(e.toJson())).toList());
+      await prefs.setStringList(
+          _keyFileRiwayat, list.map((e) => jsonEncode(e.toJson())).toList());
       return list;
     } catch (_) {
       // Fallback ke cache lokal
       final prefs = await SharedPreferences.getInstance();
       return (prefs.getStringList(_keyFileRiwayat) ?? [])
-          .map((e) => FileRiwayat.fromJson(Map<String, dynamic>.from(jsonDecode(e))))
+          .map((e) =>
+              FileRiwayat.fromJson(Map<String, dynamic>.from(jsonDecode(e))))
           .toList();
     }
   }
@@ -1489,11 +1656,13 @@ class DataService {
     // 1. Update cache lokal instan
     final prefs = await SharedPreferences.getInstance();
     final cached = (prefs.getStringList(_keyFileRiwayat) ?? [])
-        .map((e) => FileRiwayat.fromJson(Map<String, dynamic>.from(jsonDecode(e))))
+        .map((e) =>
+            FileRiwayat.fromJson(Map<String, dynamic>.from(jsonDecode(e))))
         .where((r) => r.id != f.id)
         .toList()
       ..insert(0, f);
-    await prefs.setStringList(_keyFileRiwayat, cached.map((e) => jsonEncode(e.toJson())).toList());
+    await prefs.setStringList(
+        _keyFileRiwayat, cached.map((e) => jsonEncode(e.toJson())).toList());
 
     // 2. Kirim ke Supabase atau antrekan ke SyncService
     if (SyncService.isOnline) {
@@ -1522,10 +1691,12 @@ class DataService {
     // 1. Update cache lokal instan
     final prefs = await SharedPreferences.getInstance();
     final list = (prefs.getStringList(_keyFileRiwayat) ?? [])
-        .map((e) => FileRiwayat.fromJson(Map<String, dynamic>.from(jsonDecode(e))))
+        .map((e) =>
+            FileRiwayat.fromJson(Map<String, dynamic>.from(jsonDecode(e))))
         .where((f) => f.id != id)
         .toList();
-    await prefs.setStringList(_keyFileRiwayat, list.map((e) => jsonEncode(e.toJson())).toList());
+    await prefs.setStringList(
+        _keyFileRiwayat, list.map((e) => jsonEncode(e.toJson())).toList());
 
     // 2. Kirim ke Supabase atau antrekan ke SyncService
     if (SyncService.isOnline) {
@@ -1565,9 +1736,11 @@ class DataService {
 
   static Future<int> naikKelasFromFile(FileRiwayat file) async {
     final siswaList = await getSiswa();
-    final targets = siswaList.where((s) => file.nisList.contains(s.nis)).toList();
+    final targets =
+        siswaList.where((s) => file.nisList.contains(s.nis)).toList();
     for (final s in targets) {
-      await updateSiswa(Siswa(id: s.id, nama: s.nama, kelas: _naikKelas(s.kelas), nis: s.nis));
+      await updateSiswa(Siswa(
+          id: s.id, nama: s.nama, kelas: _naikKelas(s.kelas), nis: s.nis));
     }
     await broadcastDataChange('siswa');
     return targets.length;
@@ -1575,9 +1748,11 @@ class DataService {
 
   static Future<int> turunKelasFromFile(FileRiwayat file) async {
     final siswaList = await getSiswa();
-    final targets = siswaList.where((s) => file.nisList.contains(s.nis)).toList();
+    final targets =
+        siswaList.where((s) => file.nisList.contains(s.nis)).toList();
     for (final s in targets) {
-      await updateSiswa(Siswa(id: s.id, nama: s.nama, kelas: _turunKelas(s.kelas), nis: s.nis));
+      await updateSiswa(Siswa(
+          id: s.id, nama: s.nama, kelas: _turunKelas(s.kelas), nis: s.nis));
     }
     await broadcastDataChange('siswa');
     return targets.length;
@@ -1604,8 +1779,10 @@ class DataService {
 
     // Cek magic bytes untuk format legacy .xls (OLE Compound: 0xD0CF11E0)
     if (uint8.length >= 8 &&
-        uint8[0] == 0xD0 && uint8[1] == 0xCF &&
-        uint8[2] == 0x11 && uint8[3] == 0xE0) {
+        uint8[0] == 0xD0 &&
+        uint8[1] == 0xCF &&
+        uint8[2] == 0x11 &&
+        uint8[3] == 0xE0) {
       try {
         final biffResults = _parseBiff8Excel(uint8);
         if (biffResults.isNotEmpty) return biffResults;
@@ -1636,12 +1813,12 @@ class DataService {
         for (int i = 0; i < hRow.length; i++) {
           final val = hRow[i]?.value?.toString().toLowerCase().trim() ?? '';
           if (val.contains('nama')) tempNama = i;
-          if (val.contains('nis'))  tempNis  = i;
+          if (val.contains('nis')) tempNis = i;
         }
         if (tempNama != -1 && tempNis != -1) {
           headerRow = h;
-          namaCol   = tempNama;
-          nisCol    = tempNis;
+          namaCol = tempNama;
+          nisCol = tempNis;
           // Jika header ditemukan di baris >= 4, anggap format absen
           isFormatAbsen = h >= 4;
           break;
@@ -1653,7 +1830,10 @@ class DataService {
         final dataStart = headerRow + 2;
         for (int r = dataStart; r < sheet.maxRows; r++) {
           final row = sheet.rows[r];
-          final nama = (row.length > namaCol ? row[namaCol]?.value?.toString().trim() : null) ?? '';
+          final nama = (row.length > namaCol
+                  ? row[namaCol]?.value?.toString().trim()
+                  : null) ??
+              '';
           if (nama.isEmpty) continue;
           // NIS bisa berupa angka → konversi ke string (hapus .0 dari double)
           final nisRaw = row.length > nisCol ? row[nisCol]?.value : null;
@@ -1671,12 +1851,18 @@ class DataService {
         }
         for (int r = headerRow + 1; r < sheet.maxRows; r++) {
           final row = sheet.rows[r];
-          final nama = (row.length > namaCol ? row[namaCol]?.value?.toString().trim() : null) ?? '';
+          final nama = (row.length > namaCol
+                  ? row[namaCol]?.value?.toString().trim()
+                  : null) ??
+              '';
           if (nama.isEmpty) continue;
           final nisRaw = row.length > nisCol ? row[nisCol]?.value : null;
           final nis = _cellValueToNis(nisRaw);
           final kelasVal = kelasCol != -1
-              ? (row.length > kelasCol ? row[kelasCol]?.value?.toString().trim() : null) ?? kelas
+              ? (row.length > kelasCol
+                      ? row[kelasCol]?.value?.toString().trim()
+                      : null) ??
+                  kelas
               : kelas;
           if (nis.isEmpty) continue;
           result.add({'nama': nama, 'kelas': kelasVal, 'nis': nis});
@@ -1728,14 +1914,20 @@ class DataService {
 
     if (workbookFirstSec == -1) return results;
 
-    final wbBytes = _readBiffStream(bytes, workbookFirstSec, sat, sectorSize, maxSize: workbookSize);
+    final wbBytes = _readBiffStream(bytes, workbookFirstSec, sat, sectorSize,
+        maxSize: workbookSize);
     return _parseWorkbookBiff8(wbBytes);
   }
 
-  static Uint8List _readBiffStream(Uint8List fileBytes, int startSec, List<int> sat, int sectorSize, {int? maxSize}) {
+  static Uint8List _readBiffStream(
+      Uint8List fileBytes, int startSec, List<int> sat, int sectorSize,
+      {int? maxSize}) {
     final builder = BytesBuilder();
     int sec = startSec;
-    while (sec >= 0 && sec < sat.length && sec != 0xFFFFFFFE && sec != 0xFFFFFFFF) {
+    while (sec >= 0 &&
+        sec < sat.length &&
+        sec != 0xFFFFFFFE &&
+        sec != 0xFFFFFFFF) {
       final offset = (sec + 1) * sectorSize;
       if (offset + sectorSize <= fileBytes.length) {
         builder.add(fileBytes.sublist(offset, offset + sectorSize));
@@ -1765,7 +1957,8 @@ class DataService {
       final dataPos = pos + 4;
       if (dataPos + recLen > wb.length) break;
 
-      if (recType == 0x0085 && recLen >= 8) { // BOUNDSHEET
+      if (recType == 0x0085 && recLen >= 8) {
+        // BOUNDSHEET
         final offset = bd.getUint32(dataPos, Endian.little);
         final nameLen = wb[dataPos + 6];
         final isUnicode = (wb[dataPos + 7] & 0x01) != 0;
@@ -1777,12 +1970,14 @@ class DataService {
           }
           sheetName = String.fromCharCodes(chars);
         } else if (dataPos + 8 + nameLen <= wb.length) {
-          sheetName = String.fromCharCodes(wb.sublist(dataPos + 8, dataPos + 8 + nameLen));
+          sheetName = String.fromCharCodes(
+              wb.sublist(dataPos + 8, dataPos + 8 + nameLen));
         } else {
           sheetName = 'Sheet';
         }
         sheets.add(_BiffSheetInfo(sheetName.trim(), offset));
-      } else if (recType == 0x00FC) { // SST
+      } else if (recType == 0x00FC) {
+        // SST
         _parseSST(wb.sublist(dataPos, dataPos + recLen), sst);
       }
 
@@ -1801,20 +1996,24 @@ class DataService {
 
         if (recType == 0x000A) break;
 
-        if (recType == 0x00FD && recLen >= 10) { // LABELSST
+        if (recType == 0x00FD && recLen >= 10) {
+          // LABELSST
           final r = bd.getUint16(dataPos, Endian.little);
           final c = bd.getUint16(dataPos + 2, Endian.little);
           final sstIdx = bd.getUint32(dataPos + 6, Endian.little);
           if (sstIdx < sst.length) {
             cellMap.putIfAbsent(r, () => {})[c] = sst[sstIdx];
           }
-        } else if (recType == 0x0203 && recLen >= 14) { // NUMBER
+        } else if (recType == 0x0203 && recLen >= 14) {
+          // NUMBER
           final r = bd.getUint16(dataPos, Endian.little);
           final c = bd.getUint16(dataPos + 2, Endian.little);
           final val = bd.getFloat64(dataPos + 6, Endian.little);
-          final valStr = val == val.toInt() ? val.toInt().toString() : val.toString();
+          final valStr =
+              val == val.toInt() ? val.toInt().toString() : val.toString();
           cellMap.putIfAbsent(r, () => {})[c] = valStr;
-        } else if (recType == 0x027E && recLen >= 10) { // RK
+        } else if (recType == 0x027E && recLen >= 10) {
+          // RK
           final r = bd.getUint16(dataPos, Endian.little);
           final c = bd.getUint16(dataPos + 2, Endian.little);
           final rkVal = bd.getUint32(dataPos + 6, Endian.little);
@@ -1897,7 +2096,8 @@ class DataService {
     }
   }
 
-  static void _extractStudentsFromBiffSheet(String sheetName, Map<int, Map<int, String>> cellMap, List<Map<String, String>> results) {
+  static void _extractStudentsFromBiffSheet(String sheetName,
+      Map<int, Map<int, String>> cellMap, List<Map<String, String>> results) {
     int headerRow = -1;
     int namaCol = -1;
     int nisCol = -1;
@@ -1925,9 +2125,10 @@ class DataService {
       final row = entry.value;
       final nama = row[namaCol]?.trim() ?? '';
       final nisRaw = row[nisCol]?.trim() ?? '';
-      
+
       if (nama.isEmpty || nisRaw.isEmpty) continue;
-      if (nama.toLowerCase().contains('nama') || nama.toLowerCase().contains('pertemuan')) continue;
+      if (nama.toLowerCase().contains('nama') ||
+          nama.toLowerCase().contains('pertemuan')) continue;
 
       String nis = nisRaw;
       if (nis.endsWith('.0')) nis = nis.substring(0, nis.length - 2);
@@ -1950,26 +2151,27 @@ class DataService {
   }
 
   /// Import siswa dari Excel → upsert ke Supabase berdasarkan NIS
-  static Future<int> importStudentsFromExcel(List<int> bytes, {String namaFile = 'file.xlsx'}) async {
+  static Future<int> importStudentsFromExcel(List<int> bytes,
+      {String namaFile = 'file.xlsx'}) async {
     final rows = _parseExcel(bytes);
     if (rows.isEmpty) {
-      throw Exception(
-        'File kosong atau format tidak dikenali.\n'
-        'Gunakan format Excel absen sekolah:\n'
-        '• Setiap sheet = satu kelas (nama sheet = nama kelas)\n'
-        '• Baris ke-6: header (N0 | NIS | NAMA LENGKAP | ...)\n'
-        '• Baris ke-7: sub-header (L | P | angka)\n'
-        '• Baris ke-8+: data siswa\n'
-        'Atau format sederhana dengan kolom Nama, Kelas, NIS.'
-      );
+      throw Exception('File kosong atau format tidak dikenali.\n'
+          'Gunakan format Excel absen sekolah:\n'
+          '• Setiap sheet = satu kelas (nama sheet = nama kelas)\n'
+          '• Baris ke-6: header (N0 | NIS | NAMA LENGKAP | ...)\n'
+          '• Baris ke-7: sub-header (L | P | angka)\n'
+          '• Baris ke-8+: data siswa\n'
+          'Atau format sederhana dengan kolom Nama, Kelas, NIS.');
     }
 
-    final toUpsert = rows.map((row) => {
-      'id': _uuid.v4(),
-      'nama': row['nama']!,
-      'kelas': row['kelas']!,
-      'nis': row['nis']!,
-    }).toList();
+    final toUpsert = rows
+        .map((row) => {
+              'id': _uuid.v4(),
+              'nama': row['nama']!,
+              'kelas': row['kelas']!,
+              'nis': row['nis']!,
+            })
+        .toList();
 
     // 1. Simpan selalu ke Cache Lokal instan
     final cache = await _readCache(_keySiswa);
@@ -1990,10 +2192,10 @@ class DataService {
         for (int i = 0; i < toUpsert.length; i += batchSize) {
           final end = (i + batchSize).clamp(0, toUpsert.length);
           await _db.from('siswa').upsert(
-            toUpsert.sublist(i, end),
-            onConflict: 'nis',
-            ignoreDuplicates: true,
-          );
+                toUpsert.sublist(i, end),
+                onConflict: 'nis',
+                ignoreDuplicates: true,
+              );
         }
       } catch (e) {
         for (final item in toUpsert) {
@@ -2017,10 +2219,15 @@ class DataService {
     }
 
     // Simpan riwayat file
-    final nisList = rows.map((r) => r['nis']!).where((n) => n.isNotEmpty).toList();
+    final nisList =
+        rows.map((r) => r['nis']!).where((n) => n.isNotEmpty).toList();
     final riwayat = await getFileRiwayat();
     final existing = riwayat.firstWhere((f) => f.namaFile == namaFile,
-        orElse: () => FileRiwayat(id: _uuid.v4(), namaFile: namaFile, tanggalUpload: DateTime.now(), nisList: []));
+        orElse: () => FileRiwayat(
+            id: _uuid.v4(),
+            namaFile: namaFile,
+            tanggalUpload: DateTime.now(),
+            nisList: []));
     // Hapus yang lama dulu jika ada
     if (riwayat.any((f) => f.namaFile == namaFile)) {
       await deleteFileRiwayat(existing.id);
@@ -2040,9 +2247,11 @@ class DataService {
   /// Hapus siswa berdasarkan NIS yang ada di file Excel
   static Future<int> deleteStudentsFromExcel(List<int> bytes) async {
     final rows = _parseExcel(bytes);
-    if (rows.isEmpty) throw Exception('File kosong atau format tidak dikenali.');
+    if (rows.isEmpty)
+      throw Exception('File kosong atau format tidak dikenali.');
 
-    final nisList = rows.map((r) => r['nis']!).where((n) => n.isNotEmpty).toList();
+    final nisList =
+        rows.map((r) => r['nis']!).where((n) => n.isNotEmpty).toList();
     if (nisList.isEmpty) throw Exception('Tidak ada kolom NIS di file.');
 
     // Cari id siswa yang NIS-nya ada di file
@@ -2097,4 +2306,3 @@ class _BiffSheetInfo {
   final int offset;
   _BiffSheetInfo(this.name, this.offset);
 }
-

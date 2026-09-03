@@ -23,7 +23,9 @@ import '../app_theme.dart';
 const _uuid = Uuid();
 
 enum ClipboardMode { none, copy, cut }
+
 enum ViewMode { grid, list }
+
 enum SortMode { nameAsc, nameDesc, dateNewest, dateOldest }
 
 class ArsipScreen extends StatefulWidget {
@@ -64,7 +66,10 @@ class ArsipScreenState extends State<ArsipScreen> {
     super.initState();
     _load();
     _dataSub = DataService.onDataChanged.listen((table) {
-      if (table == 'arsip' || table == 'arsip_folder' || table == 'app_settings' || table == 'all') {
+      if (table == 'arsip' ||
+          table == 'arsip_folder' ||
+          table == 'app_settings' ||
+          table == 'all') {
         if (mounted) _load(silent: true);
       }
     });
@@ -87,7 +92,13 @@ class ArsipScreenState extends State<ArsipScreen> {
 
       // Seed default folders if completely empty
       if (folders.isEmpty && arsip.isEmpty) {
-        final defaultFolders = ['Surat Masuk', 'Surat Keluar', 'Proposal', 'LPJ', 'Dokumentasi'];
+        final defaultFolders = [
+          'Surat Masuk',
+          'Surat Keluar',
+          'Proposal',
+          'LPJ',
+          'Dokumentasi'
+        ];
         for (final f in defaultFolders) {
           await DataService.addArsipFolder(f);
         }
@@ -111,7 +122,9 @@ class ArsipScreenState extends State<ArsipScreen> {
       if (!silent) {
         setState(() => _loading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal memuat arsip: $e'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('Gagal memuat arsip: $e'),
+              backgroundColor: Colors.red),
         );
       }
     }
@@ -192,16 +205,24 @@ class ArsipScreenState extends State<ArsipScreen> {
     }
     var list = result.toList();
     if (_search.isNotEmpty) {
-      list = list.where((p) => p.split('/').last.toLowerCase().contains(_search.toLowerCase())).toList();
+      list = list
+          .where((p) =>
+              p.split('/').last.toLowerCase().contains(_search.toLowerCase()))
+          .toList();
     }
-    list.sort((a, b) => a.split('/').last.toLowerCase().compareTo(b.split('/').last.toLowerCase()));
+    list.sort((a, b) => a
+        .split('/')
+        .last
+        .toLowerCase()
+        .compareTo(b.split('/').last.toLowerCase()));
     return list;
   }
 
   // Files inside current path
   List<Arsip> get _currentFiles {
     var files = _allArsip.where((a) {
-      if (a.keterangan == '__folder__' || a.nomorSurat == '__dir__') return false;
+      if (a.keterangan == '__folder__' || a.nomorSurat == '__dir__')
+        return false;
       if (_currentPath.isEmpty) {
         return a.kategori.isEmpty || a.kategori == 'Root';
       }
@@ -209,19 +230,22 @@ class ArsipScreenState extends State<ArsipScreen> {
     }).toList();
 
     if (_search.isNotEmpty) {
-      files = files.where((a) =>
-        a.judul.toLowerCase().contains(_search.toLowerCase()) ||
-        a.nomorSurat.toLowerCase().contains(_search.toLowerCase()) ||
-        a.deskripsi.toLowerCase().contains(_search.toLowerCase())
-      ).toList();
+      files = files
+          .where((a) =>
+              a.judul.toLowerCase().contains(_search.toLowerCase()) ||
+              a.nomorSurat.toLowerCase().contains(_search.toLowerCase()) ||
+              a.deskripsi.toLowerCase().contains(_search.toLowerCase()))
+          .toList();
     }
 
     switch (_sortMode) {
       case SortMode.nameAsc:
-        files.sort((a, b) => a.judul.toLowerCase().compareTo(b.judul.toLowerCase()));
+        files.sort(
+            (a, b) => a.judul.toLowerCase().compareTo(b.judul.toLowerCase()));
         break;
       case SortMode.nameDesc:
-        files.sort((a, b) => b.judul.toLowerCase().compareTo(a.judul.toLowerCase()));
+        files.sort(
+            (a, b) => b.judul.toLowerCase().compareTo(a.judul.toLowerCase()));
         break;
       case SortMode.dateNewest:
         files.sort((a, b) => b.tanggal.compareTo(a.tanggal));
@@ -241,7 +265,8 @@ class ArsipScreenState extends State<ArsipScreen> {
       } else {
         _selectedFileIds.add(id);
       }
-      _isSelectionMode = _selectedFileIds.isNotEmpty || _selectedFolderPaths.isNotEmpty;
+      _isSelectionMode =
+          _selectedFileIds.isNotEmpty || _selectedFolderPaths.isNotEmpty;
     });
   }
 
@@ -252,7 +277,8 @@ class ArsipScreenState extends State<ArsipScreen> {
       } else {
         _selectedFolderPaths.add(path);
       }
-      _isSelectionMode = _selectedFileIds.isNotEmpty || _selectedFolderPaths.isNotEmpty;
+      _isSelectionMode =
+          _selectedFileIds.isNotEmpty || _selectedFolderPaths.isNotEmpty;
     });
   }
 
@@ -272,11 +298,13 @@ class ArsipScreenState extends State<ArsipScreen> {
     });
   }
 
-  int get _selectedCount => _selectedFileIds.length + _selectedFolderPaths.length;
+  int get _selectedCount =>
+      _selectedFileIds.length + _selectedFolderPaths.length;
 
   // ── Clipboard (Copy / Cut / Paste) ─────────────────────────────────────────
   void _copySelected() {
-    final files = _allArsip.where((a) => _selectedFileIds.contains(a.id)).toList();
+    final files =
+        _allArsip.where((a) => _selectedFileIds.contains(a.id)).toList();
     final folders = _selectedFolderPaths.toList();
     setState(() {
       _clipboardFiles = files;
@@ -288,9 +316,12 @@ class ArsipScreenState extends State<ArsipScreen> {
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.content_copy_rounded, color: Colors.white, size: 18),
+            const Icon(Icons.content_copy_rounded,
+                color: Colors.white, size: 18),
             const SizedBox(width: 10),
-            Expanded(child: Text('${files.length + folders.length} item disalin. Buka folder tujuan lalu tekan Tempel.')),
+            Expanded(
+                child: Text(
+                    '${files.length + folders.length} item disalin. Buka folder tujuan lalu tekan Tempel.')),
           ],
         ),
         backgroundColor: kPrimaryDark,
@@ -300,7 +331,8 @@ class ArsipScreenState extends State<ArsipScreen> {
   }
 
   void _cutSelected() {
-    final files = _allArsip.where((a) => _selectedFileIds.contains(a.id)).toList();
+    final files =
+        _allArsip.where((a) => _selectedFileIds.contains(a.id)).toList();
     final folders = _selectedFolderPaths.toList();
     setState(() {
       _clipboardFiles = files;
@@ -312,9 +344,12 @@ class ArsipScreenState extends State<ArsipScreen> {
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.content_cut_rounded, color: Colors.white, size: 18),
+            const Icon(Icons.content_cut_rounded,
+                color: Colors.white, size: 18),
             const SizedBox(width: 10),
-            Expanded(child: Text('${files.length + folders.length} item dipotong (Move). Buka folder tujuan lalu tekan Tempel.')),
+            Expanded(
+                child: Text(
+                    '${files.length + folders.length} item dipotong (Move). Buka folder tujuan lalu tekan Tempel.')),
           ],
         ),
         backgroundColor: Colors.orange.shade800,
@@ -333,7 +368,8 @@ class ArsipScreenState extends State<ArsipScreen> {
 
         for (final oldPath in _clipboardFolders) {
           final folderName = oldPath.split('/').last;
-          final newPath = _currentPath.isEmpty ? folderName : '$_currentPath/$folderName';
+          final newPath =
+              _currentPath.isEmpty ? folderName : '$_currentPath/$folderName';
           if (oldPath != newPath) {
             await DataService.renameArsipFolder(oldPath, newPath);
           }
@@ -343,7 +379,8 @@ class ArsipScreenState extends State<ArsipScreen> {
             const SnackBar(
               content: Row(
                 children: [
-                  Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
+                  Icon(Icons.check_circle_outline,
+                      color: Colors.white, size: 18),
                   SizedBox(width: 8),
                   Text('Berhasil memindahkan item'),
                 ],
@@ -359,7 +396,8 @@ class ArsipScreenState extends State<ArsipScreen> {
             const SnackBar(
               content: Row(
                 children: [
-                  Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
+                  Icon(Icons.check_circle_outline,
+                      color: Colors.white, size: 18),
                   SizedBox(width: 8),
                   Text('Berhasil menyalin file'),
                 ],
@@ -376,7 +414,9 @@ class ArsipScreenState extends State<ArsipScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal menempelkan: $e'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('Gagal menempelkan: $e'),
+              backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -393,7 +433,8 @@ class ArsipScreenState extends State<ArsipScreen> {
   }
 
   // ── Move to specific folder dialog (Bertahap / Hierarchical) ──────────────
-  void _showMoveDialog(List<Arsip> filesToMove, {List<String> foldersToMove = const []}) {
+  void _showMoveDialog(List<Arsip> filesToMove,
+      {List<String> foldersToMove = const []}) {
     if (filesToMove.isEmpty && foldersToMove.isEmpty) return;
 
     // Start at Root
@@ -433,10 +474,15 @@ class ArsipScreenState extends State<ArsipScreen> {
               }
               return true;
             }).toList();
-            validSubfolders.sort((a, b) => a.split('/').last.toLowerCase().compareTo(b.split('/').last.toLowerCase()));
+            validSubfolders.sort((a, b) => a
+                .split('/')
+                .last
+                .toLowerCase()
+                .compareTo(b.split('/').last.toLowerCase()));
 
             final totalItems = filesToMove.length + foldersToMove.length;
-            final pathSegments = targetPath.isEmpty ? <String>[] : targetPath.split('/');
+            final pathSegments =
+                targetPath.isEmpty ? <String>[] : targetPath.split('/');
 
             return Container(
               height: MediaQuery.of(ctx).size.height * 0.75,
@@ -449,7 +495,13 @@ class ArsipScreenState extends State<ArsipScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Handle
-                  Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(2)))),
+                  Center(
+                      child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                              color: kPrimary,
+                              borderRadius: BorderRadius.circular(2)))),
                   const SizedBox(height: 16),
 
                   // Header
@@ -457,8 +509,11 @@ class ArsipScreenState extends State<ArsipScreen> {
                     children: [
                       Container(
                         padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(color: kAccent.withAlpha(25), borderRadius: BorderRadius.circular(10)),
-                        child: const Icon(Icons.drive_file_move_rounded, color: kAccent, size: 22),
+                        decoration: BoxDecoration(
+                            color: kAccent.withAlpha(25),
+                            borderRadius: BorderRadius.circular(10)),
+                        child: const Icon(Icons.drive_file_move_rounded,
+                            color: kAccent, size: 22),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -466,10 +521,16 @@ class ArsipScreenState extends State<ArsipScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text('Pindahkan $totalItems Item',
-                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kTextDark)),
+                                style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: kTextDark)),
                             Text(
-                              targetPath.isEmpty ? 'Lokasi saat ini: Root (/)' : 'Lokasi: $targetPath',
-                              style: const TextStyle(fontSize: 11, color: kTextMid),
+                              targetPath.isEmpty
+                                  ? 'Lokasi saat ini: Root (/)'
+                                  : 'Lokasi: $targetPath',
+                              style: const TextStyle(
+                                  fontSize: 11, color: kTextMid),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -478,15 +539,20 @@ class ArsipScreenState extends State<ArsipScreen> {
                       ),
                       // Quick create subfolder button
                       IconButton(
-                        icon: const Icon(Icons.create_new_folder_outlined, color: kAccent),
+                        icon: const Icon(Icons.create_new_folder_outlined,
+                            color: kAccent),
                         tooltip: 'Buat Folder di Sini',
                         onPressed: () {
                           final fNameC = TextEditingController();
                           showDialog(
                             context: ctx,
                             builder: (dCtx) => AlertDialog(
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                              title: const Text('Folder Baru', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16)),
+                              title: const Text('Folder Baru',
+                                  style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold)),
                               content: TextField(
                                 controller: fNameC,
                                 autofocus: true,
@@ -496,20 +562,26 @@ class ArsipScreenState extends State<ArsipScreen> {
                                 ),
                               ),
                               actions: [
-                                TextButton(onPressed: () => Navigator.pop(dCtx), child: const Text('Batal')),
+                                TextButton(
+                                    onPressed: () => Navigator.pop(dCtx),
+                                    child: const Text('Batal')),
                                 ElevatedButton(
                                   onPressed: () async {
                                     final name = fNameC.text.trim();
                                     if (name.isEmpty) return;
-                                    final newFullPath = targetPath.isEmpty ? name : '$targetPath/$name';
-                                    await DataService.addArsipFolder(newFullPath);
+                                    final newFullPath = targetPath.isEmpty
+                                        ? name
+                                        : '$targetPath/$name';
+                                    await DataService.addArsipFolder(
+                                        newFullPath);
                                     if (!_allFolders.contains(newFullPath)) {
                                       _allFolders.add(newFullPath);
                                     }
                                     if (dCtx.mounted) Navigator.pop(dCtx);
                                     setM(() {});
                                   },
-                                  style: ElevatedButton.styleFrom(backgroundColor: kAccent),
+                                  style: ElevatedButton.styleFrom(
+                                      backgroundColor: kAccent),
                                   child: const Text('Buat'),
                                 ),
                               ],
@@ -523,7 +595,8 @@ class ArsipScreenState extends State<ArsipScreen> {
 
                   // Breadcrumb Navigation in Dialog
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       color: kBg,
                       borderRadius: BorderRadius.circular(10),
@@ -537,36 +610,52 @@ class ArsipScreenState extends State<ArsipScreen> {
                             onTap: () => setM(() => targetPath = ''),
                             borderRadius: BorderRadius.circular(6),
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 4),
                               child: Row(
                                 children: [
-                                  Icon(Icons.home_rounded, size: 16, color: targetPath.isEmpty ? kAccent : kTextMid),
+                                  Icon(Icons.home_rounded,
+                                      size: 16,
+                                      color: targetPath.isEmpty
+                                          ? kAccent
+                                          : kTextMid),
                                   const SizedBox(width: 4),
                                   Text('Root',
                                       style: TextStyle(
                                           fontSize: 12,
-                                          fontWeight: targetPath.isEmpty ? FontWeight.bold : FontWeight.normal,
-                                          color: targetPath.isEmpty ? kAccent : kTextDark)),
+                                          fontWeight: targetPath.isEmpty
+                                              ? FontWeight.bold
+                                              : FontWeight.normal,
+                                          color: targetPath.isEmpty
+                                              ? kAccent
+                                              : kTextDark)),
                                 ],
                               ),
                             ),
                           ),
                           for (int i = 0; i < pathSegments.length; i++) ...[
-                            const Icon(Icons.chevron_right_rounded, size: 16, color: kTextLight),
+                            const Icon(Icons.chevron_right_rounded,
+                                size: 16, color: kTextLight),
                             InkWell(
                               onTap: () {
-                                final newTarget = pathSegments.sublist(0, i + 1).join('/');
+                                final newTarget =
+                                    pathSegments.sublist(0, i + 1).join('/');
                                 setM(() => targetPath = newTarget);
                               },
                               borderRadius: BorderRadius.circular(6),
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 4),
                                 child: Text(
                                   pathSegments[i],
                                   style: TextStyle(
                                     fontSize: 12,
-                                    fontWeight: i == pathSegments.length - 1 ? FontWeight.bold : FontWeight.normal,
-                                    color: i == pathSegments.length - 1 ? kAccent : kTextDark,
+                                    fontWeight: i == pathSegments.length - 1
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                    color: i == pathSegments.length - 1
+                                        ? kAccent
+                                        : kTextDark,
                                   ),
                                 ),
                               ),
@@ -585,23 +674,30 @@ class ArsipScreenState extends State<ArsipScreen> {
                         if (pathSegments.length <= 1) {
                           setM(() => targetPath = '');
                         } else {
-                          setM(() => targetPath = pathSegments.sublist(0, pathSegments.length - 1).join('/'));
+                          setM(() => targetPath = pathSegments
+                              .sublist(0, pathSegments.length - 1)
+                              .join('/'));
                         }
                       },
                       borderRadius: BorderRadius.circular(10),
                       child: Container(
                         margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
                         decoration: BoxDecoration(
                           color: Colors.grey.shade100,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Row(
                           children: [
-                            Icon(Icons.arrow_upward_rounded, size: 18, color: kAccent),
+                            Icon(Icons.arrow_upward_rounded,
+                                size: 18, color: kAccent),
                             SizedBox(width: 10),
                             Text('..',
-                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: kTextDark)),
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: kTextDark)),
                           ],
                         ),
                       ),
@@ -614,16 +710,19 @@ class ArsipScreenState extends State<ArsipScreen> {
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.folder_open_rounded, size: 44, color: Colors.grey.shade300),
+                                Icon(Icons.folder_open_rounded,
+                                    size: 44, color: Colors.grey.shade300),
                                 const SizedBox(height: 8),
                                 const Text(
                                   'Tidak ada subfolder di dalam folder ini',
-                                  style: TextStyle(fontSize: 13, color: kTextMid),
+                                  style:
+                                      TextStyle(fontSize: 13, color: kTextMid),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   'Tekan "Pindahkan ke Sini" untuk memindahkan ke "${targetPath.isEmpty ? "Root" : targetPath.split("/").last}"',
-                                  style: const TextStyle(fontSize: 11, color: kTextLight),
+                                  style: const TextStyle(
+                                      fontSize: 11, color: kTextLight),
                                   textAlign: TextAlign.center,
                                 ),
                               ],
@@ -631,31 +730,44 @@ class ArsipScreenState extends State<ArsipScreen> {
                           )
                         : ListView.separated(
                             itemCount: validSubfolders.length,
-                            separatorBuilder: (context, index) => const Divider(height: 1),
+                            separatorBuilder: (context, index) =>
+                                const Divider(height: 1),
                             itemBuilder: (ctx, idx) {
                               final subPath = validSubfolders[idx];
                               final subName = subPath.split('/').last;
                               final subCount = _allArsip
-                                  .where((a) => (a.kategori == subPath || a.kategori.startsWith('$subPath/')) &&
+                                  .where((a) =>
+                                      (a.kategori == subPath ||
+                                          a.kategori.startsWith('$subPath/')) &&
                                       a.keterangan != '__folder__' &&
                                       a.nomorSurat != '__dir__')
                                   .length;
                               return ListTile(
                                 dense: true,
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 2),
                                 leading: Container(
                                   width: 36,
                                   height: 36,
-                                  decoration:
-                                      BoxDecoration(color: kAccent.withAlpha(20), borderRadius: BorderRadius.circular(8)),
-                                  child: const Icon(Icons.folder_rounded, color: kAccent, size: 20),
+                                  decoration: BoxDecoration(
+                                      color: kAccent.withAlpha(20),
+                                      borderRadius: BorderRadius.circular(8)),
+                                  child: const Icon(Icons.folder_rounded,
+                                      color: kAccent, size: 20),
                                 ),
                                 title: Text(subName,
                                     style: const TextStyle(
-                                        fontWeight: FontWeight.bold, fontSize: 13, color: kTextDark)),
-                                subtitle: Text('$subCount item • Ketuk untuk masuk',
-                                    style: const TextStyle(fontSize: 11, color: kTextLight)),
-                                trailing: const Icon(Icons.chevron_right_rounded, color: kTextMid, size: 20),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                        color: kTextDark)),
+                                subtitle: Text(
+                                    '$subCount item • Ketuk untuk masuk',
+                                    style: const TextStyle(
+                                        fontSize: 11, color: kTextLight)),
+                                trailing: const Icon(
+                                    Icons.chevron_right_rounded,
+                                    color: kTextMid,
+                                    size: 20),
                                 onTap: () {
                                   // Navigate inside this folder (bertahap)
                                   setM(() => targetPath = subPath);
@@ -671,7 +783,8 @@ class ArsipScreenState extends State<ArsipScreen> {
                     icon: const Icon(Icons.drive_file_move_rounded, size: 18),
                     label: Text(
                       'Pindahkan ke ${targetPath.isEmpty ? "Root (/)" : targetPath.split("/").last}',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 14),
                     ),
                     onPressed: () async {
                       Navigator.pop(ctx);
@@ -686,17 +799,23 @@ class ArsipScreenState extends State<ArsipScreen> {
                         // Move folders
                         for (final oldPath in foldersToMove) {
                           final folderName = oldPath.split('/').last;
-                          final newPath = targetPath.isEmpty ? folderName : '$targetPath/$folderName';
+                          final newPath = targetPath.isEmpty
+                              ? folderName
+                              : '$targetPath/$folderName';
                           if (oldPath != newPath) {
-                            await DataService.renameArsipFolder(oldPath, newPath);
+                            await DataService.renameArsipFolder(
+                                oldPath, newPath);
                           }
                         }
 
-                        final targetLabel = targetPath.isEmpty ? 'Root (/)' : targetPath;
-                        final totalItems = filesToMove.length + foldersToMove.length;
+                        final targetLabel =
+                            targetPath.isEmpty ? 'Root (/)' : targetPath;
+                        final totalItems =
+                            filesToMove.length + foldersToMove.length;
                         await NotificationService.notifyUpdate(
                           title: 'File / Folder Dipindahkan',
-                          message: '$totalItems item dipindahkan ke folder $targetLabel oleh ${widget.username}',
+                          message:
+                              '$totalItems item dipindahkan ke folder $targetLabel oleh ${widget.username}',
                           category: 'arsip',
                           actor: widget.username,
                         );
@@ -709,7 +828,8 @@ class ArsipScreenState extends State<ArsipScreen> {
                             SnackBar(
                               content: Row(
                                 children: [
-                                  const Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
+                                  const Icon(Icons.check_circle_outline,
+                                      color: Colors.white, size: 18),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
@@ -726,7 +846,9 @@ class ArsipScreenState extends State<ArsipScreen> {
                       } catch (e) {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Gagal memindahkan: $e'), backgroundColor: Colors.red),
+                            SnackBar(
+                                content: Text('Gagal memindahkan: $e'),
+                                backgroundColor: Colors.red),
                           );
                         }
                       } finally {
@@ -737,7 +859,8 @@ class ArsipScreenState extends State<ArsipScreen> {
                       backgroundColor: kAccent,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
                 ],
@@ -751,10 +874,12 @@ class ArsipScreenState extends State<ArsipScreen> {
 
   // ── Compress & Archive to ZIP ──────────────────────────────────────────────
   Future<void> _archiveSelectedToZip() async {
-    final selectedFiles = _allArsip.where((a) => _selectedFileIds.contains(a.id)).toList();
+    final selectedFiles =
+        _allArsip.where((a) => _selectedFileIds.contains(a.id)).toList();
     if (selectedFiles.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pilih setidaknya 1 file untuk dikompres ke ZIP')),
+        const SnackBar(
+            content: Text('Pilih setidaknya 1 file untuk dikompres ke ZIP')),
       );
       return;
     }
@@ -771,9 +896,11 @@ class ArsipScreenState extends State<ArsipScreen> {
             children: const [
               CircularProgressIndicator(color: kAccent),
               SizedBox(height: 16),
-              Text('Mengompres file ke ZIP...', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text('Mengompres file ke ZIP...',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
               SizedBox(height: 4),
-              Text('Mengemas berkas arsip...', style: TextStyle(fontSize: 12, color: kTextMid)),
+              Text('Mengemas berkas arsip...',
+                  style: TextStyle(fontSize: 12, color: kTextMid)),
             ],
           ),
         ),
@@ -805,7 +932,8 @@ class ArsipScreenState extends State<ArsipScreen> {
         }
 
         if (fileBytes == null) {
-          final content = 'Arsip: ${a.judul}\nKategori: ${a.kategori}\nTanggal: ${a.tanggal}\nNo Surat: ${a.nomorSurat}\nDeskripsi: ${a.deskripsi}\nKeterangan: ${a.keterangan}\nFile URL: ${a.fileUrl}';
+          final content =
+              'Arsip: ${a.judul}\nKategori: ${a.kategori}\nTanggal: ${a.tanggal}\nNo Surat: ${a.nomorSurat}\nDeskripsi: ${a.deskripsi}\nKeterangan: ${a.keterangan}\nFile URL: ${a.fileUrl}';
           fileBytes = Uint8List.fromList(content.codeUnits);
           fileName = '$fileName.txt';
         }
@@ -844,29 +972,49 @@ class ArsipScreenState extends State<ArsipScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(2)))),
+              Center(
+                  child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                          color: kPrimary,
+                          borderRadius: BorderRadius.circular(2)))),
               const SizedBox(height: 16),
               Row(children: [
                 Container(
                   padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: Colors.amber.shade50, borderRadius: BorderRadius.circular(12)),
-                  child: const Icon(Icons.archive_rounded, color: Colors.amber, size: 26),
+                  decoration: BoxDecoration(
+                      color: Colors.amber.shade50,
+                      borderRadius: BorderRadius.circular(12)),
+                  child: const Icon(Icons.archive_rounded,
+                      color: Colors.amber, size: 26),
                 ),
                 const SizedBox(width: 12),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('File ZIP Berhasil Dibuat!', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kTextDark)),
-                  Text('$zipName (${(zipBytes.length / 1024).toStringAsFixed(1)} KB)',
-                      style: const TextStyle(fontSize: 12, color: kTextMid)),
-                ])),
+                Expanded(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                      const Text('File ZIP Berhasil Dibuat!',
+                          style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: kTextDark)),
+                      Text(
+                          '$zipName (${(zipBytes.length / 1024).toStringAsFixed(1)} KB)',
+                          style:
+                              const TextStyle(fontSize: 12, color: kTextMid)),
+                    ])),
               ]),
               const SizedBox(height: 20),
               ElevatedButton.icon(
                 icon: const Icon(Icons.share_rounded, size: 18),
-                label: const Text('Bagikan File ZIP (WhatsApp / dll)', style: TextStyle(fontWeight: FontWeight.bold)),
+                label: const Text('Bagikan File ZIP (WhatsApp / dll)',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: kAccent,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: () async {
                   Navigator.pop(ctx);
@@ -883,7 +1031,8 @@ class ArsipScreenState extends State<ArsipScreen> {
                 style: OutlinedButton.styleFrom(
                   foregroundColor: kTextDark,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: () async {
                   Navigator.pop(ctx);
@@ -898,7 +1047,9 @@ class ArsipScreenState extends State<ArsipScreen> {
       if (mounted) {
         if (Navigator.canPop(context)) Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal membuat ZIP: $e'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('Gagal membuat ZIP: $e'),
+              backgroundColor: Colors.red),
         );
       }
     }
@@ -911,11 +1062,14 @@ class ArsipScreenState extends State<ArsipScreen> {
       context: context,
       builder: (d) => AlertDialog(
         title: Text(LocalizationService.tr('arsip_delete_confirm')),
-        content: Text(LocalizationService.currentLocale.value.languageCode == 'en'
+        content: Text(LocalizationService.currentLocale.value.languageCode ==
+                'en'
             ? 'Are you sure you want to permanently delete $count selected item(s)?'
             : 'Yakin ingin menghapus $count item yang dipilih secara permanen?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(d, false), child: Text(LocalizationService.tr('btn_cancel'))),
+          TextButton(
+              onPressed: () => Navigator.pop(d, false),
+              child: Text(LocalizationService.tr('btn_cancel'))),
           ElevatedButton.icon(
             icon: const Icon(Icons.delete_outline_rounded, size: 16),
             label: Text(LocalizationService.tr('btn_delete')),
@@ -942,7 +1096,8 @@ class ArsipScreenState extends State<ArsipScreen> {
     final locLabel = _currentPath.isEmpty ? 'Root (/)' : _currentPath;
     await NotificationService.notifyUpdate(
       title: 'Item Arsip Dihapus',
-      message: '$countFiles file dan $countFolders folder di $locLabel telah dihapus oleh ${widget.username}',
+      message:
+          '$countFiles file dan $countFolders folder di $locLabel telah dihapus oleh ${widget.username}',
       category: 'arsip',
       actor: widget.username,
     );
@@ -962,22 +1117,42 @@ class ArsipScreenState extends State<ArsipScreen> {
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF131A26) : Colors.white,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          border: isDark ? const Border(top: BorderSide(color: Color(0xFF263348), width: 1)) : null,
+          border: isDark
+              ? const Border(
+                  top: BorderSide(color: Color(0xFF263348), width: 1))
+              : null,
         ),
         padding: EdgeInsets.only(
-          left: 20, right: 20, top: 20,
+          left: 20,
+          right: 20,
+          top: 20,
           bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: isDark ? const Color(0xFF263348) : kPrimary, borderRadius: BorderRadius.circular(2)))),
+            Center(
+                child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF263348) : kPrimary,
+                        borderRadius: BorderRadius.circular(2)))),
             const SizedBox(height: 16),
-            Text(LocalizationService.tr('arsip_folder_add'), style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
+            Text(LocalizationService.tr('arsip_folder_add'),
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : kTextDark)),
             const SizedBox(height: 4),
-            Text(_currentPath.isEmpty ? 'Folder akan dibuat di Root (/)' : 'Folder dibuat di: $_currentPath',
-                style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : kTextMid)),
+            Text(
+                _currentPath.isEmpty
+                    ? 'Folder akan dibuat di Root (/)'
+                    : 'Folder dibuat di: $_currentPath',
+                style: TextStyle(
+                    fontSize: 12,
+                    color: isDark ? const Color(0xFF94A3B8) : kTextMid)),
             const SizedBox(height: 16),
             TextField(
               controller: namaC,
@@ -986,32 +1161,42 @@ class ArsipScreenState extends State<ArsipScreen> {
               style: TextStyle(color: isDark ? Colors.white : Colors.black87),
               decoration: InputDecoration(
                 labelText: LocalizationService.tr('arsip_folder_name'),
-                labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                prefixIcon: const Icon(Icons.create_new_folder_outlined, color: kAccent),
+                labelStyle:
+                    TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                prefixIcon: const Icon(Icons.create_new_folder_outlined,
+                    color: kAccent),
                 hintText: LocalizationService.tr('arsip_folder_name'),
               ),
             ),
             const SizedBox(height: 20),
             ElevatedButton.icon(
               icon: const Icon(Icons.create_new_folder_rounded, size: 18),
-              label: Text(LocalizationService.tr('btn_create_folder'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              label: Text(LocalizationService.tr('btn_create_folder'),
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold)),
               onPressed: () async {
                 final folderName = namaC.text.trim();
                 if (folderName.isEmpty) return;
-                final fullPath = _currentPath.isEmpty ? folderName : '$_currentPath/$folderName';
+                final fullPath = _currentPath.isEmpty
+                    ? folderName
+                    : '$_currentPath/$folderName';
 
                 if (_allFolders.contains(fullPath)) {
                   ScaffoldMessenger.of(ctx).showSnackBar(
-                    const SnackBar(content: Text('Folder dengan nama ini sudah ada'), backgroundColor: Colors.orange),
+                    const SnackBar(
+                        content: Text('Folder dengan nama ini sudah ada'),
+                        backgroundColor: Colors.orange),
                   );
                   return;
                 }
 
                 await DataService.addArsipFolder(fullPath);
-                final locLabel = _currentPath.isEmpty ? 'Root (/)' : _currentPath;
+                final locLabel =
+                    _currentPath.isEmpty ? 'Root (/)' : _currentPath;
                 await NotificationService.notifyUpdate(
                   title: 'Folder Baru Dibuat',
-                  message: 'Folder "$folderName" dibuat di lokasi $locLabel oleh ${widget.username}',
+                  message:
+                      'Folder "$folderName" dibuat di lokasi $locLabel oleh ${widget.username}',
                   category: 'arsip',
                   actor: widget.username,
                 );
@@ -1022,7 +1207,8 @@ class ArsipScreenState extends State<ArsipScreen> {
                 backgroundColor: Theme.of(context).colorScheme.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
                 elevation: 2,
               ),
             ),
@@ -1045,19 +1231,34 @@ class ArsipScreenState extends State<ArsipScreen> {
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF131A26) : Colors.white,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          border: isDark ? const Border(top: BorderSide(color: Color(0xFF263348), width: 1)) : null,
+          border: isDark
+              ? const Border(
+                  top: BorderSide(color: Color(0xFF263348), width: 1))
+              : null,
         ),
         padding: EdgeInsets.only(
-          left: 20, right: 20, top: 20,
+          left: 20,
+          right: 20,
+          top: 20,
           bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: isDark ? const Color(0xFF263348) : kPrimary, borderRadius: BorderRadius.circular(2)))),
+            Center(
+                child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF263348) : kPrimary,
+                        borderRadius: BorderRadius.circular(2)))),
             const SizedBox(height: 16),
-            Text(LocalizationService.tr('btn_rename'), style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
+            Text(LocalizationService.tr('btn_rename'),
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : kTextDark)),
             const SizedBox(height: 16),
             TextField(
               controller: nameC,
@@ -1066,14 +1267,17 @@ class ArsipScreenState extends State<ArsipScreen> {
               style: TextStyle(color: isDark ? Colors.white : Colors.black87),
               decoration: InputDecoration(
                 labelText: LocalizationService.tr('arsip_folder_name'),
-                labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                labelStyle:
+                    TextStyle(color: isDark ? Colors.white70 : Colors.black54),
                 prefixIcon: const Icon(Icons.edit_outlined, color: kAccent),
               ),
             ),
             const SizedBox(height: 20),
             ElevatedButton.icon(
               icon: const Icon(Icons.save_outlined, size: 18),
-              label: Text(LocalizationService.tr('btn_save_changes'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              label: Text(LocalizationService.tr('btn_save_changes'),
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold)),
               onPressed: () async {
                 final newName = nameC.text.trim();
                 if (newName.isEmpty || newName == oldName) {
@@ -1087,7 +1291,8 @@ class ArsipScreenState extends State<ArsipScreen> {
                 await DataService.renameArsipFolder(oldPath, newPath);
                 await NotificationService.notifyUpdate(
                   title: 'Folder Diubah Nama',
-                  message: 'Folder "$oldName" diubah menjadi "$newName" oleh ${widget.username}',
+                  message:
+                      'Folder "$oldName" diubah menjadi "$newName" oleh ${widget.username}',
                   category: 'arsip',
                   actor: widget.username,
                 );
@@ -1098,7 +1303,8 @@ class ArsipScreenState extends State<ArsipScreen> {
                 backgroundColor: Theme.of(context).colorScheme.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
                 elevation: 2,
               ),
             ),
@@ -1126,20 +1332,33 @@ class ArsipScreenState extends State<ArsipScreen> {
 
     for (final field in configuredFields) {
       if (field.id == 'ars_nama') {
-        controllers[field.id] = TextEditingController(text: existing?.judul ?? '');
+        controllers[field.id] =
+            TextEditingController(text: existing?.judul ?? '');
         dynamicValues[field.id] = existing?.judul ?? '';
       } else if (field.id == 'ars_folder') {
-        final options = field.options.isNotEmpty ? field.options : ['Surat Masuk', 'Surat Keluar', 'Proposal Kegiatan', 'LPJ Kegiatan', 'Dokumentasi', 'SK & Sertifikat'];
-        dynamicValues[field.id] = _currentPath.isNotEmpty ? _currentPath : options.first;
+        final options = field.options.isNotEmpty
+            ? field.options
+            : [
+                'Surat Masuk',
+                'Surat Keluar',
+                'Proposal Kegiatan',
+                'LPJ Kegiatan',
+                'Dokumentasi',
+                'SK & Sertifikat'
+              ];
+        dynamicValues[field.id] =
+            _currentPath.isNotEmpty ? _currentPath : options.first;
       } else if (field.id == 'ars_file') {
         dynamicValues[field.id] = fileUrl;
       } else if (field.id == 'ars_ket') {
-        controllers[field.id] = TextEditingController(text: existing?.keterangan ?? '');
+        controllers[field.id] =
+            TextEditingController(text: existing?.keterangan ?? '');
         dynamicValues[field.id] = existing?.keterangan ?? '';
       } else {
         if (field.type == InputFieldType.date) {
           dynamicValues[field.id] = existing?.tanggal ?? DateTime.now();
-        } else if (field.type == InputFieldType.dropdown && field.options.isNotEmpty) {
+        } else if (field.type == InputFieldType.dropdown &&
+            field.options.isNotEmpty) {
           dynamicValues[field.id] = field.options.first;
         } else {
           controllers[field.id] = TextEditingController(text: '');
@@ -1158,10 +1377,15 @@ class ArsipScreenState extends State<ArsipScreen> {
           decoration: BoxDecoration(
             color: isDark ? const Color(0xFF131A26) : Colors.white,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            border: isDark ? const Border(top: BorderSide(color: Color(0xFF263348), width: 1)) : null,
+            border: isDark
+                ? const Border(
+                    top: BorderSide(color: Color(0xFF263348), width: 1))
+                : null,
           ),
           padding: EdgeInsets.only(
-            left: 20, right: 20, top: 20,
+            left: 20,
+            right: 20,
+            top: 20,
             bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
           ),
           child: SingleChildScrollView(
@@ -1169,16 +1393,33 @@ class ArsipScreenState extends State<ArsipScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: isDark ? const Color(0xFF263348) : kPrimary, borderRadius: BorderRadius.circular(2)))),
+                Center(
+                    child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF263348) : kPrimary,
+                            borderRadius: BorderRadius.circular(2)))),
                 const SizedBox(height: 16),
-                Text(existing == null ? LocalizationService.tr('arsip_file_add') : LocalizationService.tr('arsip_file_edit'),
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
+                Text(
+                    existing == null
+                        ? LocalizationService.tr('arsip_file_add')
+                        : LocalizationService.tr('arsip_file_edit'),
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : kTextDark)),
                 const SizedBox(height: 4),
                 Row(children: [
                   const Icon(Icons.folder_rounded, size: 16, color: kAccent),
                   const SizedBox(width: 6),
-                  Text(_currentPath.isEmpty ? 'Lokasi: Root (/)' : 'Lokasi: $_currentPath',
-                      style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : kTextMid)),
+                  Text(
+                      _currentPath.isEmpty
+                          ? 'Lokasi: Root (/)'
+                          : 'Lokasi: $_currentPath',
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? const Color(0xFF94A3B8) : kTextMid)),
                 ]),
                 const SizedBox(height: 16),
 
@@ -1186,7 +1427,8 @@ class ArsipScreenState extends State<ArsipScreen> {
                 ...configuredFields.map((field) {
                   if (field.id == 'ars_file') {
                     final maxMb = AppSettingsService.arsipMaxMbNotifier.value;
-                    final allowedExts = AppSettingsService.arsipAllowedExtsNotifier.value;
+                    final allowedExts =
+                        AppSettingsService.arsipAllowedExtsNotifier.value;
 
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
@@ -1196,7 +1438,20 @@ class ArsipScreenState extends State<ArsipScreen> {
                             type: FileType.custom,
                             allowedExtensions: allowedExts.isNotEmpty
                                 ? allowedExts
-                                : ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png', 'zip', 'txt'],
+                                : [
+                                    'pdf',
+                                    'doc',
+                                    'docx',
+                                    'xls',
+                                    'xlsx',
+                                    'ppt',
+                                    'pptx',
+                                    'jpg',
+                                    'jpeg',
+                                    'png',
+                                    'zip',
+                                    'txt'
+                                  ],
                           );
                           if (result == null) return;
                           final f = result.files.first;
@@ -1211,7 +1466,8 @@ class ArsipScreenState extends State<ArsipScreen> {
                           if (fBytes.lengthInBytes > maxMb * 1024 * 1024) {
                             if (ctx.mounted) {
                               ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
-                                content: Text('Ukuran file (${(fBytes.lengthInBytes / (1024 * 1024)).toStringAsFixed(1)} MB) melebihi batas maksimal $maxMb MB'),
+                                content: Text(
+                                    'Ukuran file (${(fBytes.lengthInBytes / (1024 * 1024)).toStringAsFixed(1)} MB) melebihi batas maksimal $maxMb MB'),
                                 backgroundColor: Colors.red,
                                 duration: const Duration(seconds: 4),
                               ));
@@ -1222,20 +1478,31 @@ class ArsipScreenState extends State<ArsipScreen> {
                             pickedFileName = f.name;
                             pickedFileBytes = fBytes;
                             dynamicValues[field.id] = f.name;
-                            if (controllers['ars_nama'] != null && controllers['ars_nama']!.text.trim().isEmpty) {
-                              controllers['ars_nama']!.text = f.name.replaceAll(RegExp(r'\.[^.]+$'), '');
-                              dynamicValues['ars_nama'] = controllers['ars_nama']!.text;
+                            if (controllers['ars_nama'] != null &&
+                                controllers['ars_nama']!.text.trim().isEmpty) {
+                              controllers['ars_nama']!.text =
+                                  f.name.replaceAll(RegExp(r'\.[^.]+$'), '');
+                              dynamicValues['ars_nama'] =
+                                  controllers['ars_nama']!.text;
                             }
                           });
                         },
                         child: InputDecorator(
                           decoration: InputDecoration(
-                            labelText: '${field.label}${field.isRequired ? ' *' : ''} (Maks ${AppSettingsService.arsipMaxMbNotifier.value} MB)',
-                            labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-                            prefixIcon: const Icon(Icons.upload_file_outlined, color: kAccent),
+                            labelText:
+                                '${field.label}${field.isRequired ? ' *' : ''} (Maks ${AppSettingsService.arsipMaxMbNotifier.value} MB)',
+                            labelStyle: TextStyle(
+                                color:
+                                    isDark ? Colors.white70 : Colors.black54),
+                            prefixIcon: const Icon(Icons.upload_file_outlined,
+                                color: kAccent),
                             suffixIcon: pickedFileName != null
                                 ? IconButton(
-                                    icon: Icon(Icons.close, size: 18, color: isDark ? Colors.white70 : kTextLight),
+                                    icon: Icon(Icons.close,
+                                        size: 18,
+                                        color: isDark
+                                            ? Colors.white70
+                                            : kTextLight),
                                     onPressed: () => setModal(() {
                                       pickedFileName = null;
                                       pickedFileBytes = null;
@@ -1245,12 +1512,20 @@ class ArsipScreenState extends State<ArsipScreen> {
                                 : null,
                           ),
                           child: Text(
-                            pickedFileName ?? (fileUrl.isNotEmpty ? '(File tersimpan di cloud)' : (field.placeholder.isNotEmpty ? field.placeholder : LocalizationService.tr('btn_choose_file'))),
+                            pickedFileName ??
+                                (fileUrl.isNotEmpty
+                                    ? '(File tersimpan di cloud)'
+                                    : (field.placeholder.isNotEmpty
+                                        ? field.placeholder
+                                        : LocalizationService.tr(
+                                            'btn_choose_file'))),
                             style: TextStyle(
                               fontSize: 13,
                               color: pickedFileName != null
                                   ? (isDark ? Colors.white : kTextDark)
-                                  : (isDark ? const Color(0xFF94A3B8) : kTextLight),
+                                  : (isDark
+                                      ? const Color(0xFF94A3B8)
+                                      : kTextLight),
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -1271,79 +1546,107 @@ class ArsipScreenState extends State<ArsipScreen> {
 
                 const SizedBox(height: 12),
                 ElevatedButton(
-                  onPressed: uploading ? null : () async {
-                    final judul = controllers['ars_nama']?.text.trim() ??
-                        dynamicValues['ars_nama']?.toString().trim() ??
-                        (existing != null ? existing.judul : '');
+                  onPressed: uploading
+                      ? null
+                      : () async {
+                          final judul = controllers['ars_nama']?.text.trim() ??
+                              dynamicValues['ars_nama']?.toString().trim() ??
+                              (existing != null ? existing.judul : '');
 
-                    if (judul.isEmpty && configuredFields.any((f) => f.id == 'ars_nama' && f.isRequired)) {
-                      ScaffoldMessenger.of(ctx).showSnackBar(
-                        const SnackBar(content: Text('Nama file tidak boleh kosong'), backgroundColor: Colors.orange),
-                      );
-                      return;
-                    }
+                          if (judul.isEmpty &&
+                              configuredFields.any(
+                                  (f) => f.id == 'ars_nama' && f.isRequired)) {
+                            ScaffoldMessenger.of(ctx).showSnackBar(
+                              const SnackBar(
+                                  content: Text('Nama file tidak boleh kosong'),
+                                  backgroundColor: Colors.orange),
+                            );
+                            return;
+                          }
 
-                    final keterangan = controllers['ars_ket']?.text.trim() ?? dynamicValues['ars_ket']?.toString().trim() ?? '';
-                    final folder = dynamicValues['ars_folder']?.toString() ?? _currentPath;
-                    final targetPath = folder.isNotEmpty ? folder : _currentPath;
+                          final keterangan =
+                              controllers['ars_ket']?.text.trim() ??
+                                  dynamicValues['ars_ket']?.toString().trim() ??
+                                  '';
+                          final folder =
+                              dynamicValues['ars_folder']?.toString() ??
+                                  _currentPath;
+                          final targetPath =
+                              folder.isNotEmpty ? folder : _currentPath;
 
-                    setModal(() => uploading = true);
-                    try {
-                      if (pickedFileBytes != null && pickedFileName != null) {
-                        fileUrl = await DataService.uploadArsipFile(pickedFileBytes!, pickedFileName!);
-                      }
-                      final a = Arsip(
-                        id: existing?.id ?? _uuid.v4(),
-                        judul: judul.isNotEmpty ? judul : 'Berkas Arsip',
-                        kategori: targetPath,
-                        deskripsi: existing?.deskripsi ?? '',
-                        nomorSurat: existing?.nomorSurat ?? '',
-                        tanggal: existing?.tanggal ?? DateTime.now(),
-                        pembuatId: sekbid,
-                        fileUrl: fileUrl,
-                        keterangan: keterangan,
-                      );
-                      if (existing == null) {
-                        await DataService.addArsip(a);
-                        final folderName = targetPath.isEmpty ? 'Root (/)' : targetPath;
-                        await NotificationService.notifyUpdate(
-                          title: 'File Arsip Ditambahkan',
-                          message: 'File "${a.judul}" ditambahkan di folder $folderName oleh ${widget.username}',
-                          category: 'arsip',
-                          actor: widget.username,
-                        );
-                      } else {
-                        await DataService.updateArsip(a);
-                        final folderName = targetPath.isEmpty ? 'Root (/)' : targetPath;
-                        await NotificationService.notifyUpdate(
-                          title: 'File Arsip Diperbarui',
-                          message: 'File "${a.judul}" di folder $folderName diperbarui oleh ${widget.username}',
-                          category: 'arsip',
-                          actor: widget.username,
-                        );
-                      }
-                      if (ctx.mounted) Navigator.pop(ctx);
-                      await _load();
-                    } catch (e) {
-                      setModal(() => uploading = false);
-                      if (ctx.mounted) {
-                        ScaffoldMessenger.of(ctx).showSnackBar(
-                          SnackBar(content: Text('Gagal menyimpan: $e'), backgroundColor: Colors.red),
-                        );
-                      }
-                    }
-                  },
+                          setModal(() => uploading = true);
+                          try {
+                            if (pickedFileBytes != null &&
+                                pickedFileName != null) {
+                              fileUrl = await DataService.uploadArsipFile(
+                                  pickedFileBytes!, pickedFileName!);
+                            }
+                            final a = Arsip(
+                              id: existing?.id ?? _uuid.v4(),
+                              judul: judul.isNotEmpty ? judul : 'Berkas Arsip',
+                              kategori: targetPath,
+                              deskripsi: existing?.deskripsi ?? '',
+                              nomorSurat: existing?.nomorSurat ?? '',
+                              tanggal: existing?.tanggal ?? DateTime.now(),
+                              pembuatId: sekbid,
+                              fileUrl: fileUrl,
+                              keterangan: keterangan,
+                            );
+                            if (existing == null) {
+                              await DataService.addArsip(a);
+                              final folderName =
+                                  targetPath.isEmpty ? 'Root (/)' : targetPath;
+                              await NotificationService.notifyUpdate(
+                                title: 'File Arsip Ditambahkan',
+                                message:
+                                    'File "${a.judul}" ditambahkan di folder $folderName oleh ${widget.username}',
+                                category: 'arsip',
+                                actor: widget.username,
+                              );
+                            } else {
+                              await DataService.updateArsip(a);
+                              final folderName =
+                                  targetPath.isEmpty ? 'Root (/)' : targetPath;
+                              await NotificationService.notifyUpdate(
+                                title: 'File Arsip Diperbarui',
+                                message:
+                                    'File "${a.judul}" di folder $folderName diperbarui oleh ${widget.username}',
+                                category: 'arsip',
+                                actor: widget.username,
+                              );
+                            }
+                            if (ctx.mounted) Navigator.pop(ctx);
+                            await _load();
+                          } catch (e) {
+                            setModal(() => uploading = false);
+                            if (ctx.mounted) {
+                              ScaffoldMessenger.of(ctx).showSnackBar(
+                                SnackBar(
+                                    content: Text('Gagal menyimpan: $e'),
+                                    backgroundColor: Colors.red),
+                              );
+                            }
+                          }
+                        },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Theme.of(context).colorScheme.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
                     elevation: 2,
                   ),
                   child: uploading
-                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white))
                       : Text(LocalizationService.tr('btn_save'),
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                          style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white)),
                 ),
               ],
             ),
@@ -1367,31 +1670,56 @@ class ArsipScreenState extends State<ArsipScreen> {
           decoration: BoxDecoration(
             color: isDark ? const Color(0xFF131A26) : Colors.white,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            border: isDark ? const Border(top: BorderSide(color: Color(0xFF263348), width: 1)) : null,
+            border: isDark
+                ? const Border(
+                    top: BorderSide(color: Color(0xFF263348), width: 1))
+                : null,
           ),
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: isDark ? const Color(0xFF263348) : kPrimary, borderRadius: BorderRadius.circular(2)))),
+              Center(
+                  child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF263348) : kPrimary,
+                          borderRadius: BorderRadius.circular(2)))),
               const SizedBox(height: 16),
               Row(children: [
                 _fileFormatBadge(a.fileUrl, a.judul),
                 const SizedBox(width: 10),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(a.judul, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
-                  Text('Lokasi: ${a.kategori.isEmpty ? "Root (/)" : a.kategori}', style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : kTextMid)),
-                ])),
+                Expanded(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                      Text(a.judul,
+                          style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.white : kTextDark)),
+                      Text(
+                          'Lokasi: ${a.kategori.isEmpty ? "Root (/)" : a.kategori}',
+                          style: TextStyle(
+                              fontSize: 11,
+                              color:
+                                  isDark ? const Color(0xFF94A3B8) : kTextMid)),
+                    ])),
               ]),
               const SizedBox(height: 12),
               const Divider(height: 1),
               const SizedBox(height: 12),
-              _detailRow('Tanggal', DateFormat('dd MMMM yyyy', 'id').format(a.tanggal)),
-              if (a.nomorSurat.isNotEmpty) _detailRow('Nomor Dokumen', a.nomorSurat),
-              if (a.pembuatId.isNotEmpty) _detailRow('Diupload Oleh', a.pembuatId),
+              _detailRow('Tanggal',
+                  DateFormat('dd MMMM yyyy', 'id').format(a.tanggal)),
+              if (a.nomorSurat.isNotEmpty)
+                _detailRow('Nomor Dokumen', a.nomorSurat),
+              if (a.pembuatId.isNotEmpty)
+                _detailRow('Diupload Oleh', a.pembuatId),
               if (a.deskripsi.isNotEmpty) _detailRow('Deskripsi', a.deskripsi),
-              if (a.keterangan.isNotEmpty) _detailRow('Keterangan', a.keterangan),
+              if (a.keterangan.isNotEmpty)
+                _detailRow('Keterangan', a.keterangan),
               const SizedBox(height: 20),
 
               // Open file button
@@ -1400,36 +1728,48 @@ class ArsipScreenState extends State<ArsipScreen> {
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     icon: loading
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white))
                         : const Icon(Icons.visibility_rounded, size: 18),
                     label: Text(loading ? 'Membuka File...' : 'Buka File'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: kAccent, foregroundColor: Colors.white,
+                      backgroundColor: kAccent,
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
                     ),
-                    onPressed: (loading || downloading) ? null : () async {
-                      setModal(() => loading = true);
-                      try {
-                        final fileName = _getFileNameWithExt(a.fileUrl, a.judul);
-                        final file = await _downloadToTemp(a.fileUrl, fileName);
-                        if (file != null) {
-                          await OpenFilex.open(file.path);
-                        } else {
-                          final url = Uri.parse(a.fileUrl);
-                          if (await canLaunchUrl(url)) {
-                            launchUrl(url, mode: LaunchMode.externalApplication);
-                          }
-                        }
-                      } catch (_) {
-                        final url = Uri.parse(a.fileUrl);
-                        if (await canLaunchUrl(url)) {
-                          launchUrl(url, mode: LaunchMode.externalApplication);
-                        }
-                      } finally {
-                        if (ctx.mounted) setModal(() => loading = false);
-                      }
-                    },
+                    onPressed: (loading || downloading)
+                        ? null
+                        : () async {
+                            setModal(() => loading = true);
+                            try {
+                              final fileName =
+                                  _getFileNameWithExt(a.fileUrl, a.judul);
+                              final file =
+                                  await _downloadToTemp(a.fileUrl, fileName);
+                              if (file != null) {
+                                await OpenFilex.open(file.path);
+                              } else {
+                                final url = Uri.parse(a.fileUrl);
+                                if (await canLaunchUrl(url)) {
+                                  launchUrl(url,
+                                      mode: LaunchMode.externalApplication);
+                                }
+                              }
+                            } catch (_) {
+                              final url = Uri.parse(a.fileUrl);
+                              if (await canLaunchUrl(url)) {
+                                launchUrl(url,
+                                    mode: LaunchMode.externalApplication);
+                              }
+                            } finally {
+                              if (ctx.mounted) setModal(() => loading = false);
+                            }
+                          },
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -1437,145 +1777,177 @@ class ArsipScreenState extends State<ArsipScreen> {
                   Expanded(
                     child: OutlinedButton.icon(
                       icon: downloading
-                          ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: kAccent))
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: kAccent))
                           : const Icon(Icons.download_rounded, size: 16),
                       label: Text(downloading ? 'Mengunduh...' : 'Unduh'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: kAccent,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
                       ),
-                      onPressed: (loading || downloading) ? null : () async {
-                        setModal(() => downloading = true);
-                        try {
-                          if (a.fileUrl.isEmpty) {
-                            throw Exception('File tidak memiliki URL unduhan');
-                          }
-                          final fileName = _getFileNameWithExt(a.fileUrl, a.judul);
+                      onPressed: (loading || downloading)
+                          ? null
+                          : () async {
+                              setModal(() => downloading = true);
+                              try {
+                                if (a.fileUrl.isEmpty) {
+                                  throw Exception(
+                                      'File tidak memiliki URL unduhan');
+                                }
+                                final fileName =
+                                    _getFileNameWithExt(a.fileUrl, a.judul);
 
-                          // Tampilkan notifikasi awal bahwa download sedang berjalan
-                          if (ctx.mounted) {
-                            ScaffoldMessenger.of(ctx).hideCurrentSnackBar();
-                            ScaffoldMessenger.of(ctx).showSnackBar(
-                              SnackBar(
-                                content: Row(
-                                  children: [
-                                    const SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                // Tampilkan notifikasi awal bahwa download sedang berjalan
+                                if (ctx.mounted) {
+                                  ScaffoldMessenger.of(ctx)
+                                      .hideCurrentSnackBar();
+                                  ScaffoldMessenger.of(ctx).showSnackBar(
+                                    SnackBar(
+                                      content: Row(
+                                        children: [
+                                          const SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: Colors.white),
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                              child: Text(
+                                                  'Sedang mengunduh: $fileName...')),
+                                        ],
+                                      ),
+                                      backgroundColor: kPrimaryDark,
+                                      duration: const Duration(seconds: 3),
                                     ),
-                                    const SizedBox(width: 10),
-                                    Expanded(child: Text('Sedang mengunduh: $fileName...')),
-                                  ],
-                                ),
-                                backgroundColor: kPrimaryDark,
-                                duration: const Duration(seconds: 3),
-                              ),
-                            );
-                          }
+                                  );
+                                }
 
-                          await NotificationService.showImmediate(
-                            id: NotificationService.idFromString('download_$fileName'),
-                            title: 'Mengunduh File',
-                            body: 'Sedang mengunduh "$fileName"...',
-                            username: widget.username,
-                          );
+                                await NotificationService.showImmediate(
+                                  id: NotificationService.idFromString(
+                                      'download_$fileName'),
+                                  title: 'Mengunduh File',
+                                  body: 'Sedang mengunduh "$fileName"...',
+                                  username: widget.username,
+                                );
 
-                          final response = await http.get(Uri.parse(a.fileUrl));
-                          if (response.statusCode != 200) {
-                            throw Exception('Gagal mengunduh file (HTTP ${response.statusCode})');
-                          }
+                                final response =
+                                    await http.get(Uri.parse(a.fileUrl));
+                                if (response.statusCode != 200) {
+                                  throw Exception(
+                                      'Gagal mengunduh file (HTTP ${response.statusCode})');
+                                }
 
-                          File? savedFile;
-                          String locationName = 'Downloads';
+                                File? savedFile;
+                                String locationName = 'Downloads';
 
-                          // 1. Coba folder Downloads publik di Android
-                          try {
-                            final downloadsDir = Directory('/storage/emulated/0/Download');
-                            if (await downloadsDir.exists()) {
-                              final f = File('${downloadsDir.path}/$fileName');
-                              await f.writeAsBytes(response.bodyBytes);
-                              savedFile = f;
-                              locationName = 'Downloads';
-                            }
-                          } catch (_) {}
+                                // 1. Coba folder Downloads publik di Android
+                                try {
+                                  final downloadsDir =
+                                      Directory('/storage/emulated/0/Download');
+                                  if (await downloadsDir.exists()) {
+                                    final f =
+                                        File('${downloadsDir.path}/$fileName');
+                                    await f.writeAsBytes(response.bodyBytes);
+                                    savedFile = f;
+                                    locationName = 'Downloads';
+                                  }
+                                } catch (_) {}
 
-                          // 2. Coba external storage directory
-                          if (savedFile == null) {
-                            try {
-                              final extDir = await getExternalStorageDirectory();
-                              if (extDir != null) {
-                                final f = File('${extDir.path}/$fileName');
-                                await f.writeAsBytes(response.bodyBytes);
-                                savedFile = f;
-                                locationName = 'Penyimpanan Eksternal';
-                              }
-                            } catch (_) {}
-                          }
-
-                          // 3. Coba app documents directory
-                          if (savedFile == null) {
-                            try {
-                              final docDir = await getApplicationDocumentsDirectory();
-                              final f = File('${docDir.path}/$fileName');
-                              await f.writeAsBytes(response.bodyBytes);
-                              savedFile = f;
-                              locationName = 'Dokumen Aplikasi';
-                            } catch (_) {}
-                          }
-
-                          // 4. Fallback ke temporary directory
-                          if (savedFile == null) {
-                            final tempDir = await getTemporaryDirectory();
-                            final f = File('${tempDir.path}/$fileName');
-                            await f.writeAsBytes(response.bodyBytes);
-                            savedFile = f;
-                            locationName = 'Penyimpanan Sementara';
-                          }
-
-                          await NotificationService.showImmediate(
-                            id: NotificationService.idFromString('download_done_$fileName'),
-                            title: 'Unduhan Selesai',
-                            body: 'File "$fileName" berhasil diunduh ke $locationName',
-                            username: widget.username,
-                          );
-
-                          if (ctx.mounted) {
-                            ScaffoldMessenger.of(ctx).hideCurrentSnackBar();
-                            ScaffoldMessenger.of(ctx).showSnackBar(
-                              SnackBar(
-                                content: Row(
-                                  children: [
-                                    const Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
-                                    const SizedBox(width: 8),
-                                    Expanded(child: Text('Tersimpan di $locationName: $fileName')),
-                                  ],
-                                ),
-                                backgroundColor: Colors.green,
-                                action: SnackBarAction(
-                                  label: 'Buka',
-                                  textColor: Colors.white,
-                                  onPressed: () {
-                                    if (savedFile != null) {
-                                      OpenFilex.open(savedFile.path);
+                                // 2. Coba external storage directory
+                                if (savedFile == null) {
+                                  try {
+                                    final extDir =
+                                        await getExternalStorageDirectory();
+                                    if (extDir != null) {
+                                      final f =
+                                          File('${extDir.path}/$fileName');
+                                      await f.writeAsBytes(response.bodyBytes);
+                                      savedFile = f;
+                                      locationName = 'Penyimpanan Eksternal';
                                     }
-                                  },
-                                ),
-                                duration: const Duration(seconds: 4),
-                              ),
-                            );
-                          }
-                        } catch (e) {
-                          if (ctx.mounted) {
-                            ScaffoldMessenger.of(ctx).hideCurrentSnackBar();
-                            ScaffoldMessenger.of(ctx).showSnackBar(
-                              SnackBar(content: Text('Gagal unduh: $e'), backgroundColor: Colors.red),
-                            );
-                          }
-                        } finally {
-                          if (ctx.mounted) setModal(() => downloading = false);
-                        }
-                      },
+                                  } catch (_) {}
+                                }
+
+                                // 3. Coba app documents directory
+                                if (savedFile == null) {
+                                  try {
+                                    final docDir =
+                                        await getApplicationDocumentsDirectory();
+                                    final f = File('${docDir.path}/$fileName');
+                                    await f.writeAsBytes(response.bodyBytes);
+                                    savedFile = f;
+                                    locationName = 'Dokumen Aplikasi';
+                                  } catch (_) {}
+                                }
+
+                                // 4. Fallback ke temporary directory
+                                if (savedFile == null) {
+                                  final tempDir = await getTemporaryDirectory();
+                                  final f = File('${tempDir.path}/$fileName');
+                                  await f.writeAsBytes(response.bodyBytes);
+                                  savedFile = f;
+                                  locationName = 'Penyimpanan Sementara';
+                                }
+
+                                await NotificationService.showImmediate(
+                                  id: NotificationService.idFromString(
+                                      'download_done_$fileName'),
+                                  title: 'Unduhan Selesai',
+                                  body:
+                                      'File "$fileName" berhasil diunduh ke $locationName',
+                                  username: widget.username,
+                                );
+
+                                if (ctx.mounted) {
+                                  ScaffoldMessenger.of(ctx)
+                                      .hideCurrentSnackBar();
+                                  ScaffoldMessenger.of(ctx).showSnackBar(
+                                    SnackBar(
+                                      content: Row(
+                                        children: [
+                                          const Icon(Icons.check_circle_outline,
+                                              color: Colors.white, size: 18),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                              child: Text(
+                                                  'Tersimpan di $locationName: $fileName')),
+                                        ],
+                                      ),
+                                      backgroundColor: Colors.green,
+                                      action: SnackBarAction(
+                                        label: 'Buka',
+                                        textColor: Colors.white,
+                                        onPressed: () {
+                                          if (savedFile != null) {
+                                            OpenFilex.open(savedFile.path);
+                                          }
+                                        },
+                                      ),
+                                      duration: const Duration(seconds: 4),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (ctx.mounted) {
+                                  ScaffoldMessenger.of(ctx)
+                                      .hideCurrentSnackBar();
+                                  ScaffoldMessenger.of(ctx).showSnackBar(
+                                    SnackBar(
+                                        content: Text('Gagal unduh: $e'),
+                                        backgroundColor: Colors.red),
+                                  );
+                                }
+                              } finally {
+                                if (ctx.mounted)
+                                  setModal(() => downloading = false);
+                              }
+                            },
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -1585,21 +1957,28 @@ class ArsipScreenState extends State<ArsipScreen> {
                       label: const Text('Bagikan'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: kAccent,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
                       ),
                       onPressed: () async {
                         try {
-                          final fileName = _getFileNameWithExt(a.fileUrl, a.judul);
-                          final file = await _downloadToTemp(a.fileUrl, fileName);
+                          final fileName =
+                              _getFileNameWithExt(a.fileUrl, a.judul);
+                          final file =
+                              await _downloadToTemp(a.fileUrl, fileName);
                           if (file != null) {
-                            await SharePlus.instance.share(ShareParams(files: [XFile(file.path)], text: a.judul));
+                            await SharePlus.instance.share(ShareParams(
+                                files: [XFile(file.path)], text: a.judul));
                           } else {
-                            await SharePlus.instance.share(ShareParams(text: '${a.judul}\n${a.fileUrl}'));
+                            await SharePlus.instance.share(
+                                ShareParams(text: '${a.judul}\n${a.fileUrl}'));
                           }
                         } catch (e) {
                           if (ctx.mounted) {
                             ScaffoldMessenger.of(ctx).showSnackBar(
-                              SnackBar(content: Text('Gagal bagikan: $e'), backgroundColor: Colors.red),
+                              SnackBar(
+                                  content: Text('Gagal bagikan: $e'),
+                                  backgroundColor: Colors.red),
                             );
                           }
                         }
@@ -1615,11 +1994,13 @@ class ArsipScreenState extends State<ArsipScreen> {
                 Row(children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      icon: const Icon(Icons.drive_file_move_outlined, size: 16),
+                      icon:
+                          const Icon(Icons.drive_file_move_outlined, size: 16),
                       label: const Text('Pindahkan'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: kPrimaryDark,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
                       ),
                       onPressed: () {
                         Navigator.pop(ctx);
@@ -1634,7 +2015,8 @@ class ArsipScreenState extends State<ArsipScreen> {
                       label: const Text('Edit'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: kAccent,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
                       ),
                       onPressed: () {
                         Navigator.pop(ctx);
@@ -1647,31 +2029,39 @@ class ArsipScreenState extends State<ArsipScreen> {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.red,
                       side: const BorderSide(color: Colors.red),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
                     ),
                     onPressed: () async {
                       final ok = await showDialog<bool>(
                         context: ctx,
                         builder: (d) => AlertDialog(
                           title: const Text('Hapus File?'),
-                          content: Text('File "${a.judul}" akan dihapus permanen.'),
+                          content:
+                              Text('File "${a.judul}" akan dihapus permanen.'),
                           actions: [
-                            TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Batal')),
+                            TextButton(
+                                onPressed: () => Navigator.pop(d, false),
+                                child: const Text('Batal')),
                             ElevatedButton.icon(
-                              icon: const Icon(Icons.delete_outline_rounded, size: 16),
+                              icon: const Icon(Icons.delete_outline_rounded,
+                                  size: 16),
                               label: const Text('Hapus'),
                               onPressed: () => Navigator.pop(d, true),
-                              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                              style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red),
                             ),
                           ],
                         ),
                       );
                       if (ok != true) return;
                       await DataService.deleteArsip(a.id);
-                      final folderName = a.kategori.isEmpty ? 'Root (/)' : a.kategori;
+                      final folderName =
+                          a.kategori.isEmpty ? 'Root (/)' : a.kategori;
                       await NotificationService.notifyUpdate(
                         title: 'File Arsip Dihapus',
-                        message: 'File "${a.judul}" di folder $folderName telah dihapus oleh ${widget.username}',
+                        message:
+                            'File "${a.judul}" di folder $folderName telah dihapus oleh ${widget.username}',
                         category: 'arsip',
                         actor: widget.username,
                       );
@@ -1690,16 +2080,24 @@ class ArsipScreenState extends State<ArsipScreen> {
   }
 
   Widget _detailRow(String label, String value) => Padding(
-    padding: const EdgeInsets.only(bottom: 6),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(width: 110, child: Text(label, style: const TextStyle(fontSize: 12, color: kTextLight))),
-        const Text(': ', style: TextStyle(fontSize: 12, color: kTextLight)),
-        Expanded(child: Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kTextDark))),
-      ],
-    ),
-  );
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+                width: 110,
+                child: Text(label,
+                    style: const TextStyle(fontSize: 12, color: kTextLight))),
+            const Text(': ', style: TextStyle(fontSize: 12, color: kTextLight)),
+            Expanded(
+                child: Text(value,
+                    style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: kTextDark))),
+          ],
+        ),
+      );
 
   Widget _fileFormatBadge(String url, String judul) {
     String ext = 'FILE';
@@ -1748,7 +2146,9 @@ class ArsipScreenState extends State<ArsipScreen> {
         children: [
           Icon(iconData, color: badgeColor, size: 22),
           const SizedBox(height: 2),
-          Text(ext, style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: badgeColor)),
+          Text(ext,
+              style: TextStyle(
+                  fontSize: 9, fontWeight: FontWeight.bold, color: badgeColor)),
         ],
       ),
     );
@@ -1800,7 +2200,8 @@ class ArsipScreenState extends State<ArsipScreen> {
       },
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
-        appBar: _isSelectionMode ? _buildSelectionAppBar() : _buildNormalAppBar(),
+        appBar:
+            _isSelectionMode ? _buildSelectionAppBar() : _buildNormalAppBar(),
         body: Column(
           children: [
             // Breadcrumb Navigation
@@ -1819,16 +2220,21 @@ class ArsipScreenState extends State<ArsipScreen> {
                           onRefresh: _load,
                           color: primary,
                           child: _viewMode == ViewMode.list
-                              ? _buildListView(subfolders, files, isDark: isDark, primary: primary)
-                              : _buildGridView(subfolders, files, isDark: isDark, primary: primary),
+                              ? _buildListView(subfolders, files,
+                                  isDark: isDark, primary: primary)
+                              : _buildGridView(subfolders, files,
+                                  isDark: isDark, primary: primary),
                         ),
             ),
 
             // Bottom Clipboard Bar
-            if (_clipboardMode != ClipboardMode.none) _buildClipboardBar(isDark: isDark, primary: primary),
+            if (_clipboardMode != ClipboardMode.none)
+              _buildClipboardBar(isDark: isDark, primary: primary),
           ],
         ),
-        floatingActionButton: _canEdit && !_isSelectionMode ? _buildFloatingActionButtons(isDark: isDark, primary: primary) : null,
+        floatingActionButton: _canEdit && !_isSelectionMode
+            ? _buildFloatingActionButtons(isDark: isDark, primary: primary)
+            : null,
       ),
     );
   }
@@ -1836,7 +2242,9 @@ class ArsipScreenState extends State<ArsipScreen> {
   // Normal App Bar
   AppBar _buildNormalAppBar() {
     return AppBar(
-      title: Text(_currentPath.isEmpty ? LocalizationService.tr('nav_arsip') : _currentPath.split('/').last),
+      title: Text(_currentPath.isEmpty
+          ? LocalizationService.tr('nav_arsip')
+          : _currentPath.split('/').last),
       automaticallyImplyLeading: false,
       leading: _currentPath.isNotEmpty
           ? IconButton(
@@ -1847,9 +2255,13 @@ class ArsipScreenState extends State<ArsipScreen> {
           : null,
       actions: [
         IconButton(
-          icon: Icon(_viewMode == ViewMode.list ? Icons.grid_view_rounded : Icons.view_list_rounded),
-          tooltip: _viewMode == ViewMode.list ? 'Tampilan Grid' : 'Tampilan List',
-          onPressed: () => setState(() => _viewMode = _viewMode == ViewMode.list ? ViewMode.grid : ViewMode.list),
+          icon: Icon(_viewMode == ViewMode.list
+              ? Icons.grid_view_rounded
+              : Icons.view_list_rounded),
+          tooltip:
+              _viewMode == ViewMode.list ? 'Tampilan Grid' : 'Tampilan List',
+          onPressed: () => setState(() => _viewMode =
+              _viewMode == ViewMode.list ? ViewMode.grid : ViewMode.list),
         ),
         PopupMenuButton<SortMode>(
           icon: const Icon(Icons.sort_rounded),
@@ -1920,7 +2332,8 @@ class ArsipScreenState extends State<ArsipScreen> {
         icon: const Icon(Icons.close_rounded),
         onPressed: _clearSelection,
       ),
-      title: Text('$_selectedCount Dipilih', style: const TextStyle(fontSize: 16)),
+      title:
+          Text('$_selectedCount Dipilih', style: const TextStyle(fontSize: 16)),
       actions: [
         IconButton(
           icon: const Icon(Icons.select_all_rounded),
@@ -1932,7 +2345,9 @@ class ArsipScreenState extends State<ArsipScreen> {
             icon: const Icon(Icons.drive_file_move_outlined),
             tooltip: 'Pindahkan ke Folder',
             onPressed: () {
-              final files = _allArsip.where((a) => _selectedFileIds.contains(a.id)).toList();
+              final files = _allArsip
+                  .where((a) => _selectedFileIds.contains(a.id))
+                  .toList();
               final folders = _selectedFolderPaths.toList();
               _showMoveDialog(files, foldersToMove: folders);
             },
@@ -1957,7 +2372,8 @@ class ArsipScreenState extends State<ArsipScreen> {
         ],
         if (_canEdit && _selectedCount > 0)
           IconButton(
-            icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+            icon: const Icon(Icons.delete_outline_rounded,
+                color: Colors.redAccent),
             tooltip: 'Hapus',
             onPressed: _deleteSelected,
           ),
@@ -1978,7 +2394,8 @@ class ArsipScreenState extends State<ArsipScreen> {
           children: [
             if (_currentPath.isNotEmpty) ...[
               IconButton(
-                icon: Icon(Icons.arrow_upward_rounded, size: 18, color: primary),
+                icon:
+                    Icon(Icons.arrow_upward_rounded, size: 18, color: primary),
                 tooltip: 'Naik 1 Tingkat',
                 onPressed: _goUp,
                 visualDensity: VisualDensity.compact,
@@ -1993,19 +2410,29 @@ class ArsipScreenState extends State<ArsipScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: _currentPath.isEmpty ? primary.withAlpha(isDark ? 40 : 20) : Colors.transparent,
+                  color: _currentPath.isEmpty
+                      ? primary.withAlpha(isDark ? 40 : 20)
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.home_rounded, size: 16, color: _currentPath.isEmpty ? primary : (isDark ? const Color(0xFF94A3B8) : kTextMid)),
+                    Icon(Icons.home_rounded,
+                        size: 16,
+                        color: _currentPath.isEmpty
+                            ? primary
+                            : (isDark ? const Color(0xFF94A3B8) : kTextMid)),
                     const SizedBox(width: 4),
                     Text(
                       'Root',
                       style: TextStyle(
                         fontSize: 12,
-                        fontWeight: _currentPath.isEmpty ? FontWeight.bold : FontWeight.normal,
-                        color: _currentPath.isEmpty ? primary : (isDark ? Colors.white : kTextDark),
+                        fontWeight: _currentPath.isEmpty
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                        color: _currentPath.isEmpty
+                            ? primary
+                            : (isDark ? Colors.white : kTextDark),
                       ),
                     ),
                   ],
@@ -2013,22 +2440,32 @@ class ArsipScreenState extends State<ArsipScreen> {
               ),
             ),
             for (int i = 0; i < segments.length; i++) ...[
-              Icon(Icons.chevron_right, size: 16, color: isDark ? const Color(0xFF64748B) : kTextLight),
+              Icon(Icons.chevron_right,
+                  size: 16,
+                  color: isDark ? const Color(0xFF64748B) : kTextLight),
               InkWell(
-                onTap: () => _navigateToPath(segments.sublist(0, i + 1).join('/')),
+                onTap: () =>
+                    _navigateToPath(segments.sublist(0, i + 1).join('/')),
                 borderRadius: BorderRadius.circular(6),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: i == segments.length - 1 ? primary.withAlpha(isDark ? 40 : 20) : Colors.transparent,
+                    color: i == segments.length - 1
+                        ? primary.withAlpha(isDark ? 40 : 20)
+                        : Colors.transparent,
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
                     segments[i],
                     style: TextStyle(
                       fontSize: 12,
-                      fontWeight: i == segments.length - 1 ? FontWeight.bold : FontWeight.normal,
-                      color: i == segments.length - 1 ? primary : (isDark ? Colors.white : kTextDark),
+                      fontWeight: i == segments.length - 1
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      color: i == segments.length - 1
+                          ? primary
+                          : (isDark ? Colors.white : kTextDark),
                     ),
                   ),
                 ),
@@ -2045,7 +2482,9 @@ class ArsipScreenState extends State<ArsipScreen> {
     return Container(
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF141D2E) : Colors.white,
-        border: isDark ? const Border(bottom: BorderSide(color: Color(0xFF243452))) : null,
+        border: isDark
+            ? const Border(bottom: BorderSide(color: Color(0xFF243452)))
+            : null,
       ),
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
       child: Row(
@@ -2057,20 +2496,36 @@ class ArsipScreenState extends State<ArsipScreen> {
                 onChanged: (val) => setState(() => _search = val),
                 decoration: InputDecoration(
                   hintText: 'Cari dalam folder ini...',
-                  hintStyle: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF64748B) : Colors.grey.shade400),
+                  hintStyle: TextStyle(
+                      fontSize: 12,
+                      color: isDark
+                          ? const Color(0xFF64748B)
+                          : Colors.grey.shade400),
                   prefixIcon: const Icon(Icons.search, size: 18),
                   contentPadding: EdgeInsets.zero,
                   filled: true,
                   fillColor: isDark ? const Color(0xFF0E1626) : kBg,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: isDark ? const BorderSide(color: Color(0xFF243452)) : BorderSide.none),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: isDark ? const BorderSide(color: Color(0xFF243452)) : BorderSide.none),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: isDark
+                          ? const BorderSide(color: Color(0xFF243452))
+                          : BorderSide.none),
+                  enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: isDark
+                          ? const BorderSide(color: Color(0xFF243452))
+                          : BorderSide.none),
                 ),
               ),
             ),
           ),
           const SizedBox(width: 8),
           IconButton(
-            icon: Icon(_sortMode == SortMode.dateNewest ? Icons.sort_rounded : Icons.filter_list_rounded, color: primary),
+            icon: Icon(
+                _sortMode == SortMode.dateNewest
+                    ? Icons.sort_rounded
+                    : Icons.filter_list_rounded,
+                color: primary),
             tooltip: 'Ganti Urutan',
             onPressed: () {
               setState(() {
@@ -2094,29 +2549,40 @@ class ArsipScreenState extends State<ArsipScreen> {
     final count = _clipboardFiles.length + _clipboardFolders.length;
     final isCut = _clipboardMode == ClipboardMode.cut;
     return Container(
-      color: isCut ? Colors.orange.shade900 : (isDark ? const Color(0xFF0D1424) : kPrimaryDark),
+      color: isCut
+          ? Colors.orange.shade900
+          : (isDark ? const Color(0xFF0D1424) : kPrimaryDark),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: SafeArea(
         top: false,
         child: Row(
           children: [
-            Icon(isCut ? Icons.content_cut_rounded : Icons.content_copy_rounded, color: Colors.white, size: 18),
+            Icon(isCut ? Icons.content_cut_rounded : Icons.content_copy_rounded,
+                color: Colors.white, size: 18),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 '$count item ${isCut ? "akan dipindahkan" : "disalin"} ke ${_currentPath.isEmpty ? "Root" : _currentPath}',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12),
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12),
               ),
             ),
             ElevatedButton(
               onPressed: _pasteClipboard,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
-                foregroundColor: isCut ? Colors.orange.shade900 : (isDark ? Colors.black : kPrimaryDark),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                foregroundColor: isCut
+                    ? Colors.orange.shade900
+                    : (isDark ? Colors.black : kPrimaryDark),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
               ),
-              child: const Text('Tempel', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+              child: const Text('Tempel',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
             ),
             const SizedBox(width: 6),
             IconButton(
@@ -2131,9 +2597,11 @@ class ArsipScreenState extends State<ArsipScreen> {
   }
 
   // List View Mode
-  Widget _buildListView(List<String> subfolders, List<Arsip> files, {bool isDark = false, Color primary = kAccent}) {
+  Widget _buildListView(List<String> subfolders, List<Arsip> files,
+      {bool isDark = false, Color primary = kAccent}) {
     final cardBg = isDark ? const Color(0xFF141D2E) : Colors.white;
-    final cardBorder = isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0);
+    final cardBorder =
+        isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0);
     final textTitle = isDark ? Colors.white : kTextDark;
     final textMuted = isDark ? const Color(0xFF64748B) : kTextLight;
     final textSub = isDark ? const Color(0xFF94A3B8) : kTextMid;
@@ -2145,23 +2613,37 @@ class ArsipScreenState extends State<ArsipScreen> {
         if (subfolders.isNotEmpty) ...[
           Padding(
             padding: const EdgeInsets.only(left: 4, bottom: 6),
-            child: Text('FOLDER', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textMuted, letterSpacing: 0.5)),
+            child: Text('FOLDER',
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: textMuted,
+                    letterSpacing: 0.5)),
           ),
           ...subfolders.map((path) {
             final folderName = path.split('/').last;
             final isSelected = _selectedFolderPaths.contains(path);
             final childCount = _allArsip
-                .where((a) => (a.kategori == path || a.kategori.startsWith('$path/')) &&
+                .where((a) =>
+                    (a.kategori == path || a.kategori.startsWith('$path/')) &&
                     a.keterangan != '__folder__' &&
                     a.nomorSurat != '__dir__')
                 .length;
             return Container(
               margin: const EdgeInsets.only(bottom: 6),
               decoration: BoxDecoration(
-                color: isSelected ? primary.withAlpha(isDark ? 45 : 20) : cardBg,
+                color:
+                    isSelected ? primary.withAlpha(isDark ? 45 : 20) : cardBg,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: isSelected ? primary : cardBorder),
-                boxShadow: isDark ? null : [BoxShadow(color: kPrimary.withAlpha(40), blurRadius: 4, offset: const Offset(0, 1))],
+                boxShadow: isDark
+                    ? null
+                    : [
+                        BoxShadow(
+                            color: kPrimary.withAlpha(40),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1))
+                      ],
               ),
               child: ListTile(
                 onTap: () {
@@ -2179,12 +2661,21 @@ class ArsipScreenState extends State<ArsipScreen> {
                         onChanged: (_) => _toggleFolderSelection(path),
                       )
                     : Container(
-                        width: 40, height: 40,
-                        decoration: BoxDecoration(color: primary.withAlpha(isDark ? 40 : 25), borderRadius: BorderRadius.circular(10)),
-                        child: Icon(Icons.folder_rounded, color: primary, size: 24),
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                            color: primary.withAlpha(isDark ? 40 : 25),
+                            borderRadius: BorderRadius.circular(10)),
+                        child: Icon(Icons.folder_rounded,
+                            color: primary, size: 24),
                       ),
-                title: Text(folderName, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textTitle)),
-                subtitle: Text('$childCount item di dalamnya', style: TextStyle(fontSize: 11, color: textMuted)),
+                title: Text(folderName,
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: textTitle)),
+                subtitle: Text('$childCount item di dalamnya',
+                    style: TextStyle(fontSize: 11, color: textMuted)),
                 trailing: _isSelectionMode
                     ? null
                     : Row(
@@ -2192,12 +2683,14 @@ class ArsipScreenState extends State<ArsipScreen> {
                         children: [
                           if (_canEdit)
                             PopupMenuButton<String>(
-                              icon: Icon(Icons.more_vert, size: 18, color: textMuted),
+                              icon: Icon(Icons.more_vert,
+                                  size: 18, color: textMuted),
                               onSelected: (val) async {
                                 if (val == 'move') {
                                   _showMoveDialog([], foldersToMove: [path]);
                                 }
-                                if (val == 'rename') _showRenameFolderDialog(path);
+                                if (val == 'rename')
+                                  _showRenameFolderDialog(path);
                                 if (val == 'delete') {
                                   _selectedFolderPaths.add(path);
                                   await _deleteSelected();
@@ -2208,7 +2701,8 @@ class ArsipScreenState extends State<ArsipScreen> {
                                   value: 'move',
                                   child: Row(
                                     children: [
-                                      Icon(Icons.drive_file_move_outlined, size: 16, color: kPrimaryDark),
+                                      Icon(Icons.drive_file_move_outlined,
+                                          size: 16, color: kPrimaryDark),
                                       SizedBox(width: 8),
                                       Text('Pindahkan Folder'),
                                     ],
@@ -2218,7 +2712,8 @@ class ArsipScreenState extends State<ArsipScreen> {
                                   value: 'rename',
                                   child: Row(
                                     children: [
-                                      Icon(Icons.edit_outlined, size: 16, color: kAccent),
+                                      Icon(Icons.edit_outlined,
+                                          size: 16, color: kAccent),
                                       SizedBox(width: 8),
                                       Text('Ganti Nama'),
                                     ],
@@ -2228,9 +2723,11 @@ class ArsipScreenState extends State<ArsipScreen> {
                                   value: 'delete',
                                   child: Row(
                                     children: [
-                                      Icon(Icons.delete_outline_rounded, size: 16, color: Colors.red),
+                                      Icon(Icons.delete_outline_rounded,
+                                          size: 16, color: Colors.red),
                                       SizedBox(width: 8),
-                                      Text('Hapus Folder', style: TextStyle(color: Colors.red)),
+                                      Text('Hapus Folder',
+                                          style: TextStyle(color: Colors.red)),
                                     ],
                                   ),
                                 ),
@@ -2249,17 +2746,30 @@ class ArsipScreenState extends State<ArsipScreen> {
         if (files.isNotEmpty) ...[
           Padding(
             padding: const EdgeInsets.only(left: 4, bottom: 6),
-            child: Text('DOKUMEN & FILE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textMuted, letterSpacing: 0.5)),
+            child: Text('DOKUMEN & FILE',
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: textMuted,
+                    letterSpacing: 0.5)),
           ),
           ...files.map((a) {
             final isSelected = _selectedFileIds.contains(a.id);
             return Container(
               margin: const EdgeInsets.only(bottom: 6),
               decoration: BoxDecoration(
-                color: isSelected ? primary.withAlpha(isDark ? 45 : 20) : cardBg,
+                color:
+                    isSelected ? primary.withAlpha(isDark ? 45 : 20) : cardBg,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: isSelected ? primary : cardBorder),
-                boxShadow: isDark ? null : [BoxShadow(color: kPrimary.withAlpha(40), blurRadius: 4, offset: const Offset(0, 1))],
+                boxShadow: isDark
+                    ? null
+                    : [
+                        BoxShadow(
+                            color: kPrimary.withAlpha(40),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1))
+                      ],
               ),
               child: ListTile(
                 onTap: () {
@@ -2277,7 +2787,13 @@ class ArsipScreenState extends State<ArsipScreen> {
                         onChanged: (_) => _toggleFileSelection(a.id),
                       )
                     : _fileFormatBadge(a.fileUrl, a.judul),
-                title: Text(a.judul, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textTitle), maxLines: 1, overflow: TextOverflow.ellipsis),
+                title: Text(a.judul,
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: textTitle),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
                 subtitle: Text(
                   [
                     if (a.nomorSurat.isNotEmpty) 'No. ${a.nomorSurat}',
@@ -2295,9 +2811,11 @@ class ArsipScreenState extends State<ArsipScreen> {
   }
 
   // Grid View Mode
-  Widget _buildGridView(List<String> subfolders, List<Arsip> files, {bool isDark = false, Color primary = kAccent}) {
+  Widget _buildGridView(List<String> subfolders, List<Arsip> files,
+      {bool isDark = false, Color primary = kAccent}) {
     final cardBg = isDark ? const Color(0xFF141D2E) : Colors.white;
-    final cardBorder = isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0);
+    final cardBorder =
+        isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0);
     final textTitle = isDark ? Colors.white : kTextDark;
     final textMuted = isDark ? const Color(0xFF64748B) : kTextLight;
 
@@ -2307,7 +2825,12 @@ class ArsipScreenState extends State<ArsipScreen> {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
-              child: Text('FOLDER', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textMuted, letterSpacing: 0.5)),
+              child: Text('FOLDER',
+                  style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: textMuted,
+                      letterSpacing: 0.5)),
             ),
           ),
           SliverPadding(
@@ -2325,7 +2848,9 @@ class ArsipScreenState extends State<ArsipScreen> {
                   final folderName = path.split('/').last;
                   final isSelected = _selectedFolderPaths.contains(path);
                   final childCount = _allArsip
-                      .where((a) => (a.kategori == path || a.kategori.startsWith('$path/')) &&
+                      .where((a) =>
+                          (a.kategori == path ||
+                              a.kategori.startsWith('$path/')) &&
                           a.keterangan != '__folder__' &&
                           a.nomorSurat != '__dir__')
                       .length;
@@ -2340,10 +2865,21 @@ class ArsipScreenState extends State<ArsipScreen> {
                     onLongPress: () => _toggleFolderSelection(path),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: isSelected ? primary.withAlpha(isDark ? 45 : 25) : cardBg,
+                        color: isSelected
+                            ? primary.withAlpha(isDark ? 45 : 25)
+                            : cardBg,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: isSelected ? primary : cardBorder, width: 1.5),
-                        boxShadow: isDark ? null : [BoxShadow(color: kPrimary.withAlpha(40), blurRadius: 4, offset: const Offset(0, 1))],
+                        border: Border.all(
+                            color: isSelected ? primary : cardBorder,
+                            width: 1.5),
+                        boxShadow: isDark
+                            ? null
+                            : [
+                                BoxShadow(
+                                    color: kPrimary.withAlpha(40),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 1))
+                              ],
                       ),
                       padding: const EdgeInsets.all(8),
                       child: Column(
@@ -2353,12 +2889,16 @@ class ArsipScreenState extends State<ArsipScreen> {
                           const SizedBox(height: 6),
                           Text(
                             folderName,
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: textTitle),
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                                color: textTitle),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             textAlign: TextAlign.center,
                           ),
-                          Text('$childCount file', style: TextStyle(fontSize: 10, color: textMuted)),
+                          Text('$childCount file',
+                              style: TextStyle(fontSize: 10, color: textMuted)),
                         ],
                       ),
                     ),
@@ -2370,12 +2910,16 @@ class ArsipScreenState extends State<ArsipScreen> {
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 16)),
         ],
-
         if (files.isNotEmpty) ...[
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
-              child: Text('DOKUMEN & FILE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textMuted, letterSpacing: 0.5)),
+              child: Text('DOKUMEN & FILE',
+                  style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: textMuted,
+                      letterSpacing: 0.5)),
             ),
           ),
           SliverPadding(
@@ -2402,10 +2946,21 @@ class ArsipScreenState extends State<ArsipScreen> {
                     onLongPress: () => _toggleFileSelection(a.id),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: isSelected ? primary.withAlpha(isDark ? 45 : 25) : cardBg,
+                        color: isSelected
+                            ? primary.withAlpha(isDark ? 45 : 25)
+                            : cardBg,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: isSelected ? primary : cardBorder, width: 1.5),
-                        boxShadow: isDark ? null : [BoxShadow(color: kPrimary.withAlpha(40), blurRadius: 4, offset: const Offset(0, 1))],
+                        border: Border.all(
+                            color: isSelected ? primary : cardBorder,
+                            width: 1.5),
+                        boxShadow: isDark
+                            ? null
+                            : [
+                                BoxShadow(
+                                    color: kPrimary.withAlpha(40),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 1))
+                              ],
                       ),
                       padding: const EdgeInsets.all(8),
                       child: Column(
@@ -2415,7 +2970,10 @@ class ArsipScreenState extends State<ArsipScreen> {
                           const SizedBox(height: 6),
                           Text(
                             a.judul,
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: textTitle),
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                                color: textTitle),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             textAlign: TextAlign.center,
@@ -2439,21 +2997,31 @@ class ArsipScreenState extends State<ArsipScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.folder_open_rounded, size: 64, color: isDark ? const Color(0xFF64748B) : kTextLight),
+          Icon(Icons.folder_open_rounded,
+              size: 64, color: isDark ? const Color(0xFF64748B) : kTextLight),
           const SizedBox(height: 12),
           Text(
-            _search.isNotEmpty ? 'Tidak ada hasil untuk "$_search"' : 'Folder ini masih kosong',
-            style: TextStyle(fontSize: 15, color: isDark ? const Color(0xFF94A3B8) : kTextMid, fontWeight: FontWeight.w600),
+            _search.isNotEmpty
+                ? 'Tidak ada hasil untuk "$_search"'
+                : 'Folder ini masih kosong',
+            style: TextStyle(
+                fontSize: 15,
+                color: isDark ? const Color(0xFF94A3B8) : kTextMid,
+                fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 4),
-          Text('Gunakan tombol + di bawah untuk membuat folder atau upload file',
-              style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF64748B) : kTextLight)),
+          Text(
+              'Gunakan tombol + di bawah untuk membuat folder atau upload file',
+              style: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? const Color(0xFF64748B) : kTextLight)),
         ],
       ),
     );
   }
 
-  Widget _buildFloatingActionButtons({bool isDark = false, Color primary = kAccent}) {
+  Widget _buildFloatingActionButtons(
+      {bool isDark = false, Color primary = kAccent}) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -2471,8 +3039,12 @@ class ArsipScreenState extends State<ArsipScreen> {
           heroTag: 'fab_file',
           onPressed: () => _showFileForm(),
           backgroundColor: primary,
-          icon: Icon(Icons.add_rounded, color: isDark ? Colors.black : Colors.white),
-          label: Text('Tambah File', style: TextStyle(color: isDark ? Colors.black : Colors.white, fontWeight: FontWeight.bold)),
+          icon: Icon(Icons.add_rounded,
+              color: isDark ? Colors.black : Colors.white),
+          label: Text('Tambah File',
+              style: TextStyle(
+                  color: isDark ? Colors.black : Colors.white,
+                  fontWeight: FontWeight.bold)),
         ),
       ],
     );

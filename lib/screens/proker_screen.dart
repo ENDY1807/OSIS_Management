@@ -18,20 +18,34 @@ class ProkerScreen extends StatefulWidget {
   State<ProkerScreen> createState() => _ProkerScreenState();
 }
 
-class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderStateMixin {
+class _ProkerScreenState extends State<ProkerScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tab;
   StreamSubscription<String>? _dataSub;
   List<Proker> _proker = [];
   String _currentUser = '';
   String _filterSekbid = 'Semua';
   bool _userLoaded = false;
-  bool get _isAdmin => _currentUser == 'ADMIN' || AuthService.getRole(_currentUser) == 'ADMIN';
-  bool get _isSuperUser => _isAdmin || ['KETUA', 'WAKIL', 'SEKRETARIS', 'BENDAHARA'].contains(_currentUser);
-  bool get _isPembina => _isAdmin || _currentUser == 'PEMBINA' || _currentUser == 'KESISWAAN' || AuthService.getRole(_currentUser) == 'PEMBINA' || AuthService.getRole(_currentUser) == 'KESISWAAN';
+  bool get _isAdmin =>
+      _currentUser == 'ADMIN' || AuthService.getRole(_currentUser) == 'ADMIN';
+  bool get _isSuperUser =>
+      _isAdmin ||
+      ['KETUA', 'WAKIL', 'SEKRETARIS', 'BENDAHARA'].contains(_currentUser);
+  bool get _isPembina =>
+      _isAdmin ||
+      _currentUser == 'PEMBINA' ||
+      _currentUser == 'KESISWAAN' ||
+      AuthService.getRole(_currentUser) == 'PEMBINA' ||
+      AuthService.getRole(_currentUser) == 'KESISWAAN';
   bool get _isProkerUnit => AuthService.prokerUnits.contains(_currentUser);
   bool get _canEdit => _isSuperUser || _isPembina || _isProkerUnit;
   // Unit hanya bisa CRUD proker miliknya sendiri, kecuali SuperUser/Pembina
-  bool _canEditProker(Proker p) => _isAdmin || _isPembina || p.sekbid == _currentUser || (_isSuperUser && ['KETUA', 'WAKIL', 'SEKRETARIS', 'BENDAHARA'].contains(p.sekbid));
+  bool _canEditProker(Proker p) =>
+      _isAdmin ||
+      _isPembina ||
+      p.sekbid == _currentUser ||
+      (_isSuperUser &&
+          ['KETUA', 'WAKIL', 'SEKRETARIS', 'BENDAHARA'].contains(p.sekbid));
 
   @override
   void initState() {
@@ -55,7 +69,8 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
   Future<void> _load() async {
     final data = await DataService.getProker();
     if (!mounted) return;
-    setState(() => _proker = data..sort((a, b) => a.tanggalRencana.compareTo(b.tanggalRencana)));
+    setState(() => _proker = data
+      ..sort((a, b) => a.tanggalRencana.compareTo(b.tanggalRencana)));
   }
 
   List<Proker> get _filtered {
@@ -64,26 +79,36 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
       list = list.where((p) => p.sekbid == _filterSekbid).toList();
     }
     switch (_tab.index) {
-      case 0: return list.where((p) => p.status == StatusProker.belum).toList();
-      case 1: return list.where((p) => p.status == StatusProker.berjalan).toList();
-      case 2: return list.where((p) => p.status == StatusProker.selesai).toList();
-      default: return list;
+      case 0:
+        return list.where((p) => p.status == StatusProker.belum).toList();
+      case 1:
+        return list.where((p) => p.status == StatusProker.berjalan).toList();
+      case 2:
+        return list.where((p) => p.status == StatusProker.selesai).toList();
+      default:
+        return list;
     }
   }
 
   Color _statusColor(String s) {
     switch (s) {
-      case StatusProker.berjalan: return const Color(0xFF0097B2);
-      case StatusProker.selesai: return const Color(0xFF2E7D32);
-      default: return const Color(0xFF8D6E63);
+      case StatusProker.berjalan:
+        return const Color(0xFF0097B2);
+      case StatusProker.selesai:
+        return const Color(0xFF2E7D32);
+      default:
+        return const Color(0xFF8D6E63);
     }
   }
 
   IconData _statusIcon(String s) {
     switch (s) {
-      case StatusProker.berjalan: return Icons.timelapse_rounded;
-      case StatusProker.selesai: return Icons.check_circle_rounded;
-      default: return Icons.schedule_rounded;
+      case StatusProker.berjalan:
+        return Icons.timelapse_rounded;
+      case StatusProker.selesai:
+        return Icons.check_circle_rounded;
+      default:
+        return Icons.schedule_rounded;
     }
   }
 
@@ -96,21 +121,31 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
     final Map<String, dynamic> dynamicValues = {};
 
     final prokerUnits = AuthService.prokerUnits;
-    String selectedSekbid = existing?.sekbid ?? ((_isSuperUser || _isPembina) ? (_currentUser.isNotEmpty && prokerUnits.contains(_currentUser) ? _currentUser : prokerUnits.first) : _currentUser);
+    String selectedSekbid = existing?.sekbid ??
+        ((_isSuperUser || _isPembina)
+            ? (_currentUser.isNotEmpty && prokerUnits.contains(_currentUser)
+                ? _currentUser
+                : prokerUnits.first)
+            : _currentUser);
     if (!prokerUnits.contains(selectedSekbid) && prokerUnits.isNotEmpty) {
       selectedSekbid = prokerUnits.first;
     }
 
     for (final field in configuredFields) {
       if (field.id == 'prok_nama') {
-        controllers[field.id] = TextEditingController(text: existing?.nama ?? '');
+        controllers[field.id] =
+            TextEditingController(text: existing?.nama ?? '');
         dynamicValues[field.id] = existing?.nama ?? '';
       } else if (field.id == 'prok_desk') {
-        controllers[field.id] = TextEditingController(text: existing?.deskripsi ?? '');
+        controllers[field.id] =
+            TextEditingController(text: existing?.deskripsi ?? '');
         dynamicValues[field.id] = existing?.deskripsi ?? '';
       } else if (field.id == 'prok_pj') {
-        controllers[field.id] = TextEditingController(text: existing?.penanggungJawab ?? AuthService.getDisplayName(_currentUser));
-        dynamicValues[field.id] = existing?.penanggungJawab ?? AuthService.getDisplayName(_currentUser);
+        controllers[field.id] = TextEditingController(
+            text: existing?.penanggungJawab ??
+                AuthService.getDisplayName(_currentUser));
+        dynamicValues[field.id] = existing?.penanggungJawab ??
+            AuthService.getDisplayName(_currentUser);
       } else if (field.id == 'prok_sekbid') {
         dynamicValues[field.id] = selectedSekbid;
       } else if (field.id == 'prok_tgl_rencana') {
@@ -120,12 +155,14 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
       } else if (field.id == 'prok_status') {
         dynamicValues[field.id] = existing?.status ?? StatusProker.belum;
       } else if (field.id == 'prok_ket') {
-        controllers[field.id] = TextEditingController(text: existing?.keterangan ?? '');
+        controllers[field.id] =
+            TextEditingController(text: existing?.keterangan ?? '');
         dynamicValues[field.id] = existing?.keterangan ?? '';
       } else {
         if (field.type == InputFieldType.date) {
           dynamicValues[field.id] = DateTime.now();
-        } else if (field.type == InputFieldType.dropdown && field.options.isNotEmpty) {
+        } else if (field.type == InputFieldType.dropdown &&
+            field.options.isNotEmpty) {
           dynamicValues[field.id] = field.options.first;
         } else {
           controllers[field.id] = TextEditingController(text: '');
@@ -144,10 +181,15 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
           decoration: BoxDecoration(
             color: isDark ? const Color(0xFF141D2E) : Colors.white,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            border: isDark ? const Border(top: BorderSide(color: Color(0xFF243452), width: 1)) : null,
+            border: isDark
+                ? const Border(
+                    top: BorderSide(color: Color(0xFF243452), width: 1))
+                : null,
           ),
           padding: EdgeInsets.only(
-            left: 20, right: 20, top: 20,
+            left: 20,
+            right: 20,
+            top: 20,
             bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
           ),
           child: SingleChildScrollView(
@@ -155,27 +197,46 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Center(child: Container(width: 40, height: 4,
-                    decoration: BoxDecoration(color: isDark ? const Color(0xFF243452) : kPrimary, borderRadius: BorderRadius.circular(2)))),
+                Center(
+                    child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF243452) : kPrimary,
+                            borderRadius: BorderRadius.circular(2)))),
                 const SizedBox(height: 16),
-                Text(existing == null ? LocalizationService.tr('proker_add') : LocalizationService.tr('proker_edit'),
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
+                Text(
+                    existing == null
+                        ? LocalizationService.tr('proker_add')
+                        : LocalizationService.tr('proker_edit'),
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : kTextDark)),
                 const SizedBox(height: 16),
-
                 ...configuredFields.map((field) {
                   if (field.id == 'prok_sekbid') {
                     if (_isSuperUser || _isPembina) {
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: DropdownButtonFormField<String>(
-                          value: prokerUnits.contains(dynamicValues[field.id]) ? dynamicValues[field.id] : (prokerUnits.isNotEmpty ? prokerUnits.first : selectedSekbid),
+                          value: prokerUnits.contains(dynamicValues[field.id])
+                              ? dynamicValues[field.id]
+                              : (prokerUnits.isNotEmpty
+                                  ? prokerUnits.first
+                                  : selectedSekbid),
                           decoration: InputDecoration(
-                            labelText: field.label + (field.isRequired ? ' *' : ''),
-                            labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                            labelText:
+                                field.label + (field.isRequired ? ' *' : ''),
+                            labelStyle: TextStyle(
+                                color:
+                                    isDark ? Colors.white70 : Colors.black54),
                             prefixIcon: const Icon(Icons.group, color: kAccent),
                           ),
                           items: prokerUnits
-                              .map((s) => DropdownMenuItem(value: s, child: Text(AuthService.getDisplayName(s))))
+                              .map((s) => DropdownMenuItem(
+                                  value: s,
+                                  child: Text(AuthService.getDisplayName(s))))
                               .toList(),
                           onChanged: (v) => setModal(() {
                             dynamicValues[field.id] = v ?? selectedSekbid;
@@ -188,30 +249,50 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
                         padding: const EdgeInsets.only(bottom: 12),
                         child: InputDecorator(
                           decoration: InputDecoration(
-                            labelText: field.label + (field.isRequired ? ' *' : ''),
-                            labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                            labelText:
+                                field.label + (field.isRequired ? ' *' : ''),
+                            labelStyle: TextStyle(
+                                color:
+                                    isDark ? Colors.white70 : Colors.black54),
                             prefixIcon: const Icon(Icons.group, color: kAccent),
                           ),
-                          child: Text(AuthService.getDisplayName(selectedSekbid), style: TextStyle(fontSize: 14, color: isDark ? Colors.white : kTextDark)),
+                          child: Text(
+                              AuthService.getDisplayName(selectedSekbid),
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  color: isDark ? Colors.white : kTextDark)),
                         ),
                       );
                     }
                   }
 
                   if (field.id == 'prok_status') {
-                    final currentStatus = dynamicValues[field.id]?.toString() ?? StatusProker.belum;
-                    final options = field.options.isNotEmpty ? field.options : StatusProker.all;
+                    final currentStatus = dynamicValues[field.id]?.toString() ??
+                        StatusProker.belum;
+                    final options = field.options.isNotEmpty
+                        ? field.options
+                        : StatusProker.all;
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: DropdownButtonFormField<String>(
-                        value: options.contains(currentStatus) ? currentStatus : options.first,
+                        value: options.contains(currentStatus)
+                            ? currentStatus
+                            : options.first,
                         decoration: InputDecoration(
-                          labelText: field.label + (field.isRequired ? ' *' : ''),
-                          labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                          labelText:
+                              field.label + (field.isRequired ? ' *' : ''),
+                          labelStyle: TextStyle(
+                              color: isDark ? Colors.white70 : Colors.black54),
                           prefixIcon: const Icon(Icons.flag, color: kAccent),
                         ),
-                        items: options.map((s) => DropdownMenuItem(value: s, child: Text(LocalizationService.formatStatus(s)))).toList(),
-                        onChanged: (v) => setModal(() => dynamicValues[field.id] = v ?? currentStatus),
+                        items: options
+                            .map((s) => DropdownMenuItem(
+                                value: s,
+                                child:
+                                    Text(LocalizationService.formatStatus(s))))
+                            .toList(),
+                        onChanged: (v) => setModal(
+                            () => dynamicValues[field.id] = v ?? currentStatus),
                       ),
                     );
                   }
@@ -225,16 +306,16 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
                     setModalState: setModal,
                   );
                 }),
-
                 const SizedBox(height: 12),
-
                 ElevatedButton(
                   onPressed: () async {
                     final nama = controllers['prok_nama']?.text.trim() ??
                         dynamicValues['prok_nama']?.toString().trim() ??
                         (existing != null ? existing.nama : '');
 
-                    if (nama.isEmpty && configuredFields.any((f) => f.id == 'prok_nama' && f.isRequired)) {
+                    if (nama.isEmpty &&
+                        configuredFields
+                            .any((f) => f.id == 'prok_nama' && f.isRequired)) {
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                         content: Text('Nama program kerja wajib diisi!'),
                         backgroundColor: Colors.redAccent,
@@ -242,25 +323,40 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
                       return;
                     }
 
-                    final deskripsi = controllers['prok_desk']?.text.trim() ?? dynamicValues['prok_desk']?.toString().trim() ?? '';
-                    final penanggungJawab = controllers['prok_pj']?.text.trim() ?? dynamicValues['prok_pj']?.toString().trim() ?? '';
-                    final keterangan = controllers['prok_ket']?.text.trim() ?? dynamicValues['prok_ket']?.toString().trim() ?? '';
-                    final status = dynamicValues['prok_status']?.toString() ?? StatusProker.belum;
-                    final tanggalRencana = dynamicValues['prok_tgl_rencana'] is DateTime
-                        ? dynamicValues['prok_tgl_rencana'] as DateTime
-                        : (existing?.tanggalRencana ?? DateTime.now());
-                    final tanggalRealisasi = dynamicValues['prok_tgl_realisasi'] is DateTime
-                        ? dynamicValues['prok_tgl_realisasi'] as DateTime
-                        : (status == StatusProker.selesai ? (existing?.tanggalRealisasi ?? DateTime.now()) : null);
+                    final deskripsi = controllers['prok_desk']?.text.trim() ??
+                        dynamicValues['prok_desk']?.toString().trim() ??
+                        '';
+                    final penanggungJawab =
+                        controllers['prok_pj']?.text.trim() ??
+                            dynamicValues['prok_pj']?.toString().trim() ??
+                            '';
+                    final keterangan = controllers['prok_ket']?.text.trim() ??
+                        dynamicValues['prok_ket']?.toString().trim() ??
+                        '';
+                    final status = dynamicValues['prok_status']?.toString() ??
+                        StatusProker.belum;
+                    final tanggalRencana =
+                        dynamicValues['prok_tgl_rencana'] is DateTime
+                            ? dynamicValues['prok_tgl_rencana'] as DateTime
+                            : (existing?.tanggalRencana ?? DateTime.now());
+                    final tanggalRealisasi =
+                        dynamicValues['prok_tgl_realisasi'] is DateTime
+                            ? dynamicValues['prok_tgl_realisasi'] as DateTime
+                            : (status == StatusProker.selesai
+                                ? (existing?.tanggalRealisasi ?? DateTime.now())
+                                : null);
 
                     final p = Proker(
                       id: existing?.id ?? const Uuid().v4(),
                       nama: nama.isNotEmpty ? nama : 'Program Kerja',
                       deskripsi: deskripsi,
-                      sekbid: dynamicValues['prok_sekbid']?.toString() ?? selectedSekbid,
+                      sekbid: dynamicValues['prok_sekbid']?.toString() ??
+                          selectedSekbid,
                       penanggungJawab: penanggungJawab,
                       tanggalRencana: tanggalRencana,
-                      tanggalRealisasi: status == StatusProker.selesai ? tanggalRealisasi : null,
+                      tanggalRealisasi: status == StatusProker.selesai
+                          ? tanggalRealisasi
+                          : null,
                       status: status,
                       keterangan: keterangan,
                     );
@@ -276,7 +372,8 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
                       await DataService.updateProker(p);
                       await NotificationService.notifyUpdate(
                         title: 'Program Kerja Diperbarui',
-                        message: 'Proker "${p.nama}" (${p.sekbid} - Status: ${p.status}) diperbarui oleh $_currentUser',
+                        message:
+                            'Proker "${p.nama}" (${p.sekbid} - Status: ${p.status}) diperbarui oleh $_currentUser',
                         category: 'proker',
                         actor: _currentUser,
                       );
@@ -288,12 +385,16 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
                     backgroundColor: Theme.of(context).colorScheme.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
                     elevation: 2,
                   ),
                   child: Text(
                     LocalizationService.tr('btn_save'),
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                    style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white),
                   ),
                 ),
               ],
@@ -309,7 +410,8 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
     final isDark = theme.brightness == Brightness.dark;
     final color = _statusColor(p.status);
     final cardBg = isDark ? const Color(0xFF141D2E) : Colors.white;
-    final cardBorder = isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0);
+    final cardBorder =
+        isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0);
     final textTitle = isDark ? Colors.white : kTextDark;
     final textSub = isDark ? const Color(0xFF94A3B8) : kTextMid;
 
@@ -318,7 +420,14 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: isDark ? null : [BoxShadow(color: kPrimary.withAlpha(100), blurRadius: 8, offset: const Offset(0, 2))],
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                    color: kPrimary.withAlpha(100),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2))
+              ],
         border: isDark
             ? Border.all(color: cardBorder)
             : Border(left: BorderSide(color: color, width: 4)),
@@ -331,44 +440,81 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
             Row(
               children: [
                 Expanded(
-                  child: Text(p.nama, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textTitle)),
+                  child: Text(p.nama,
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: textTitle)),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(color: color.withAlpha(isDark ? 40 : 25), borderRadius: BorderRadius.circular(20)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                      color: color.withAlpha(isDark ? 40 : 25),
+                      borderRadius: BorderRadius.circular(20)),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
                     Icon(_statusIcon(p.status), size: 13, color: color),
                     const SizedBox(width: 4),
-                    Text(LocalizationService.formatStatus(p.status), style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color)),
+                    Text(LocalizationService.formatStatus(p.status),
+                        style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: color)),
                   ]),
                 ),
               ],
             ),
             if (p.deskripsi.isNotEmpty) ...[
               const SizedBox(height: 6),
-              Text(p.deskripsi, style: TextStyle(fontSize: 13, color: textSub), maxLines: 2, overflow: TextOverflow.ellipsis),
+              Text(p.deskripsi,
+                  style: TextStyle(fontSize: 13, color: textSub),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis),
             ],
             const SizedBox(height: 10),
             Wrap(
-              spacing: 8, runSpacing: 6,
+              spacing: 8,
+              runSpacing: 6,
               children: [
                 _chip(Icons.group_outlined, p.sekbid, isDark: isDark),
                 _chip(Icons.person_outline, p.penanggungJawab, isDark: isDark),
-                _chip(Icons.calendar_today_outlined, DateFormat('dd MMM yyyy', LocalizationService.currentLocale.value.languageCode).format(p.tanggalRencana), isDark: isDark),
+                _chip(
+                    Icons.calendar_today_outlined,
+                    DateFormat(
+                            'dd MMM yyyy',
+                            LocalizationService
+                                .currentLocale.value.languageCode)
+                        .format(p.tanggalRencana),
+                    isDark: isDark),
                 if (p.tanggalRealisasi != null)
-                  _chip(Icons.event_available_outlined, DateFormat('dd MMM yyyy', LocalizationService.currentLocale.value.languageCode).format(p.tanggalRealisasi!), color: Colors.green, isDark: isDark),
+                  _chip(
+                      Icons.event_available_outlined,
+                      DateFormat(
+                              'dd MMM yyyy',
+                              LocalizationService
+                                  .currentLocale.value.languageCode)
+                          .format(p.tanggalRealisasi!),
+                      color: Colors.green,
+                      isDark: isDark),
               ],
             ),
             if (p.keterangan.isNotEmpty) ...[
               const SizedBox(height: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: isDark ? const Color(0xFF0E1626) : kBg,
                   borderRadius: BorderRadius.circular(8),
-                  border: isDark ? Border.all(color: const Color(0xFF243452)) : null,
+                  border: isDark
+                      ? Border.all(color: const Color(0xFF243452))
+                      : null,
                 ),
-                child: Text(p.keterangan, style: TextStyle(fontSize: 12, color: textSub, fontStyle: FontStyle.italic)),
+                child: Text(p.keterangan,
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: textSub,
+                        fontStyle: FontStyle.italic)),
               ),
             ],
             const SizedBox(height: 10),
@@ -376,43 +522,62 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 if (_canEditProker(p)) ...[
-                TextButton.icon(
-                  style: TextButton.styleFrom(foregroundColor: theme.colorScheme.primary, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6)),
-                  icon: const Icon(Icons.edit_outlined, size: 16),
-                  label: Text(LocalizationService.tr('btn_edit'), style: const TextStyle(fontSize: 13)),
-                  onPressed: () => _showForm(p),
-                ),
-                const SizedBox(width: 4),
-                TextButton.icon(
-                  style: TextButton.styleFrom(foregroundColor: Colors.redAccent, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6)),
-                  icon: const Icon(Icons.delete_outline, size: 16),
-                  label: Text(LocalizationService.tr('btn_delete'), style: const TextStyle(fontSize: 13)),
-                  onPressed: () async {
-                    final ok = await showDialog<bool>(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: Text(LocalizationService.tr('proker_delete_confirm')),
-                        content: Text('${LocalizationService.tr('proker_delete_msg')}\n"${p.nama}"'),
-                        actions: [
-                          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(LocalizationService.tr('btn_cancel'))),
-                          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(LocalizationService.tr('btn_delete'), style: const TextStyle(color: Colors.red))),
-                        ],
-                      ),
-                    );
-                    if (ok == true) {
-                      await DataService.deleteProker(p.id);
-                      await NotificationService.cancelProkerReminder(
-                        NotificationService.idFromString('proker_remind_${p.id}'));
-                      await NotificationService.notifyUpdate(
-                        title: 'Program Kerja Dihapus',
-                        message: 'Proker "${p.nama}" (${p.sekbid}) telah dihapus oleh $_currentUser',
-                        category: 'proker',
-                        actor: _currentUser,
+                  TextButton.icon(
+                    style: TextButton.styleFrom(
+                        foregroundColor: theme.colorScheme.primary,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6)),
+                    icon: const Icon(Icons.edit_outlined, size: 16),
+                    label: Text(LocalizationService.tr('btn_edit'),
+                        style: const TextStyle(fontSize: 13)),
+                    onPressed: () => _showForm(p),
+                  ),
+                  const SizedBox(width: 4),
+                  TextButton.icon(
+                    style: TextButton.styleFrom(
+                        foregroundColor: Colors.redAccent,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6)),
+                    icon: const Icon(Icons.delete_outline, size: 16),
+                    label: Text(LocalizationService.tr('btn_delete'),
+                        style: const TextStyle(fontSize: 13)),
+                    onPressed: () async {
+                      final ok = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: Text(
+                              LocalizationService.tr('proker_delete_confirm')),
+                          content: Text(
+                              '${LocalizationService.tr('proker_delete_msg')}\n"${p.nama}"'),
+                          actions: [
+                            TextButton(
+                                onPressed: () => Navigator.pop(ctx, false),
+                                child:
+                                    Text(LocalizationService.tr('btn_cancel'))),
+                            TextButton(
+                                onPressed: () => Navigator.pop(ctx, true),
+                                child: Text(
+                                    LocalizationService.tr('btn_delete'),
+                                    style: const TextStyle(color: Colors.red))),
+                          ],
+                        ),
                       );
-                      _load();
-                    }
-                  },
-                ),
+                      if (ok == true) {
+                        await DataService.deleteProker(p.id);
+                        await NotificationService.cancelProkerReminder(
+                            NotificationService.idFromString(
+                                'proker_remind_${p.id}'));
+                        await NotificationService.notifyUpdate(
+                          title: 'Program Kerja Dihapus',
+                          message:
+                              'Proker "${p.nama}" (${p.sekbid}) telah dihapus oleh $_currentUser',
+                          category: 'proker',
+                          actor: _currentUser,
+                        );
+                        _load();
+                      }
+                    },
+                  ),
                 ],
               ],
             ),
@@ -422,19 +587,27 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
     );
   }
 
-  Widget _chip(IconData icon, String label, {Color? color, bool isDark = false}) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-    decoration: BoxDecoration(
-      color: isDark ? const Color(0xFF1A263D) : kPrimary.withAlpha(60),
-      borderRadius: BorderRadius.circular(6),
-      border: isDark ? Border.all(color: const Color(0xFF243452)) : null,
-    ),
-    child: Row(mainAxisSize: MainAxisSize.min, children: [
-      Icon(icon, size: 12, color: color ?? (isDark ? const Color(0xFF00B4D8) : kAccent)),
-      const SizedBox(width: 4),
-      Text(label, style: TextStyle(fontSize: 11, color: color ?? (isDark ? const Color(0xFFF1F5F9) : kTextMid), fontWeight: FontWeight.w500)),
-    ]),
-  );
+  Widget _chip(IconData icon, String label,
+          {Color? color, bool isDark = false}) =>
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1A263D) : kPrimary.withAlpha(60),
+          borderRadius: BorderRadius.circular(6),
+          border: isDark ? Border.all(color: const Color(0xFF243452)) : null,
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon,
+              size: 12,
+              color: color ?? (isDark ? const Color(0xFF00B4D8) : kAccent)),
+          const SizedBox(width: 4),
+          Text(label,
+              style: TextStyle(
+                  fontSize: 11,
+                  color: color ?? (isDark ? const Color(0xFFF1F5F9) : kTextMid),
+                  fontWeight: FontWeight.w500)),
+        ]),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -442,10 +615,15 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
     final isDark = theme.brightness == Brightness.dark;
     final primary = theme.colorScheme.primary;
 
-    final allSekbid = (_isSuperUser || _isPembina) ? [LocalizationService.tr('btn_all'), ...AuthService.prokerUnits] : [_currentUser];
-    final totalBelum    = _proker.where((p) => p.status == StatusProker.belum).length;
-    final totalBerjalan = _proker.where((p) => p.status == StatusProker.berjalan).length;
-    final totalSelesai  = _proker.where((p) => p.status == StatusProker.selesai).length;
+    final allSekbid = (_isSuperUser || _isPembina)
+        ? [LocalizationService.tr('btn_all'), ...AuthService.prokerUnits]
+        : [_currentUser];
+    final totalBelum =
+        _proker.where((p) => p.status == StatusProker.belum).length;
+    final totalBerjalan =
+        _proker.where((p) => p.status == StatusProker.berjalan).length;
+    final totalSelesai =
+        _proker.where((p) => p.status == StatusProker.selesai).length;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -455,52 +633,72 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
           Container(
             decoration: BoxDecoration(
               color: isDark ? const Color(0xFF0D1424) : primary,
-              border: isDark ? const Border(bottom: BorderSide(color: Color(0xFF243452))) : null,
+              border: isDark
+                  ? const Border(bottom: BorderSide(color: Color(0xFF243452)))
+                  : null,
             ),
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
             child: Row(
               children: [
-                _statBox(LocalizationService.tr('status_draft'), totalBelum, const Color(0xFFBF8F00)),
+                _statBox(LocalizationService.tr('status_draft'), totalBelum,
+                    const Color(0xFFBF8F00)),
                 const SizedBox(width: 8),
-                _statBox(LocalizationService.tr('status_running'), totalBerjalan, const Color(0xFF007A8E)),
+                _statBox(LocalizationService.tr('status_running'),
+                    totalBerjalan, const Color(0xFF007A8E)),
                 const SizedBox(width: 8),
-                _statBox(LocalizationService.tr('status_done'), totalSelesai, const Color(0xFF2E7D32)),
+                _statBox(LocalizationService.tr('status_done'), totalSelesai,
+                    const Color(0xFF2E7D32)),
               ],
             ),
           ),
 
           if (_isSuperUser || _isPembina)
-          Container(
-            color: isDark ? const Color(0xFF141D2E) : Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: allSekbid.map((s) {
-                  final displayName = s == LocalizationService.tr('btn_all') ? s : AuthService.getDisplayName(s);
-                  final selected = _filterSekbid == s || (_filterSekbid == 'Semua' && s == LocalizationService.tr('btn_all'));
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: FilterChip(
-                      label: Text(displayName),
-                      selected: selected,
-                      onSelected: (_) => setState(() => _filterSekbid = (s == LocalizationService.tr('btn_all') ? 'Semua' : s)),
-                      selectedColor: primary,
-                      checkmarkColor: Colors.black,
-                      labelStyle: TextStyle(
-                        color: selected ? (isDark ? Colors.black : Colors.white) : (isDark ? const Color(0xFF94A3B8) : kTextDark),
-                        fontWeight: FontWeight.w600, fontSize: 12,
+            Container(
+              color: isDark ? const Color(0xFF141D2E) : Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: allSekbid.map((s) {
+                    final displayName = s == LocalizationService.tr('btn_all')
+                        ? s
+                        : AuthService.getDisplayName(s);
+                    final selected = _filterSekbid == s ||
+                        (_filterSekbid == 'Semua' &&
+                            s == LocalizationService.tr('btn_all'));
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: FilterChip(
+                        label: Text(displayName),
+                        selected: selected,
+                        onSelected: (_) => setState(() => _filterSekbid =
+                            (s == LocalizationService.tr('btn_all')
+                                ? 'Semua'
+                                : s)),
+                        selectedColor: primary,
+                        checkmarkColor: Colors.black,
+                        labelStyle: TextStyle(
+                          color: selected
+                              ? (isDark ? Colors.black : Colors.white)
+                              : (isDark ? const Color(0xFF94A3B8) : kTextDark),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                        backgroundColor: isDark
+                            ? const Color(0xFF0E1626)
+                            : kPrimary.withAlpha(60),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20)),
+                        side: isDark && !selected
+                            ? const BorderSide(color: Color(0xFF243452))
+                            : BorderSide.none,
+                        showCheckmark: false,
                       ),
-                      backgroundColor: isDark ? const Color(0xFF0E1626) : kPrimary.withAlpha(60),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                      side: isDark && !selected ? const BorderSide(color: Color(0xFF243452)) : BorderSide.none,
-                      showCheckmark: false,
-                    ),
-                  );
-                }).toList(),
+                    );
+                  }).toList(),
+                ),
               ),
             ),
-          ),
 
           // Tabs
           Container(
@@ -508,9 +706,15 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
             child: TabBar(
               controller: _tab,
               tabs: [
-                Tab(text: '${LocalizationService.tr('status_draft')} ($totalBelum)'),
-                Tab(text: '${LocalizationService.tr('status_running')} ($totalBerjalan)'),
-                Tab(text: '${LocalizationService.tr('status_done')} ($totalSelesai)'),
+                Tab(
+                    text:
+                        '${LocalizationService.tr('status_draft')} ($totalBelum)'),
+                Tab(
+                    text:
+                        '${LocalizationService.tr('status_running')} ($totalBerjalan)'),
+                Tab(
+                    text:
+                        '${LocalizationService.tr('status_done')} ($totalSelesai)'),
               ],
             ),
           ),
@@ -526,9 +730,17 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.assignment_outlined, size: 64, color: isDark ? const Color(0xFF64748B) : kTextLight),
+                        Icon(Icons.assignment_outlined,
+                            size: 64,
+                            color:
+                                isDark ? const Color(0xFF64748B) : kTextLight),
                         const SizedBox(height: 12),
-                        Text(LocalizationService.tr('proker_empty'), style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : kTextLight, fontSize: 15)),
+                        Text(LocalizationService.tr('proker_empty'),
+                            style: TextStyle(
+                                color: isDark
+                                    ? const Color(0xFF94A3B8)
+                                    : kTextLight,
+                                fontSize: 15)),
                       ],
                     ),
                   );
@@ -551,26 +763,32 @@ class _ProkerScreenState extends State<ProkerScreen> with SingleTickerProviderSt
           ? FloatingActionButton.extended(
               onPressed: () => _showForm(),
               icon: const Icon(Icons.add),
-              label: Text(LocalizationService.tr('proker_add'), style: const TextStyle(fontWeight: FontWeight.bold)),
+              label: Text(LocalizationService.tr('proker_add'),
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
             )
           : null,
     );
   }
 
   Widget _statBox(String label, int count, Color color) => Expanded(
-    child: Container(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withAlpha(25),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withAlpha(60)),
-      ),
-      child: Column(
-        children: [
-          Text('$count', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
-          Text(label, style: const TextStyle(fontSize: 11, color: Colors.white70)),
-        ],
-      ),
-    ),
-  );
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.white.withAlpha(25),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white.withAlpha(60)),
+          ),
+          child: Column(
+            children: [
+              Text('$count',
+                  style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white)),
+              Text(label,
+                  style: const TextStyle(fontSize: 11, color: Colors.white70)),
+            ],
+          ),
+        ),
+      );
 }
