@@ -13,6 +13,7 @@ import 'package:http/http.dart' as http;
 import 'package:archive/archive.dart';
 import '../models/models.dart';
 import '../services/data_service.dart';
+import '../services/baknus_drive_service.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
 import '../services/localization_service.dart';
@@ -1579,11 +1580,25 @@ class ArsipScreenState extends State<ArsipScreen> {
                             if (pickedFileBytes != null &&
                                 pickedFileName != null) {
                               fileUrl = await DataService.uploadArsipFile(
-                                  pickedFileBytes!, pickedFileName!);
+                                  pickedFileBytes!, pickedFileName!,
+                                  folderPath: targetPath);
+                            }
+                            String finalJudul = judul.isNotEmpty
+                                ? judul
+                                : (pickedFileName ?? 'Berkas Arsip');
+                            if (pickedFileName != null &&
+                                pickedFileName!.contains('.')) {
+                              final ext =
+                                  '.${pickedFileName!.split('.').last}';
+                              if (!finalJudul
+                                  .toLowerCase()
+                                  .endsWith(ext.toLowerCase())) {
+                                finalJudul = '$finalJudul$ext';
+                              }
                             }
                             final a = Arsip(
                               id: existing?.id ?? _uuid.v4(),
-                              judul: judul.isNotEmpty ? judul : 'Berkas Arsip',
+                              judul: finalJudul,
                               kategori: targetPath,
                               deskripsi: existing?.deskripsi ?? '',
                               nomorSurat: existing?.nomorSurat ?? '',
@@ -1747,23 +1762,28 @@ class ArsipScreenState extends State<ArsipScreen> {
                         : () async {
                             setModal(() => loading = true);
                             try {
-                              final fileName =
-                                  _getFileNameWithExt(a.fileUrl, a.judul);
-                              final file =
-                                  await _downloadToTemp(a.fileUrl, fileName);
+                              final file = await BaknusDriveService.downloadToTemp(
+                                  a.fileUrl, a.judul);
                               if (file != null) {
-                                await OpenFilex.open(file.path);
+                                final result = await OpenFilex.open(file.path);
+                                if (result.type != ResultType.done) {
+                                  final url = Uri.parse(a.fileUrl);
+                                  if (await canLaunchUrl(url)) {
+                                    await launchUrl(url,
+                                        mode: LaunchMode.externalApplication);
+                                  }
+                                }
                               } else {
                                 final url = Uri.parse(a.fileUrl);
                                 if (await canLaunchUrl(url)) {
-                                  launchUrl(url,
+                                  await launchUrl(url,
                                       mode: LaunchMode.externalApplication);
                                 }
                               }
                             } catch (_) {
                               final url = Uri.parse(a.fileUrl);
                               if (await canLaunchUrl(url)) {
-                                launchUrl(url,
+                                await launchUrl(url,
                                     mode: LaunchMode.externalApplication);
                               }
                             } finally {
@@ -2104,9 +2124,11 @@ class ArsipScreenState extends State<ArsipScreen> {
     Color badgeColor = Colors.blueGrey;
     IconData iconData = Icons.insert_drive_file_rounded;
 
-    if (url.isNotEmpty) {
-      final uri = Uri.parse(url);
-      final seg = uri.pathSegments.lastOrNull ?? '';
+    if (judul.contains('.') && !judul.endsWith('.')) {
+      ext = judul.split('.').last.toUpperCase();
+    } else if (url.isNotEmpty) {
+      final uri = Uri.tryParse(url);
+      final seg = uri?.pathSegments.lastOrNull ?? '';
       if (seg.contains('.')) {
         ext = seg.split('.').last.toUpperCase();
       }
@@ -2155,23 +2177,16 @@ class ArsipScreenState extends State<ArsipScreen> {
   }
 
   String _getFileNameWithExt(String url, String judul) {
-    final uri = Uri.parse(url);
-    final seg = uri.pathSegments.lastOrNull ?? '';
+    if (judul.contains('.') && !judul.endsWith('.')) return judul;
+    final uri = Uri.tryParse(url);
+    final seg = uri?.pathSegments.lastOrNull ?? '';
     final ext = seg.contains('.') ? '.${seg.split('.').last}' : '';
-    if (judul.endsWith(ext)) return judul;
-    return '$judul$ext';
+    if (ext.isNotEmpty && !judul.endsWith(ext)) return '$judul$ext';
+    return judul;
   }
 
   Future<File?> _downloadToTemp(String url, String fileName) async {
-    final dir = await getTemporaryDirectory();
-    final file = File('${dir.path}/$fileName');
-    if (await file.exists()) return file;
-    final response = await http.get(Uri.parse(url));
-    if (response.statusCode == 200) {
-      await file.writeAsBytes(response.bodyBytes);
-      return file;
-    }
-    return null;
+    return await BaknusDriveService.downloadToTemp(url, fileName);
   }
 
   // ── UI BUILD ───────────────────────────────────────────────────────────────

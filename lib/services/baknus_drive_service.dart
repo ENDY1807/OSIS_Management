@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class BaknusDriveService {
@@ -11,6 +13,7 @@ class BaknusDriveService {
   static const String _keyToken = 'baknusdrive_token';
 
   static String? _cachedToken;
+  static final Map<String, int> _folderIdCache = {};
 
   /// Mendapatkan atau memperbarui Bearer token BaknusDrive
   static Future<String?> getToken({bool forceRefresh = false}) async {
@@ -65,12 +68,90 @@ class BaknusDriveService {
     return null;
   }
 
+  /// Mengekstrak ID file dari URL BaknusDrive (contoh: https://baknusdrive.smkbn666.sch.id/api/public/file/595/download -> 595)
+  static int? extractFileId(String url) {
+    if (!url.contains('baknusdrive.smkbn666.sch.id')) return null;
+    final regex = RegExp(r'/file/(\d+)');
+    final match = regex.firstMatch(url);
+    if (match != null) {
+      return int.tryParse(match.group(1) ?? '');
+    }
+    return null;
+  }
+
+  /// Mencari atau membuat folder di BaknusDrive berdasarkan path
+  static Future<int?> ensureFolderExists(String folderPath) async {
+    final clean = folderPath.trim();
+    if (clean.isEmpty || clean.toLowerCase() == 'root') return null;
+
+    if (_folderIdCache.containsKey(clean)) {
+      return _folderIdCache[clean];
+    }
+
+    String? token = await getToken();
+    token ??= await login();
+    if (token == null) return null;
+
+    try {
+      // 1. Cek folder yang sudah ada
+      final listRes = await http.get(
+        Uri.parse('$baseUrl/api/drive'),
+        headers: {'Authorization': 'Bearer $token'},
+      ).timeout(const Duration(seconds: 10));
+
+      if (listRes.statusCode == 200) {
+        final data = jsonDecode(listRes.body);
+        final folders = data['folders'] as List? ?? [];
+        for (final f in folders) {
+          final name = f['name']?.toString() ?? '';
+          final id = f['id'] as int?;
+          if (id != null) {
+            _folderIdCache[name] = id;
+          }
+          if (name == clean && id != null) {
+            return id;
+          }
+        }
+      }
+
+      // 2. Jika belum ada, buat foldernya
+      final createRes = await http.post(
+        Uri.parse('$baseUrl/api/drive/folder'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'name': clean,
+          'parent_id': null,
+        }),
+      ).timeout(const Duration(seconds: 10));
+
+      if (createRes.statusCode == 200) {
+        final fData = jsonDecode(createRes.body);
+        final id = (fData['id'] ?? fData['folder']?['id']) as int?;
+        if (id != null) {
+          _folderIdCache[clean] = id;
+          return id;
+        }
+      }
+    } catch (e) {
+      debugPrint('BaknusDriveService ensureFolderExists error: $e');
+    }
+    return null;
+  }
+
   /// Mengunggah berkas ke BaknusDrive secara chunked dan menjadikannya tautan publik
-  static Future<String> uploadFile(Uint8List bytes, String fileName, {String? folderId}) async {
+  static Future<String> uploadFile(Uint8List bytes, String fileName, {String? folderPath}) async {
     String? token = await getToken();
     token ??= await login();
     if (token == null) {
       throw Exception('Gagal melakukan autentikasi ke BaknusDrive.');
+    }
+
+    int? folderId;
+    if (folderPath != null && folderPath.isNotEmpty) {
+      folderId = await ensureFolderExists(folderPath);
     }
 
     final uploadId = '${DateTime.now().millisecondsSinceEpoch}_${(bytes.length % 100000)}';
@@ -100,7 +181,6 @@ class BaknusDriveService {
       final chunkRes = await http.Response.fromStream(streamedRes);
 
       if (chunkRes.statusCode == 401) {
-        // Token kedaluwarsa, segarkan dan coba sekali lagi
         token = await getToken(forceRefresh: true);
         if (token == null) throw Exception('Sesi BaknusDrive kedaluwarsa.');
 
@@ -176,5 +256,240 @@ class BaknusDriveService {
     final publicDownloadUrl = '$baseUrl/api/public/file/$fileId/download';
     debugPrint('BaknusDriveService: Berkas berhasil diunggah -> $publicDownloadUrl');
     return publicDownloadUrl;
+  }
+
+  /// Menghapus file dari BaknusDrive berdasarkan URL
+  static Future<bool> deleteFileByUrl(String fileUrl) async {
+    final fileId = extractFileId(fileUrl);
+    if (fileId == null) return false;
+
+    String? token = await getToken();
+    token ??= await login();
+    if (token == null) return false;
+
+    try {
+      final url = Uri.parse('$baseUrl/api/drive/file/$fileId');
+      final res = await http.delete(
+        url,
+        headers: {'Authorization': 'Bearer $token'},
+      ).timeout(const Duration(seconds: 15));
+      debugPrint('BaknusDriveService deleteFile ($fileId) status: ${res.statusCode}');
+      return res.statusCode == 200;
+    } catch (e) {
+      debugPrint('BaknusDriveService deleteFile error: $e');
+      return false;
+    }
+  }
+
+  /// Mengubah nama file di BaknusDrive berdasarkan URL
+  static Future<bool> renameFileByUrl(String fileUrl, String newName) async {
+    final fileId = extractFileId(fileUrl);
+    if (fileId == null) return false;
+
+    String? token = await getToken();
+    token ??= await login();
+    if (token == null) return false;
+
+    try {
+      final url = Uri.parse('$baseUrl/api/drive/file/$fileId/rename');
+      final res = await http.put(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'name': newName}),
+      ).timeout(const Duration(seconds: 15));
+      debugPrint('BaknusDriveService renameFile ($fileId -> $newName) status: ${res.statusCode}');
+      return res.statusCode == 200;
+    } catch (e) {
+      debugPrint('BaknusDriveService renameFile error: $e');
+      return false;
+    }
+  }
+
+  /// Memindahkan file di BaknusDrive ke folder lain
+  static Future<bool> moveFileByUrl(String fileUrl, String targetFolderName) async {
+    final fileId = extractFileId(fileUrl);
+    if (fileId == null) return false;
+
+    final targetFolderId = await ensureFolderExists(targetFolderName);
+
+    String? token = await getToken();
+    token ??= await login();
+    if (token == null) return false;
+
+    try {
+      final url = Uri.parse('$baseUrl/api/drive/file/$fileId/move');
+      final res = await http.put(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'target_folder_id': targetFolderId}),
+      ).timeout(const Duration(seconds: 15));
+      debugPrint('BaknusDriveService moveFile ($fileId -> $targetFolderName) status: ${res.statusCode}');
+      return res.statusCode == 200;
+    } catch (e) {
+      debugPrint('BaknusDriveService moveFile error: $e');
+      return false;
+    }
+  }
+
+  /// Membuat folder baru di BaknusDrive
+  static Future<int?> createFolder(String folderName, {int? parentId}) async {
+    String? token = await getToken();
+    token ??= await login();
+    if (token == null) return null;
+
+    try {
+      final url = Uri.parse('$baseUrl/api/drive/folder');
+      final res = await http.post(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'name': folderName,
+          'parent_id': parentId,
+        }),
+      ).timeout(const Duration(seconds: 15));
+
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final id = (data['id'] ?? data['folder']?['id']) as int?;
+        if (id != null) {
+          _folderIdCache[folderName] = id;
+          return id;
+        }
+      }
+    } catch (e) {
+      debugPrint('BaknusDriveService createFolder error: $e');
+    }
+    return null;
+  }
+
+  /// Mengubah nama folder di BaknusDrive
+  static Future<bool> renameFolder(String oldName, String newName) async {
+    final folderId = await ensureFolderExists(oldName);
+    if (folderId == null) return false;
+
+    String? token = await getToken();
+    token ??= await login();
+    if (token == null) return false;
+
+    try {
+      final url = Uri.parse('$baseUrl/api/drive/folder/$folderId/rename');
+      final res = await http.put(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'name': newName}),
+      ).timeout(const Duration(seconds: 15));
+
+      if (res.statusCode == 200) {
+        _folderIdCache.remove(oldName);
+        _folderIdCache[newName] = folderId;
+        return true;
+      }
+    } catch (e) {
+      debugPrint('BaknusDriveService renameFolder error: $e');
+    }
+    return false;
+  }
+
+  /// Menghapus folder di BaknusDrive
+  static Future<bool> deleteFolderByName(String folderName) async {
+    final folderId = await ensureFolderExists(folderName);
+    if (folderId == null) return false;
+
+    String? token = await getToken();
+    token ??= await login();
+    if (token == null) return false;
+
+    try {
+      final url = Uri.parse('$baseUrl/api/drive/folder/$folderId');
+      final res = await http.delete(
+        url,
+        headers: {'Authorization': 'Bearer $token'},
+      ).timeout(const Duration(seconds: 15));
+
+      _folderIdCache.remove(folderName);
+      return res.statusCode == 200;
+    } catch (e) {
+      debugPrint('BaknusDriveService deleteFolderByName error: $e');
+      return false;
+    }
+  }
+
+  /// Mengunduh file dari URL dan menyimpannya di folder sementara dengan nama dan ekstensi yang benar
+  static Future<File?> downloadToTemp(String fileUrl, String defaultTitle) async {
+    try {
+      final uri = Uri.parse(fileUrl);
+      final response = await http.get(uri).timeout(const Duration(seconds: 45));
+
+      if (response.statusCode != 200) {
+        debugPrint('BaknusDriveService download failed HTTP ${response.statusCode}');
+        return null;
+      }
+
+      // 1. Cek nama file dari Content-Disposition header
+      String finalFileName = '';
+      final cd = response.headers['content-disposition'];
+      if (cd != null && cd.contains('filename=')) {
+        final match = RegExp(r'filename="?([^";]+)"?').firstMatch(cd);
+        if (match != null) {
+          finalFileName = match.group(1)?.trim() ?? '';
+        }
+      }
+
+      // 2. Jika tidak ada di header, gunakan defaultTitle & cek ekstensi
+      if (finalFileName.isEmpty) {
+        finalFileName = defaultTitle.trim();
+        final seg = uri.pathSegments.lastOrNull ?? '';
+        if (seg.contains('.')) {
+          final ext = '.${seg.split('.').last}';
+          if (!finalFileName.toLowerCase().endsWith(ext.toLowerCase())) {
+            finalFileName = '$finalFileName$ext';
+          }
+        }
+      }
+
+      // 3. Jika belum memiliki ekstensi, tebak dari Content-Type
+      if (!finalFileName.contains('.')) {
+        final ct = response.headers['content-type']?.toLowerCase() ?? '';
+        if (ct.contains('pdf')) {
+          finalFileName += '.pdf';
+        } else if (ct.contains('word') || ct.contains('docx')) {
+          finalFileName += '.docx';
+        } else if (ct.contains('sheet') || ct.contains('excel') || ct.contains('xlsx')) {
+          finalFileName += '.xlsx';
+        } else if (ct.contains('presentation') || ct.contains('pptx')) {
+          finalFileName += '.pptx';
+        } else if (ct.contains('jpeg') || ct.contains('jpg')) {
+          finalFileName += '.jpg';
+        } else if (ct.contains('png')) {
+          finalFileName += '.png';
+        } else if (ct.contains('zip')) {
+          finalFileName += '.zip';
+        } else if (ct.contains('text')) {
+          finalFileName += '.txt';
+        }
+      }
+
+      final dir = await getTemporaryDirectory();
+      // Hilangkan karakter ilegal pada nama berkas
+      final cleanName = finalFileName.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+      final file = File('${dir.path}/$cleanName');
+      await file.writeAsBytes(response.bodyBytes);
+      return file;
+    } catch (e) {
+      debugPrint('BaknusDriveService downloadToTemp error: $e');
+      return null;
+    }
   }
 }

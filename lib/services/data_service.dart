@@ -1270,6 +1270,8 @@ class DataService {
     } else {
       await broadcastDataChange('arsip');
     }
+    // Sinkronisasi folder ke BaknusDrive
+    unawaited(BaknusDriveService.ensureFolderExists(clean));
   }
 
   static Future<void> saveArsipFolders(List<String> folders) async {
@@ -1292,16 +1294,23 @@ class DataService {
 
     // Delete matching items (files and folder markers) from Supabase by ID and by kategori
     try {
-      final rows = await _db.from('arsip').select('id, kategori');
-      final toDeleteIds = rows
+      final rows = await _db.from('arsip').select('id, kategori, file_url');
+      final toDeleteRows = rows
           .where((r) {
             final kat = (r['kategori'] ?? '').toString().trim();
             return kat == clean || kat.startsWith('$clean/');
           })
-          .map((r) => r['id'].toString())
           .toList();
+      final toDeleteIds = toDeleteRows.map((r) => r['id'].toString()).toList();
       if (toDeleteIds.isNotEmpty) {
         await _db.from('arsip').delete().inFilter('id', toDeleteIds);
+      }
+      // Hapus berkas-berkas di dalam folder dari BaknusDrive
+      for (final r in toDeleteRows) {
+        final fUrl = r['file_url']?.toString() ?? '';
+        if (fUrl.isNotEmpty) {
+          unawaited(BaknusDriveService.deleteFileByUrl(fUrl));
+        }
       }
     } catch (_) {
       try {
@@ -1348,6 +1357,8 @@ class DataService {
         await updateArsip(a);
       }
     }
+    // Ganti nama folder di BaknusDrive
+    unawaited(BaknusDriveService.renameFolder(oldPath, newPath.split('/').last));
     await broadcastDataChange('arsip');
   }
 
@@ -1358,6 +1369,9 @@ class DataService {
       if (ids.contains(a.id)) {
         a.kategori = targetFolder;
         await updateArsip(a);
+        if (a.fileUrl.isNotEmpty) {
+          unawaited(BaknusDriveService.moveFileByUrl(a.fileUrl, targetFolder));
+        }
       }
     }
     await broadcastDataChange('arsip');
@@ -1383,12 +1397,19 @@ class DataService {
   }
 
   static Future<void> deleteArsip(String id) async {
-    // 1. Update cache lokal instan
+    // 1. Dapatkan info file untuk hapus dari BaknusDrive
     final cache = await _readCache(_keyArsip);
+    final item = cache.firstWhere((item) => item['id'] == id, orElse: () => <String, dynamic>{});
+    final fileUrl = (item['file_url'] ?? item['fileUrl'] ?? '').toString();
+    if (fileUrl.isNotEmpty) {
+      unawaited(BaknusDriveService.deleteFileByUrl(fileUrl));
+    }
+
+    // 2. Update cache lokal instan
     cache.removeWhere((item) => item['id'] == id);
     await _saveCache(_keyArsip, cache);
 
-    // 2. Kirim ke Supabase atau antrekan ke SyncService
+    // 3. Kirim ke Supabase atau antrekan ke SyncService
     if (SyncService.isOnline) {
       try {
         await _db.from('arsip').delete().eq('id', id);
@@ -1425,10 +1446,10 @@ class DataService {
   };
 
   static Future<String> uploadArsipFile(
-      Uint8List bytes, String fileName) async {
+      Uint8List bytes, String fileName, {String? folderPath}) async {
     try {
       // 1. Prioritaskan upload ke BaknusDrive (https://baknusdrive.smkbn666.sch.id)
-      return await BaknusDriveService.uploadFile(bytes, fileName);
+      return await BaknusDriveService.uploadFile(bytes, fileName, folderPath: folderPath);
     } catch (e) {
       debugPrint('BaknusDrive upload failed ($e), falling back to Supabase storage...');
       // 2. Fallback jika ada kendala jaringan khusus BaknusDrive
