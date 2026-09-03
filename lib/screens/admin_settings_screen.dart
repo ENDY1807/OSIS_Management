@@ -1014,48 +1014,106 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'DAFTAR KOLOM INPUT (${currentFields.length})',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: isDark ? Colors.white70 : Colors.black87, letterSpacing: 0.6),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'DAFTAR KOLOM INPUT (${currentFields.length})',
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: isDark ? Colors.white70 : Colors.black87,
+                        letterSpacing: 0.6),
+                  ),
+                  if (currentFields.length > 1) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      'Tahan & geser ikon ☰ untuk mengatur urutan input',
+                      style: TextStyle(
+                          fontSize: 10,
+                          color: _selectedAccent,
+                          fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ],
               ),
               ElevatedButton.icon(
                 onPressed: () => _showAddOrEditCustomFieldDialog(),
                 icon: const Icon(Icons.add_circle_outline_rounded, size: 16),
-                label: const Text('Tambah Input', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                label: const Text('Tambah Input',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green.shade700,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
 
-          // Daftar Kolom Form Cards
+          // Daftar Kolom Form Cards (Drag & Drop Reorderable)
           if (currentFields.isEmpty)
             Container(
               padding: const EdgeInsets.all(32),
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF141D2E) : Colors.grey.shade50,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: isDark ? const Color(0xFF243452) : Colors.grey.shade200),
+                border: Border.all(
+                    color: isDark
+                        ? const Color(0xFF243452)
+                        : Colors.grey.shade200),
               ),
               child: const Center(
                 child: Column(
                   children: [
-                    Icon(Icons.format_list_bulleted_add, size: 40, color: Colors.grey),
+                    Icon(Icons.format_list_bulleted_add,
+                        size: 40, color: Colors.grey),
                     SizedBox(height: 8),
-                    Text('Belum ada kolom input khusus. Klik "Tambah Input" untuk menambahkan.'),
+                    Text(
+                        'Belum ada kolom input khusus. Klik "Tambah Input" untuk menambahkan.'),
                   ],
                 ),
               ),
             )
           else
-            ListView.builder(
+            ReorderableListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: currentFields.length,
+              buildDefaultDragHandles: false,
+              onReorder: (int oldIndex, int newIndex) {
+                setState(() {
+                  if (newIndex > oldIndex) {
+                    newIndex -= 1;
+                  }
+                  final item = currentFields.removeAt(oldIndex);
+                  currentFields.insert(newIndex, item);
+                  _customFieldsMap[_selectedConfigModule] = currentFields;
+                });
+                AppSettingsService.customFieldsNotifier.value =
+                    Map.from(_customFieldsMap);
+                AppSettingsService.saveAdminConfigs(
+                    customFields: _customFieldsMap);
+
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Row(
+                      children: [
+                        const Icon(Icons.swap_vert_rounded,
+                            color: Colors.white, size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                            'Susunan input berhasil diubah & disimpan otomatis!'),
+                      ],
+                    ),
+                    backgroundColor: _selectedAccent,
+                    duration: const Duration(seconds: 1),
+                  ),
+                );
+              },
               itemBuilder: (ctx, idx) {
                 final f = currentFields[idx];
 
@@ -1097,64 +1155,179 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
                 }
 
                 return Container(
+                  key: ValueKey(f.id),
                   margin: const EdgeInsets.only(bottom: 10),
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: isDark ? const Color(0xFF141D2E) : Colors.white,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0)),
+                    border: Border.all(
+                        color: isDark
+                            ? const Color(0xFF243452)
+                            : const Color(0xFFE2E8F0)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withAlpha(isDark ? 30 : 10),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
+                          // Drag Handle
+                          ReorderableDragStartListener(
+                            index: idx,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: (isDark
+                                        ? Colors.white
+                                        : Colors.grey.shade700)
+                                    .withAlpha(20),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.drag_indicator_rounded,
+                                      size: 18,
+                                      color: isDark
+                                          ? Colors.white70
+                                          : Colors.grey.shade700),
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    '#${idx + 1}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark
+                                          ? Colors.white70
+                                          : Colors.grey.shade700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+
+                          // Type Badge
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
                               color: typeColor.withAlpha(isDark ? 50 : 30),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: typeColor.withAlpha(100)),
+                              border:
+                                  Border.all(color: typeColor.withAlpha(100)),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(typeIcon, size: 13, color: typeColor),
                                 const SizedBox(width: 4),
-                                Text(typeName, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: typeColor)),
+                                Text(typeName,
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: typeColor)),
                               ],
                             ),
                           ),
                           if (f.isRequired) ...[
                             const SizedBox(width: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
                                 color: Colors.red.withAlpha(isDark ? 40 : 25),
                                 borderRadius: BorderRadius.circular(6),
                               ),
-                              child: const Text('Wajib', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.redAccent)),
+                              child: const Text('Wajib',
+                                  style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.redAccent)),
                             ),
                           ],
                           const Spacer(),
+
+                          // Panah Naik / Turun
+                          if (idx > 0)
+                            IconButton(
+                              icon: const Icon(Icons.arrow_upward_rounded,
+                                  size: 16),
+                              tooltip: 'Pindahkan ke atas',
+                              onPressed: () {
+                                setState(() {
+                                  final item = currentFields.removeAt(idx);
+                                  currentFields.insert(idx - 1, item);
+                                  _customFieldsMap[_selectedConfigModule] =
+                                      currentFields;
+                                });
+                                AppSettingsService.customFieldsNotifier.value =
+                                    Map.from(_customFieldsMap);
+                                AppSettingsService.saveAdminConfigs(
+                                    customFields: _customFieldsMap);
+                              },
+                              constraints: const BoxConstraints(),
+                              padding: const EdgeInsets.all(4),
+                              color: isDark ? Colors.white60 : Colors.black54,
+                            ),
+                          if (idx < currentFields.length - 1)
+                            IconButton(
+                              icon: const Icon(Icons.arrow_downward_rounded,
+                                  size: 16),
+                              tooltip: 'Pindahkan ke bawah',
+                              onPressed: () {
+                                setState(() {
+                                  final item = currentFields.removeAt(idx);
+                                  currentFields.insert(idx + 1, item);
+                                  _customFieldsMap[_selectedConfigModule] =
+                                      currentFields;
+                                });
+                                AppSettingsService.customFieldsNotifier.value =
+                                    Map.from(_customFieldsMap);
+                                AppSettingsService.saveAdminConfigs(
+                                    customFields: _customFieldsMap);
+                              },
+                              constraints: const BoxConstraints(),
+                              padding: const EdgeInsets.all(4),
+                              color: isDark ? Colors.white60 : Colors.black54,
+                            ),
+
+                          // Edit Button
                           IconButton(
-                            icon: const Icon(Icons.edit_outlined, size: 18, color: Colors.blueAccent),
+                            icon: const Icon(Icons.edit_outlined,
+                                size: 18, color: Colors.blueAccent),
                             tooltip: 'Edit Kolom',
-                            onPressed: () => _showAddOrEditCustomFieldDialog(existing: f),
+                            onPressed: () =>
+                                _showAddOrEditCustomFieldDialog(existing: f),
                             constraints: const BoxConstraints(),
                             padding: const EdgeInsets.all(6),
                           ),
-                          const SizedBox(width: 6),
+                          const SizedBox(width: 4),
+
+                          // Delete Button
                           IconButton(
-                            icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.redAccent),
+                            icon: const Icon(Icons.delete_outline_rounded,
+                                size: 18, color: Colors.redAccent),
                             tooltip: 'Hapus Kolom',
                             onPressed: () {
                               setState(() {
                                 currentFields.removeAt(idx);
-                                _customFieldsMap[_selectedConfigModule] = currentFields;
+                                _customFieldsMap[_selectedConfigModule] =
+                                    currentFields;
                               });
-                              AppSettingsService.customFieldsNotifier.value = Map.from(_customFieldsMap);
-                              AppSettingsService.saveAdminConfigs(customFields: _customFieldsMap);
+                              AppSettingsService.customFieldsNotifier.value =
+                                  Map.from(_customFieldsMap);
+                              AppSettingsService.saveAdminConfigs(
+                                  customFields: _customFieldsMap);
                             },
                             constraints: const BoxConstraints(),
                             padding: const EdgeInsets.all(6),
@@ -1164,13 +1337,19 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
                       const SizedBox(height: 8),
                       Text(
                         f.label,
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87),
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black87),
                       ),
                       if (f.placeholder.isNotEmpty) ...[
                         const SizedBox(height: 2),
                         Text(
                           'Placeholder: "${f.placeholder}"',
-                          style: TextStyle(fontSize: 12, color: isDark ? Colors.white60 : Colors.black54, fontStyle: FontStyle.italic),
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: isDark ? Colors.white60 : Colors.black54,
+                              fontStyle: FontStyle.italic),
                         ),
                       ],
                       if (f.options.isNotEmpty) ...[
@@ -1180,13 +1359,20 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
                           runSpacing: 4,
                           children: f.options.map((opt) {
                             return Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF0E1626) : Colors.grey.shade100,
+                                color: isDark
+                                    ? const Color(0xFF0E1626)
+                                    : Colors.grey.shade100,
                                 borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: isDark ? const Color(0xFF243452) : Colors.grey.shade300),
+                                border: Border.all(
+                                    color: isDark
+                                        ? const Color(0xFF243452)
+                                        : Colors.grey.shade300),
                               ),
-                              child: Text(opt, style: const TextStyle(fontSize: 11)),
+                              child: Text(opt,
+                                  style: const TextStyle(fontSize: 11)),
                             );
                           }).toList(),
                         ),
