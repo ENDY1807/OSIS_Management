@@ -479,7 +479,7 @@ class _UserSettingsSheetState extends State<UserSettingsSheet> {
                         valueListenable: AppSettingsService.appNameNotifier,
                         builder: (context, appName, child) {
                           return Text(
-                            '$appName • v1.0.1+6\nMade for OSIS Management System',
+                            '$appName • v1.0.4+14\nMade for OSIS Management System',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 11,
