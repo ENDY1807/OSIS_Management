@@ -120,9 +120,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       ],
                     ),
                     clipBehavior: Clip.antiAlias,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
+                    child: IntrinsicHeight(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
                         // Left Brand Panel
                         Expanded(
                           flex: 5,
@@ -317,6 +318,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                           ),
                         ),
                       ],
+                      ),
                     ),
                   ),
                 ),

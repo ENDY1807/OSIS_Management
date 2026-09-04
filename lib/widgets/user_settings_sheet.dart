@@ -460,7 +460,7 @@ class _UserSettingsSheetState extends State<UserSettingsSheet> {
                               if (ok == true) {
                                 await AuthService.logout();
                                 if (context.mounted) {
-                                  Navigator.of(context).pushAndRemoveUntil(
+                                  Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
                                     MaterialPageRoute(builder: (_) => const LoginScreen()),
                                     (_) => false,
                                   );
