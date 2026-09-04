@@ -1,7 +1,7 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'dart:typed_data';
 import 'dart:io';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
@@ -873,58 +873,249 @@ class ArsipScreenState extends State<ArsipScreen> {
     );
   }
 
-  // ── Compress & Archive to ZIP ──────────────────────────────────────────────
+  // ── Compress & Archive to ZIP (Simpan Langsung ke Perangkat) ──────────────
+  List<Arsip> _resolveAllFilesFromSelection({
+    List<String>? folderPaths,
+    List<String>? fileIds,
+  }) {
+    final Set<String> targetIds = Set<String>.from(fileIds ?? []);
+    final folders = folderPaths ?? [];
+
+    for (final folder in folders) {
+      final clean = folder.trim();
+      final folderFiles = _allArsip.where((a) {
+        if (a.keterangan == '__folder__' || a.nomorSurat == '__dir__') return false;
+        return a.kategori == clean || a.kategori.startsWith('$clean/');
+      });
+      for (final f in folderFiles) {
+        targetIds.add(f.id);
+      }
+    }
+
+    return _allArsip.where((a) => targetIds.contains(a.id)).toList();
+  }
+
   Future<void> _archiveSelectedToZip() async {
-    final selectedFiles =
-        _allArsip.where((a) => _selectedFileIds.contains(a.id)).toList();
-    if (selectedFiles.isEmpty) {
+    await _exportZipArchive(
+      zipTitle: 'Pilihan_Arsip_OSIS',
+    );
+  }
+
+  void _promptExportZipOptions() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final currentFolderFiles = _currentFiles;
+    final allFiles = _allArsip
+        .where((a) => a.nomorSurat != '__dir__' && a.keterangan != '__folder__')
+        .toList();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF131A26) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: isDark
+              ? const Border(top: BorderSide(color: Color(0xFF263348)))
+              : null,
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF263348) : kPrimary,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withAlpha(isDark ? 40 : 25),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.archive_rounded,
+                      color: Colors.amber, size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Download / Arsip ke ZIP',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : kTextDark,
+                        ),
+                      ),
+                      Text(
+                        'Berkas akan dikonversi menjadi .zip dan langsung disimpan ke perangkat Anda.',
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? Colors.white70 : kTextMid),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            if (_currentPath.isNotEmpty) ...[
+              ElevatedButton.icon(
+                icon: const Icon(Icons.folder_zip_rounded, size: 18),
+                label: Text(
+                    'Download Folder Ini ($_currentPath) • ${currentFolderFiles.length} File'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kAccent,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _exportZipArchive(
+                    customFolders: [_currentPath],
+                    zipTitle: 'Folder_${_currentPath.replaceAll('/', '_')}',
+                  );
+                },
+              ),
+              const SizedBox(height: 10),
+            ],
+            OutlinedButton.icon(
+              icon: const Icon(Icons.all_inbox_rounded, size: 18),
+              label: Text(
+                  'Download Seluruh Arsip OSIS • ${allFiles.length} File'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: isDark ? Colors.white : kTextDark,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () {
+                Navigator.pop(ctx);
+                _exportZipArchive(
+                  customFiles: allFiles,
+                  zipTitle: 'Semua_Arsip_OSIS',
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _exportZipArchive({
+    List<Arsip>? customFiles,
+    List<String>? customFolders,
+    String? zipTitle,
+  }) async {
+    List<Arsip> targetFiles = [];
+    if (customFiles != null && customFiles.isNotEmpty) {
+      targetFiles = customFiles
+          .where((a) =>
+              a.nomorSurat != '__dir__' && a.keterangan != '__folder__')
+          .toList();
+    } else if (customFolders != null && customFolders.isNotEmpty) {
+      targetFiles =
+          _resolveAllFilesFromSelection(folderPaths: customFolders);
+    } else if (_isSelectionMode && _selectedCount > 0) {
+      targetFiles = _resolveAllFilesFromSelection(
+        folderPaths: _selectedFolderPaths.toList(),
+        fileIds: _selectedFileIds.toList(),
+      );
+    } else {
+      targetFiles = _currentFiles;
+    }
+
+    if (targetFiles.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Pilih setidaknya 1 file untuk dikompres ke ZIP')),
+            content:
+                Text('Tidak ada file arsip yang dapat dikonversi ke ZIP'),
+            backgroundColor: Colors.orange),
       );
       return;
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    int progressCount = 0;
+    final totalCount = targetFiles.length;
+    StateSetter? dialogSetState;
+
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (d) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: const [
-              CircularProgressIndicator(color: kAccent),
-              SizedBox(height: 16),
-              Text('Mengompres file ke ZIP...',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              SizedBox(height: 4),
-              Text('Mengemas berkas arsip...',
-                  style: TextStyle(fontSize: 12, color: kTextMid)),
-            ],
-          ),
-        ),
+      builder: (d) => StatefulBuilder(
+        builder: (dCtx, setD) {
+          dialogSetState = setD;
+          return Dialog(
+            backgroundColor: isDark ? const Color(0xFF131A26) : Colors.white,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(color: kAccent),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Mengunduh & Mengompres Berkas ($progressCount/$totalCount)...',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: isDark ? Colors.white : kTextDark,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'File ZIP akan langsung disimpan ke perangkat Anda',
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? Colors.white70 : kTextMid),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
 
     try {
       final archive = Archive();
 
-      for (final a in selectedFiles) {
+      for (final a in targetFiles) {
         Uint8List? fileBytes;
-        String fileName = a.judul;
+        String fileName = a.judul.trim();
 
         if (a.fileUrl.isNotEmpty) {
           try {
-            final res = await http.get(Uri.parse(a.fileUrl));
+            final res = await http
+                .get(Uri.parse(a.fileUrl))
+                .timeout(const Duration(seconds: 15));
             if (res.statusCode == 200) {
               fileBytes = res.bodyBytes;
               final uri = Uri.parse(a.fileUrl);
               final seg = uri.pathSegments.lastOrNull ?? '';
               if (seg.contains('.')) {
                 final ext = seg.split('.').last;
-                if (!fileName.toLowerCase().endsWith('.$ext')) {
+                if (!fileName.toLowerCase().endsWith('.$ext'.toLowerCase())) {
                   fileName = '$fileName.$ext';
                 }
               }
@@ -934,28 +1125,73 @@ class ArsipScreenState extends State<ArsipScreen> {
 
         if (fileBytes == null) {
           final content =
-              'Arsip: ${a.judul}\nKategori: ${a.kategori}\nTanggal: ${a.tanggal}\nNo Surat: ${a.nomorSurat}\nDeskripsi: ${a.deskripsi}\nKeterangan: ${a.keterangan}\nFile URL: ${a.fileUrl}';
+              'Judul: ${a.judul}\nFolder: ${a.kategori}\nTanggal: ${DateFormat('dd MMMM yyyy', 'id').format(a.tanggal)}\nDiupload Oleh: ${a.pembuatId}\nKeterangan: ${a.keterangan}\nURL Unduhan: ${a.fileUrl}';
           fileBytes = Uint8List.fromList(content.codeUnits);
-          fileName = '$fileName.txt';
+          if (!fileName.toLowerCase().endsWith('.txt')) {
+            fileName = '$fileName.txt';
+          }
         }
 
-        archive.addFile(ArchiveFile(fileName, fileBytes.length, fileBytes));
+        // Jalur di dalam ZIP (misal: "Surat Masuk/surat.pdf")
+        String inZipPath = fileName;
+        if (a.kategori.isNotEmpty && a.kategori != 'Root') {
+          inZipPath = '${a.kategori}/$fileName';
+        }
+
+        archive.addFile(ArchiveFile(inZipPath, fileBytes.length, fileBytes));
+        progressCount++;
+        dialogSetState?.call(() {});
       }
 
       final zipEncoder = ZipEncoder();
       final zipBytes = zipEncoder.encode(archive);
 
-      if (mounted) Navigator.pop(context);
-
-      if (zipBytes == null) {
-        throw Exception('Gagal mengompresi arsip');
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.pop(context); // Tutup dialog progress
       }
 
-      final dir = await getTemporaryDirectory();
-      final dateStr = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
-      final zipName = 'Arsip_OSIS_$dateStr.zip';
-      final zipFile = File('${dir.path}/$zipName');
-      await zipFile.writeAsBytes(zipBytes);
+      if (zipBytes == null) {
+        throw Exception('Gagal mengompresi data arsip');
+      }
+
+      final dateStr = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+      final defaultZipName = '${zipTitle ?? "Arsip_OSIS"}_$dateStr.zip';
+
+      File? targetSavedFile;
+
+      // 1. Simpan ke Desktop jika tersedia FilePicker.saveFile
+      if (!kIsWeb &&
+          (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
+        try {
+          final chosenPath = await FilePicker.saveFile(
+            dialogTitle: 'Pilih Lokasi Penyimpanan File ZIP',
+            fileName: defaultZipName,
+            type: FileType.custom,
+            allowedExtensions: ['zip'],
+            bytes: Uint8List.fromList(zipBytes),
+          );
+          if (chosenPath != null && chosenPath.isNotEmpty) {
+            final saveFile = File(
+                chosenPath.endsWith('.zip') ? chosenPath : '$chosenPath.zip');
+            if (!await saveFile.exists() || await saveFile.length() == 0) {
+              await saveFile.writeAsBytes(zipBytes);
+            }
+            targetSavedFile = saveFile;
+          }
+        } catch (_) {}
+      }
+
+      // 2. Jika Mobile atau user batalkan FilePicker pada desktop, simpan ke direktori unduhan lokal
+      if (targetSavedFile == null) {
+        Directory? baseDir;
+        try {
+          baseDir = await getDownloadsDirectory();
+        } catch (_) {}
+        baseDir ??= await getApplicationDocumentsDirectory();
+        final localFile = File('${baseDir.path}/$defaultZipName');
+        await localFile.writeAsBytes(zipBytes);
+        targetSavedFile = localFile;
+      }
 
       _clearSelection();
 
@@ -964,9 +1200,12 @@ class ArsipScreenState extends State<ArsipScreen> {
         context: context,
         backgroundColor: Colors.transparent,
         builder: (ctx) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF131A26) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: isDark
+                ? const Border(top: BorderSide(color: Color(0xFF263348)))
+                : null,
           ),
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
           child: Column(
@@ -974,70 +1213,104 @@ class ArsipScreenState extends State<ArsipScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Center(
-                  child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                          color: kPrimary,
-                          borderRadius: BorderRadius.circular(2)))),
-              const SizedBox(height: 16),
-              Row(children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
+                child: Container(
+                  width: 40,
+                  height: 4,
                   decoration: BoxDecoration(
-                      color: Colors.amber.shade50,
-                      borderRadius: BorderRadius.circular(12)),
-                  child: const Icon(Icons.archive_rounded,
-                      color: Colors.amber, size: 26),
+                    color: isDark ? const Color(0xFF263348) : kPrimary,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withAlpha(isDark ? 40 : 25),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.check_circle_rounded,
+                        color: Colors.green, size: 28),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
                     child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                      const Text('File ZIP Berhasil Dibuat!',
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'File ZIP Berhasil Disimpan ke Perangkat!',
                           style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: kTextDark)),
-                      Text(
-                          '$zipName (${(zipBytes.length / 1024).toStringAsFixed(1)} KB)',
-                          style:
-                              const TextStyle(fontSize: 12, color: kTextMid)),
-                    ])),
-              ]),
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : kTextDark,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${targetSavedFile?.path.split(Platform.pathSeparator).last} (${(zipBytes.length / (1024 * 1024) > 1 ? "${(zipBytes.length / (1024 * 1024)).toStringAsFixed(2)} MB" : "${(zipBytes.length / 1024).toStringAsFixed(1)} KB")})',
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: isDark ? Colors.white70 : kTextMid),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          'Tersimpan di: ${targetSavedFile?.path}',
+                          style: TextStyle(
+                              fontSize: 10,
+                              color: isDark
+                                  ? const Color(0xFF94A3B8)
+                                  : Colors.grey.shade600),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 20),
               ElevatedButton.icon(
-                icon: const Icon(Icons.share_rounded, size: 18),
-                label: const Text('Bagikan File ZIP (WhatsApp / dll)',
+                icon: const Icon(Icons.folder_open_rounded, size: 18),
+                label: const Text('Buka / Ekstrak File ZIP',
                     style: TextStyle(fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: kAccent,
+                  foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: () async {
                   Navigator.pop(ctx);
-                  await SharePlus.instance.share(ShareParams(
-                    files: [XFile(zipFile.path, mimeType: 'application/zip')],
-                    text: 'Arsip OSIS: $zipName',
-                  ));
+                  if (targetSavedFile != null) {
+                    await OpenFilex.open(targetSavedFile.path);
+                  }
                 },
               ),
               const SizedBox(height: 8),
               OutlinedButton.icon(
-                icon: const Icon(Icons.folder_open_rounded, size: 18),
-                label: const Text('Buka File ZIP'),
+                icon: const Icon(Icons.share_rounded, size: 18),
+                label: const Text('Bagikan File ZIP (Share)'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: kTextDark,
+                  foregroundColor: isDark ? Colors.white : kTextDark,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: () async {
                   Navigator.pop(ctx);
-                  await OpenFilex.open(zipFile.path);
+                  if (targetSavedFile != null) {
+                    await SharePlus.instance.share(ShareParams(
+                      files: [
+                        XFile(targetSavedFile.path, mimeType: 'application/zip')
+                      ],
+                      text:
+                          'Arsip OSIS: ${targetSavedFile.path.split(Platform.pathSeparator).last}',
+                    ));
+                  }
                 },
               ),
             ],
@@ -1568,12 +1841,27 @@ class ArsipScreenState extends State<ArsipScreen> {
                           final keterangan =
                               controllers['ars_ket']?.text.trim() ??
                                   dynamicValues['ars_ket']?.toString().trim() ??
-                                  '';
+                                  (existing?.keterangan ?? '');
                           final folder =
                               dynamicValues['ars_folder']?.toString() ??
                                   _currentPath;
                           final targetPath =
                               folder.isNotEmpty ? folder : _currentPath;
+
+                          DateTime finalTanggal = existing?.tanggal ?? DateTime.now();
+                          if (dynamicValues['ars_tgl'] is DateTime) {
+                            finalTanggal = dynamicValues['ars_tgl'] as DateTime;
+                          } else if (dynamicValues['ars_tgl'] != null && dynamicValues['ars_tgl'].toString().isNotEmpty) {
+                            finalTanggal = DateTime.tryParse(dynamicValues['ars_tgl'].toString()) ?? finalTanggal;
+                          }
+
+                          String uploader = existing?.pembuatId ?? '';
+                          if (uploader.isEmpty) {
+                            uploader = widget.username.isNotEmpty ? widget.username : sekbid;
+                          }
+                          if (uploader.isEmpty) {
+                            uploader = await AuthService.getUserName() ?? 'ADMIN';
+                          }
 
                           setModal(() => uploading = true);
                           try {
@@ -1602,8 +1890,8 @@ class ArsipScreenState extends State<ArsipScreen> {
                               kategori: targetPath,
                               deskripsi: existing?.deskripsi ?? '',
                               nomorSurat: existing?.nomorSurat ?? '',
-                              tanggal: existing?.tanggal ?? DateTime.now(),
-                              pembuatId: sekbid,
+                              tanggal: finalTanggal,
+                              pembuatId: uploader,
                               fileUrl: fileUrl,
                               keterangan: keterangan,
                             );
@@ -1730,11 +2018,11 @@ class ArsipScreenState extends State<ArsipScreen> {
                   DateFormat('dd MMMM yyyy', 'id').format(a.tanggal)),
               if (a.nomorSurat.isNotEmpty)
                 _detailRow('Nomor Dokumen', a.nomorSurat),
-              if (a.pembuatId.isNotEmpty)
-                _detailRow('Diupload Oleh', a.pembuatId),
+              _detailRow('Diupload Oleh',
+                  a.pembuatId.isNotEmpty ? AuthService.getDisplayName(a.pembuatId) : 'Sistem / Pengguna'),
               if (a.deskripsi.isNotEmpty) _detailRow('Deskripsi', a.deskripsi),
-              if (a.keterangan.isNotEmpty)
-                _detailRow('Keterangan', a.keterangan),
+              _detailRow('Keterangan',
+                  a.keterangan.isNotEmpty ? a.keterangan : '-'),
               const SizedBox(height: 20),
 
               // Open file button
@@ -2326,6 +2614,11 @@ class ArsipScreenState extends State<ArsipScreen> {
           ],
         ),
         IconButton(
+          icon: const Icon(Icons.archive_outlined),
+          tooltip: 'Download / Arsip ke ZIP',
+          onPressed: _promptExportZipOptions,
+        ),
+        IconButton(
           icon: const Icon(Icons.checklist_rounded),
           tooltip: 'Pilih Banyak',
           onPressed: () => setState(() => _isSelectionMode = true),
@@ -2355,6 +2648,12 @@ class ArsipScreenState extends State<ArsipScreen> {
           tooltip: 'Pilih Semua',
           onPressed: _selectAll,
         ),
+        if (_selectedCount > 0)
+          IconButton(
+            icon: const Icon(Icons.archive_outlined),
+            tooltip: 'Download ZIP Pilihan',
+            onPressed: _archiveSelectedToZip,
+          ),
         if (_selectedCount > 0 && _canEdit)
           IconButton(
             icon: const Icon(Icons.drive_file_move_outlined),
@@ -2813,8 +3112,13 @@ class ArsipScreenState extends State<ArsipScreen> {
                   [
                     if (a.nomorSurat.isNotEmpty) 'No. ${a.nomorSurat}',
                     DateFormat('dd MMM yyyy', 'id').format(a.tanggal),
+                    if (a.pembuatId.isNotEmpty)
+                      'Oleh: ${AuthService.getDisplayName(a.pembuatId)}',
+                    if (a.keterangan.isNotEmpty) a.keterangan,
                   ].join(' • '),
                   style: TextStyle(fontSize: 11, color: textSub),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 trailing: Icon(Icons.chevron_right, color: textMuted, size: 18),
               ),

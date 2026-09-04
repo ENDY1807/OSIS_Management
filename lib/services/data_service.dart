@@ -208,37 +208,127 @@ class DataService {
     }
   }
 
+  static List<SekbidItem> _defaultSekbidItems() => [
+    SekbidItem(id: 'SEKBID1', name: 'SEKBID 1', deskripsi: 'Keimanan & Ketakwaan', urutan: 1),
+    SekbidItem(id: 'SEKBID2', name: 'SEKBID 2', deskripsi: 'Budi Pekerti & Karakter', urutan: 2),
+    SekbidItem(id: 'SEKBID3', name: 'SEKBID 3', deskripsi: 'Bela Negara & Kepemimpinan', urutan: 3),
+    SekbidItem(id: 'SEKBID4', name: 'SEKBID 4', deskripsi: 'Prestasi Akademik & IPTEK', urutan: 4),
+    SekbidItem(id: 'SEKBID5', name: 'SEKBID 5', deskripsi: 'Demokrasi & Pendidikan Politik', urutan: 5),
+    SekbidItem(id: 'SEKBID6', name: 'SEKBID 6', deskripsi: 'Keterampilan & Kewirausahaan', urutan: 6),
+    SekbidItem(id: 'SEKBID7', name: 'SEKBID 7', deskripsi: 'Kebugaran Jasmani & Olahraga', urutan: 7),
+    SekbidItem(id: 'SEKBID8', name: 'SEKBID 8', deskripsi: 'Sastra & Seni Budaya', urutan: 8),
+    SekbidItem(id: 'SEKBID9', name: 'SEKBID 9', deskripsi: 'Teknologi Informasi & Multimedia', urutan: 9),
+    SekbidItem(id: 'SEKBID10', name: 'SEKBID 10', deskripsi: 'Komunikasi Bahasa & Hubungan Masyarakat', urutan: 10),
+  ];
+
+  static Future<List<SekbidItem>> getSekbidTable() async {
+    // 1. Ambil dari Supabase jika online
+    if (SyncService.isOnline) {
+      try {
+        final rows = await _db
+            .from('sekbid')
+            .select()
+            .order('urutan', ascending: true)
+            .timeout(const Duration(seconds: 4));
+        if (rows.isNotEmpty) {
+          final list = (rows as List)
+              .map((e) => SekbidItem.fromJson(Map<String, dynamic>.from(e as Map)))
+              .toList();
+          await _saveCache(_keySekbid, list.map((e) => e.toJson()).toList());
+          AppSettingsService.sekbidListNotifier.value = list.map((s) => s.id).toList();
+          return list;
+        }
+      } catch (_) {}
+    }
+
+    // 2. Fallback baca dari cache lokal
+    final cache = await _readCache(_keySekbid);
+    if (cache.isNotEmpty) {
+      final list = cache.map((e) => SekbidItem.fromJson(e)).toList();
+      list.sort((a, b) => a.urutan.compareTo(b.urutan));
+      AppSettingsService.sekbidListNotifier.value = list.map((s) => s.id).toList();
+      return list;
+    }
+
+    // 3. Jika belum ada, gunakan default seed
+    final defaults = _defaultSekbidItems();
+    await _saveCache(_keySekbid, defaults.map((e) => e.toJson()).toList());
+    AppSettingsService.sekbidListNotifier.value = defaults.map((s) => s.id).toList();
+    if (SyncService.isOnline) {
+      try {
+        for (final s in defaults) {
+          await _db.from('sekbid').upsert(s.toJson());
+        }
+      } catch (_) {}
+    }
+    return defaults;
+  }
+
+  static Future<void> saveSekbidItem(SekbidItem item) async {
+    final list = await getSekbidTable();
+    final idx = list.indexWhere((s) => s.id.toUpperCase() == item.id.toUpperCase());
+    if (idx != -1) {
+      list[idx] = item;
+    } else {
+      list.add(item);
+    }
+    list.sort((a, b) => a.urutan.compareTo(b.urutan));
+
+    await _saveCache(_keySekbid, list.map((e) => e.toJson()).toList());
+    final strList = list.map((e) => e.id).toList();
+    AppSettingsService.sekbidListNotifier.value = strList;
+    await AppSettingsService.saveAdminConfigs(sekbidList: strList);
+
+    if (SyncService.isOnline) {
+      try {
+        await _db.from('sekbid').upsert(item.toJson());
+      } catch (_) {}
+    }
+    await broadcastDataChange('sekbid');
+  }
+
+  static Future<void> deleteSekbidItem(String id) async {
+    final list = await getSekbidTable();
+    list.removeWhere((s) => s.id.toUpperCase() == id.toUpperCase());
+
+    await _saveCache(_keySekbid, list.map((e) => e.toJson()).toList());
+    final strList = list.map((e) => e.id).toList();
+    AppSettingsService.sekbidListNotifier.value = strList;
+    await AppSettingsService.saveAdminConfigs(sekbidList: strList);
+
+    if (SyncService.isOnline) {
+      try {
+        await _db.from('sekbid').delete().eq('id', id);
+      } catch (_) {}
+    }
+    await broadcastDataChange('sekbid');
+  }
+
   static Future<List<String>> getSekbidList() async {
     if (AppSettingsService.sekbidListNotifier.value.isNotEmpty) {
       return AppSettingsService.sekbidListNotifier.value;
     }
-    final cache = await _readCache(_keySekbid);
-    if (cache.isNotEmpty) {
-      final list = cache
-          .map((e) => (e['name'] ?? e['nama'] ?? '').toString())
-          .where((s) => s.isNotEmpty)
-          .toList();
-      if (list.isNotEmpty) {
-        AppSettingsService.sekbidListNotifier.value = list;
-        return list;
-      }
-    }
-    return AppSettingsService.sekbidListNotifier.value;
+    final items = await getSekbidTable();
+    return items.map((e) => e.id).toList();
   }
 
   static Future<void> saveSekbidList(List<String> sekbids) async {
     AppSettingsService.sekbidListNotifier.value = List.from(sekbids);
-    await _saveCache(_keySekbid, sekbids.map((s) => {'name': s}).toList());
+    final items = <SekbidItem>[];
+    for (int i = 0; i < sekbids.length; i++) {
+      items.add(SekbidItem(
+        id: sekbids[i],
+        name: sekbids[i],
+        deskripsi: AuthService.getDisplayName(sekbids[i]),
+        urutan: i + 1,
+      ));
+    }
+    await _saveCache(_keySekbid, items.map((s) => s.toJson()).toList());
     await AppSettingsService.saveAdminConfigs(sekbidList: sekbids);
     if (SyncService.isOnline) {
       try {
-        for (int i = 0; i < sekbids.length; i++) {
-          await _db.from('sekbid').upsert({
-            'id': 'sekbid_${i + 1}',
-            'name': sekbids[i],
-            'urutan': i + 1,
-            'updated_at': DateTime.now().toIso8601String(),
-          }, onConflict: 'id');
+        for (final item in items) {
+          await _db.from('sekbid').upsert(item.toJson(), onConflict: 'id');
         }
         await broadcastDataChange('sekbid');
       } catch (_) {}
@@ -574,7 +664,12 @@ class DataService {
     return result;
   }
 
+  static const _keyJenisInitialized = 'jenis_pelanggaran_initialized_v2';
+
   static Future<List<JenisPelanggaran>> getJenis() async {
+    final prefs = await SharedPreferences.getInstance();
+    final bool isInitialized = prefs.getBool(_keyJenisInitialized) ?? false;
+
     // 1. Jika offline, baca langsung dari cache lokal instan
     if (!SyncService.isOnline) {
       final cache = await _readCache(_keyJenis);
@@ -582,7 +677,13 @@ class DataService {
         final parsed = cache.map(JenisPelanggaran.fromJson).toList();
         return _deduplicateJenis(parsed);
       }
-      return _defaultJenis();
+      if (!isInitialized) {
+        final defaults = _defaultJenis();
+        await _saveCache(_keyJenis, defaults.map((e) => e.toJson()).toList());
+        await prefs.setBool(_keyJenisInitialized, true);
+        return defaults;
+      }
+      return [];
     }
 
     // 2. Jika online, ambil dari Supabase
@@ -592,14 +693,19 @@ class DataService {
           .select()
           .timeout(const Duration(seconds: 4));
       if (rows.isEmpty) {
-        final defaults = _defaultJenis();
-        for (final j in defaults) {
-          try {
-            await _db.from('jenis_pelanggaran').upsert(j.toJson());
-          } catch (_) {}
+        if (!isInitialized) {
+          final defaults = _defaultJenis();
+          for (final j in defaults) {
+            try {
+              await _db.from('jenis_pelanggaran').upsert(j.toJson());
+            } catch (_) {}
+          }
+          await _saveCache(_keyJenis, defaults.map((e) => e.toJson()).toList());
+          await prefs.setBool(_keyJenisInitialized, true);
+          return defaults;
         }
-        await _saveCache(_keyJenis, defaults.map((e) => e.toJson()).toList());
-        return defaults;
+        await _saveCache(_keyJenis, []);
+        return [];
       }
       final rawList = (rows as List)
           .map((e) =>
@@ -607,10 +713,20 @@ class DataService {
           .toList();
       final list = _deduplicateJenis(rawList);
       await _saveCache(_keyJenis, list.map((e) => e.toJson()).toList());
+      if (!isInitialized) {
+        await prefs.setBool(_keyJenisInitialized, true);
+      }
       return list;
     } catch (_) {
       final cache = await _readCache(_keyJenis);
-      if (cache.isEmpty) return _defaultJenis();
+      if (cache.isEmpty) {
+        if (!isInitialized) {
+          final defaults = _defaultJenis();
+          await prefs.setBool(_keyJenisInitialized, true);
+          return defaults;
+        }
+        return [];
+      }
       final parsed = cache.map(JenisPelanggaran.fromJson).toList();
       return _deduplicateJenis(parsed);
     }
@@ -1145,15 +1261,15 @@ class DataService {
           .timeout(const Duration(seconds: 4));
       final list = (rows as List)
           .map((e) => Arsip(
-                id: e['id'],
-                judul: e['judul'],
-                kategori: e['kategori'] ?? KategoriArsip.lainnya,
-                deskripsi: e['deskripsi'] ?? '',
-                nomorSurat: e['nomor_surat'] ?? '',
-                tanggal: DateTime.parse(e['tanggal']),
-                pembuatId: e['pembuat_id'] ?? '',
-                fileUrl: e['file_url'] ?? '',
-                keterangan: e['keterangan'] ?? '',
+                id: e['id']?.toString() ?? '',
+                judul: e['judul']?.toString() ?? '',
+                kategori: e['kategori']?.toString() ?? KategoriArsip.lainnya,
+                deskripsi: e['deskripsi']?.toString() ?? '',
+                nomorSurat: (e['nomor_surat'] ?? e['nomorSurat'] ?? '').toString(),
+                tanggal: e['tanggal'] != null ? (DateTime.tryParse(e['tanggal'].toString()) ?? DateTime.now()) : DateTime.now(),
+                pembuatId: (e['pembuat_id'] ?? e['pembuatId'] ?? '').toString(),
+                fileUrl: (e['file_url'] ?? e['fileUrl'] ?? '').toString(),
+                keterangan: (e['keterangan'] ?? '').toString(),
               ))
           .toList();
       final cacheData = list.map((a) => a.toJson()).toList();

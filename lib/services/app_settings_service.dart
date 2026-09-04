@@ -229,6 +229,7 @@ class AppSettingsService {
     ],
     'arsip': [
       AppCustomInputField(id: 'ars_nama', label: 'Nama Dokumen / Berkas', type: InputFieldType.text, placeholder: 'Judul berkas...', isRequired: true),
+      AppCustomInputField(id: 'ars_tgl', label: 'Tanggal Dokumen', type: InputFieldType.date, isRequired: false),
       AppCustomInputField(id: 'ars_folder', label: 'Folder Kategori', type: InputFieldType.dropdown, options: ['Surat Masuk', 'Surat Keluar', 'Proposal Kegiatan', 'LPJ Kegiatan', 'Dokumentasi', 'SK & Sertifikat']),
       AppCustomInputField(id: 'ars_file', label: 'File Dokumen', type: InputFieldType.file, isRequired: true),
       AppCustomInputField(id: 'ars_ket', label: 'Keterangan Berkas', type: InputFieldType.text, placeholder: 'Keterangan tambahan...'),

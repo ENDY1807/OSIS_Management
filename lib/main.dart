@@ -149,6 +149,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    NotificationService.cancelAllSystemNotifications();
     _refreshUser();
     _dataSub = DataService.onDataChanged.listen((table) {
       if (table == 'accounts' || table == 'all') {
@@ -240,6 +241,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      NotificationService.cancelAllSystemNotifications();
       DataService.notifyDataChanged('all');
       SyncService.checkAndSync();
     }

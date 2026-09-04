@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:uuid/uuid.dart';
+import '../models/models.dart';
 import '../services/app_settings_service.dart';
 import '../services/auth_service.dart';
 import '../services/localization_service.dart';
@@ -54,6 +55,8 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
   bool _isSyncing = false;
   StreamSubscription<String>? _dataSub;
   List<AppAccount> _accounts = [];
+  List<SekbidItem> _sekbidItems = [];
+  bool _loadingSekbid = false;
 
   @override
   void initState() {
@@ -62,6 +65,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
 
     _loadCurrentConfigs();
     _loadAccounts();
+    _loadSekbidItems();
 
     _dataSub = DataService.onDataChanged.listen((table) {
       if (table == 'accounts' || table == 'app_settings' || table == 'sekbid' || table == 'all') {
@@ -73,9 +77,27 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
             _hexColorCtrl.text = '#${currentColor.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
           }
           _loadAccounts();
+          _loadSekbidItems();
         }
       }
     });
+  }
+
+  Future<void> _loadSekbidItems() async {
+    if (!mounted) return;
+    setState(() => _loadingSekbid = true);
+    try {
+      final items = await DataService.getSekbidTable();
+      if (mounted) {
+        setState(() {
+          _sekbidItems = items;
+          _sekbidList = items.map((e) => e.id).toList();
+          _loadingSekbid = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingSekbid = false);
+    }
   }
 
   void _loadCurrentConfigs() {
@@ -1476,30 +1498,266 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
     );
   }
 
+  void _showAddOrEditSekbidDialog({SekbidItem? existing}) {
+    final idCtrl = TextEditingController(text: existing?.id ?? '');
+    final nameCtrl = TextEditingController(text: existing?.name ?? '');
+    final deskCtrl = TextEditingController(text: existing?.deskripsi ?? '');
+    final urutanCtrl = TextEditingController(text: (existing?.urutan ?? (_sekbidItems.length + 1)).toString());
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(existing == null ? Icons.add_circle_outline_rounded : Icons.edit_note_rounded, color: _selectedAccent),
+            const SizedBox(width: 8),
+            Text(existing == null ? 'Tambah Sekbid Baru' : 'Edit Sekbid ${existing.id}'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (existing == null)
+                TextField(
+                  controller: idCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'ID / Kode Sekbid (contoh: SEKBID11)',
+                    prefixIcon: Icon(Icons.key_rounded),
+                  ),
+                )
+              else
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.key_rounded, color: Colors.grey),
+                  title: const Text('ID Sekbid', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  subtitle: Text(existing.id, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Nama Sekbid / Divisi (contoh: SEKBID 11)',
+                  prefixIcon: Icon(Icons.badge_outlined),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: deskCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Deskripsi / Bidang Tugas',
+                  hintText: 'Contoh: Hubungan Masyarakat & Publikasi',
+                  prefixIcon: Icon(Icons.description_outlined),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: urutanCtrl,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Nomor Urutan',
+                  prefixIcon: Icon(Icons.format_list_numbered_rounded),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(LocalizationService.tr('btn_cancel')),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final id = existing?.id ?? idCtrl.text.trim().toUpperCase();
+              final name = nameCtrl.text.trim();
+              final desk = deskCtrl.text.trim();
+              final urutan = int.tryParse(urutanCtrl.text.trim()) ?? (_sekbidItems.length + 1);
+
+              if (id.isEmpty || name.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('ID dan Nama Sekbid tidak boleh kosong'), backgroundColor: Colors.orange),
+                );
+                return;
+              }
+
+              final item = SekbidItem(
+                id: id,
+                name: name,
+                deskripsi: desk,
+                urutan: urutan,
+              );
+
+              Navigator.pop(ctx);
+              await DataService.saveSekbidItem(item);
+              await _loadSekbidItems();
+
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Sekbid "$name" berhasil disimpan!'), backgroundColor: Colors.green),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: _selectedAccent, foregroundColor: Colors.white),
+            child: Text(LocalizationService.tr('btn_save')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteSekbidDialog(SekbidItem item) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Hapus Sekbid?'),
+          ],
+        ),
+        content: Text('Apakah Anda yakin ingin menghapus Sekbid "${item.name}" (${item.id})?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(LocalizationService.tr('btn_cancel')),
+          ),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.delete_outline_rounded, size: 16),
+            label: Text(LocalizationService.tr('btn_delete')),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await DataService.deleteSekbidItem(item.id);
+              await _loadSekbidItems();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Sekbid "${item.name}" berhasil dihapus'), backgroundColor: Colors.red),
+                );
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildProkerLaporanTab(ThemeData theme, bool isDark, Color primary) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // ── TABEL SEKBID / DIVISI OSIS ─────────────────────────────────────
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _sectionHeader(title: 'Daftar Divisi / Sekbid (${_sekbidList.length})', icon: Icons.groups_rounded, color: _selectedAccent),
-              IconButton(
-                icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.green),
-                onPressed: () => _showAddChipDialog('Sekbid / Unit Baru', (val) => setState(() => _sekbidList.add(val))),
+              _sectionHeader(title: 'Tabel Sekbid / Divisi OSIS (${_sekbidItems.length})', icon: Icons.table_chart_rounded, color: _selectedAccent),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.add_rounded, size: 16),
+                label: const Text('Tambah Sekbid', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _selectedAccent,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () => _showAddOrEditSekbidDialog(),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8, runSpacing: 8,
-            children: _sekbidList.map((s) => Chip(
-              label: Text(s, style: const TextStyle(fontSize: 12)),
-              onDeleted: () => setState(() => _sekbidList.remove(s)),
-              deleteIconColor: Colors.redAccent,
-            )).toList(),
+          const SizedBox(height: 10),
+
+          // Container Tabel Sekbid
+          Container(
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF141D2E) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(isDark ? 30 : 10),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: _loadingSekbid
+                ? const Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                : _sekbidItems.isEmpty
+                    ? const Padding(
+                        padding: EdgeInsets.all(24),
+                        child: Center(child: Text('Belum ada data di tabel sekbid.')),
+                      )
+                    : ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: DataTable(
+                            headingRowColor: WidgetStateProperty.all(
+                              isDark ? const Color(0xFF1A2639) : const Color(0xFFF1F5F9),
+                            ),
+                            columnSpacing: 20,
+                            horizontalMargin: 16,
+                            columns: const [
+                              DataColumn(label: Text('No', style: TextStyle(fontWeight: FontWeight.bold))),
+                              DataColumn(label: Text('ID Sekbid', style: TextStyle(fontWeight: FontWeight.bold))),
+                              DataColumn(label: Text('Nama Sekbid', style: TextStyle(fontWeight: FontWeight.bold))),
+                              DataColumn(label: Text('Bidang / Deskripsi', style: TextStyle(fontWeight: FontWeight.bold))),
+                              DataColumn(label: Text('Aksi', style: TextStyle(fontWeight: FontWeight.bold))),
+                            ],
+                            rows: _sekbidItems.map((s) {
+                              return DataRow(
+                                cells: [
+                                  DataCell(
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: _selectedAccent.withAlpha(isDark ? 40 : 25),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text('${s.urutan}', style: TextStyle(fontWeight: FontWeight.bold, color: _selectedAccent)),
+                                    ),
+                                  ),
+                                  DataCell(
+                                    Text(s.id, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  ),
+                                  DataCell(
+                                    Text(s.name),
+                                  ),
+                                  DataCell(
+                                    Text(
+                                      s.deskripsi.isNotEmpty ? s.deskripsi : AuthService.getDisplayName(s.id),
+                                      style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
+                                    ),
+                                  ),
+                                  DataCell(
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        IconButton(
+                                          icon: const Icon(Icons.edit_outlined, size: 18, color: Colors.blueAccent),
+                                          tooltip: 'Edit Sekbid',
+                                          onPressed: () => _showAddOrEditSekbidDialog(existing: s),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.redAccent),
+                                          tooltip: 'Hapus Sekbid',
+                                          onPressed: () => _showDeleteSekbidDialog(s),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ),
           ),
           const SizedBox(height: 24),
           Row(

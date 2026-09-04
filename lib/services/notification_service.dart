@@ -101,6 +101,9 @@ class NotificationService {
           await androidPlugin.createNotificationChannel(_channel);
           await androidPlugin.requestNotificationsPermission();
         }
+
+        // Bersihkan seluruh notifikasi aktif di system tray & reset badge perangkat saat aplikasi dibuka
+        await cancelAllSystemNotifications();
       }
 
       _initialized = true;
@@ -108,6 +111,19 @@ class NotificationService {
       await refreshUnreadCount();
     } catch (e) {
       debugPrint('NotificationService init error: $e');
+    }
+  }
+
+  /// Membersihkan seluruh notifikasi aktif di system tray dan mereset status badge aplikasi
+  static Future<void> cancelAllSystemNotifications() async {
+    try {
+      if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.android ||
+                      defaultTargetPlatform == TargetPlatform.iOS ||
+                      defaultTargetPlatform == TargetPlatform.macOS)) {
+        await _localNotifs.cancelAll();
+      }
+    } catch (e) {
+      debugPrint('Error canceling all system notifications: $e');
     }
   }
 

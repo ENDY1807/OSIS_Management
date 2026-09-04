@@ -24,10 +24,13 @@ CREATE TABLE IF NOT EXISTS public.accounts (
 CREATE TABLE IF NOT EXISTS public.sekbid (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
+    deskripsi TEXT DEFAULT '',
     urutan INTEGER DEFAULT 1,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE public.sekbid ADD COLUMN IF NOT EXISTS deskripsi TEXT DEFAULT '';
+ALTER TABLE public.sekbid ADD COLUMN IF NOT EXISTS urutan INTEGER DEFAULT 1;
 
 -- 3. Buat Tabel 'app_settings' (Konfigurasi Global, Form Builder & Realtime Sync)
 CREATE TABLE IF NOT EXISTS public.app_settings (
@@ -338,4 +341,23 @@ ON CONFLICT (username) DO UPDATE SET
     role = EXCLUDED.role,
     display_name = EXCLUDED.display_name,
     updated_at = now();
+
+-- 10. Masukkan / Seed Data Sekbid Bawaan
+INSERT INTO public.sekbid (id, name, deskripsi, urutan) VALUES
+('SEKBID1', 'SEKBID 1', 'Keimanan & Ketakwaan', 1),
+('SEKBID2', 'SEKBID 2', 'Budi Pekerti & Karakter', 2),
+('SEKBID3', 'SEKBID 3', 'Bela Negara & Kepemimpinan', 3),
+('SEKBID4', 'SEKBID 4', 'Prestasi Akademik & IPTEK', 4),
+('SEKBID5', 'SEKBID 5', 'Demokrasi & Pendidikan Politik', 5),
+('SEKBID6', 'SEKBID 6', 'Keterampilan & Kewirausahaan', 6),
+('SEKBID7', 'SEKBID 7', 'Kebugaran Jasmani & Olahraga', 7),
+('SEKBID8', 'SEKBID 8', 'Sastra & Seni Budaya', 8),
+('SEKBID9', 'SEKBID 9', 'Teknologi Informasi & Multimedia', 9),
+('SEKBID10', 'SEKBID 10', 'Komunikasi Bahasa & Hubungan Masyarakat', 10)
+ON CONFLICT (id) DO UPDATE SET
+    name = EXCLUDED.name,
+    deskripsi = EXCLUDED.deskripsi,
+    urutan = EXCLUDED.urutan,
+    updated_at = now();
+
 
