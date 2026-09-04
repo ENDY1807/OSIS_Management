@@ -13,7 +13,18 @@ import '../widgets/dynamic_form_field_builder.dart';
 
 List<JenisPelanggaran> _jenisUntukHari(List<JenisPelanggaran> jenis, int weekday) {
   // Jika hariAktif kosong, berlaku untuk semua hari
-  return jenis.where((j) => j.hariAktif.isEmpty || j.hariAktif.contains(weekday)).toList();
+  final filtered = jenis.where((j) => j.hariAktif.isEmpty || j.hariAktif.contains(weekday)).toList();
+  // Deduplikasi berdasarkan nama agar jenis pelanggaran tidak me-looping / berulang
+  final seenNames = <String>{};
+  final result = <JenisPelanggaran>[];
+  for (final j in filtered) {
+    final key = j.nama.trim().toLowerCase();
+    if (key.isNotEmpty && !seenNames.contains(key)) {
+      seenNames.add(key);
+      result.add(j);
+    }
+  }
+  return result;
 }
 
 class PelanggaranScreen extends StatefulWidget {
@@ -41,15 +52,18 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
       _selectedDate == _today();
 
   static const _superUsers = ['KETUA', 'WAKIL', 'SEKRETARIS', 'BENDAHARA'];
+  bool get _isReadOnly => AuthService.isReadOnly(widget.username);
   bool get _isAdmin =>
-      widget.username == 'ADMIN' || AuthService.getRole(widget.username) == 'ADMIN';
+      !_isReadOnly && (widget.username == 'ADMIN' || AuthService.getRole(widget.username) == 'ADMIN');
   bool get _canEdit =>
-      _isAdmin ||
+      !_isReadOnly &&
+      (_isAdmin ||
       _superUsers.contains(widget.username) ||
       widget.username == 'PEMBINA' ||
       widget.username == 'KESISWAAN' ||
       AuthService.getRole(widget.username) == 'PEMBINA' ||
-      AuthService.getRole(widget.username) == 'KESISWAAN';
+      AuthService.getRole(widget.username) == 'KESISWAAN');
+
 
   final _filterCtrl = TextEditingController();
   final _filterFocus = FocusNode();
@@ -848,13 +862,16 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
         ],
       ),
     ),
-    floatingActionButton: FloatingActionButton.extended(
-      onPressed: _showCeklis,
-      backgroundColor: primary,
-      foregroundColor: isDark ? Colors.black : Colors.white,
-      icon: const Icon(Icons.add),
-      label: Text(LocalizationService.tr('pelanggaran_add'), style: const TextStyle(fontWeight: FontWeight.bold)),
-    ),
+    floatingActionButton: !_canEdit
+        ? null
+        : FloatingActionButton.extended(
+            onPressed: _showCeklis,
+            backgroundColor: primary,
+            foregroundColor: isDark ? Colors.black : Colors.white,
+            icon: const Icon(Icons.add),
+            label: Text(LocalizationService.tr('pelanggaran_add'), style: const TextStyle(fontWeight: FontWeight.bold)),
+          ),
   );
 }
 }
+

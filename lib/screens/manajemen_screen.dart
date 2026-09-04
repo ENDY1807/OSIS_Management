@@ -26,16 +26,18 @@ class _ManajemenScreenState extends State<ManajemenScreen> with SingleTickerProv
   StreamSubscription<String>? _dataSub;
 
   static const _superUsers = ['KETUA', 'WAKIL', 'SEKRETARIS', 'BENDAHARA'];
-  bool get _isAdmin     => _username == 'ADMIN' || AuthService.getRole(_username) == 'ADMIN';
-  bool get _isPembina   => _isAdmin || _username == 'PEMBINA' || _username == 'KESISWAAN' || AuthService.getRole(_username) == 'PEMBINA' || AuthService.getRole(_username) == 'KESISWAAN';
-  bool get _isSuperUser => _isAdmin || _isPembina || _superUsers.contains(_username) || _superUsers.contains(AuthService.getRole(_username));
-  bool get _isSekbid2   => _username == 'SEKBID2' || AuthService.getRole(_username) == 'SEKBID2';
-  bool get _canSeeJenis => _isSuperUser || _isSekbid2;
-  bool get _canEditJenis => _isSuperUser || _isSekbid2;
-  bool get _canSeeSiswa => _isSuperUser;
-  bool get _canEditSiswa => _isSuperUser;
+  bool get _isReadOnly  => AuthService.isReadOnly(_username);
+  bool get _isAdmin     => !_isReadOnly && (_username == 'ADMIN' || AuthService.getRole(_username) == 'ADMIN');
+  bool get _isPembina   => !_isReadOnly && (_isAdmin || _username == 'PEMBINA' || _username == 'KESISWAAN' || AuthService.getRole(_username) == 'PEMBINA' || AuthService.getRole(_username) == 'KESISWAAN');
+  bool get _isSuperUser => !_isReadOnly && (_isAdmin || _isPembina || _superUsers.contains(_username) || _superUsers.contains(AuthService.getRole(_username)));
+  bool get _isSekbid2   => !_isReadOnly && (_username == 'SEKBID2' || AuthService.getRole(_username) == 'SEKBID2');
+  bool get _canSeeJenis => !_isReadOnly && (_isSuperUser || _isSekbid2);
+  bool get _canEditJenis => !_isReadOnly && (_isSuperUser || _isSekbid2);
+  bool get _canSeeSiswa => !_isReadOnly && _isSuperUser;
+  bool get _canEditSiswa => !_isReadOnly && _isSuperUser;
   // Semua role yang bisa akses manajemen bisa lihat Status Cloud
-  bool get _canSeeCloud => _isSuperUser || _isSekbid2;
+  bool get _canSeeCloud => !_isReadOnly && (_isSuperUser || _isSekbid2);
+
   int get _tabCount =>
       (_canSeeSiswa ? 1 : 0) +
       (_canSeeJenis ? 1 : 0) +

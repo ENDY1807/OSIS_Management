@@ -60,7 +60,7 @@ class ArsipScreenState extends State<ArsipScreen> {
   List<Arsip> _clipboardFiles = [];
   List<String> _clipboardFolders = [];
 
-  bool get _canEdit => true;
+  bool get _canEdit => !AuthService.isReadOnly(widget.username);
 
   @override
   void initState() {

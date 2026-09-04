@@ -63,6 +63,8 @@ class AuthService {
     'SEKBID8'    : 'SastraBudaya',
     'SEKBID9'    : 'TeknologiInformasi',
     'SEKBID10'   : 'KomunikasiBahasa',
+    'USER'       : 'SMK-Baknus666',
+    'VIEWER'     : 'SMK-Baknus666',
   };
 
   static const Map<String, String> defaultDisplayNames = {
@@ -81,8 +83,33 @@ class AuthService {
     'SEKBID6'    : 'Sekbid 6 (Kewirausahaan)',
     'SEKBID7'    : 'Sekbid 7 (Kebugaran Jasmani)',
     'SEKBID8'    : 'Sekbid 8 (Sastra & Budaya)',
-    'SEKBID9'    : 'Sekbid 9 (Teknologi Informasi)',
+    'SEKBID9'    : 'Teknologi Informasi',
     'SEKBID10'   : 'Sekbid 10 (Komunikasi & Bahasa)',
+    'USER'       : 'Viewer',
+    'VIEWER'     : 'Viewer',
+  };
+
+
+  static const Map<String, String> defaultRoles = {
+    'ADMIN'      : 'ADMIN',
+    'PEMBINA'    : 'PEMBINA',
+    'KESISWAAN'  : 'KESISWAAN',
+    'KETUA'      : 'KETUA',
+    'WAKIL'      : 'WAKIL',
+    'SEKRETARIS' : 'SEKRETARIS',
+    'BENDAHARA'  : 'BENDAHARA',
+    'SEKBID1'    : 'SEKBID',
+    'SEKBID2'    : 'SEKBID',
+    'SEKBID3'    : 'SEKBID',
+    'SEKBID4'    : 'SEKBID',
+    'SEKBID5'    : 'SEKBID',
+    'SEKBID6'    : 'SEKBID',
+    'SEKBID7'    : 'SEKBID',
+    'SEKBID8'    : 'SEKBID',
+    'SEKBID9'    : 'SEKBID',
+    'SEKBID10'   : 'SEKBID',
+    'USER'       : 'VIEWER',
+    'VIEWER'     : 'VIEWER',
   };
 
   static Map<String, AppAccount>? _accountDetails;
@@ -119,7 +146,7 @@ class AuthService {
         _accountDetails![e.key] = AppAccount(
           username: e.key,
           password: e.value,
-          role: e.key,
+          role: defaultRoles[e.key] ?? (e.key.startsWith('SEKBID') ? 'SEKBID' : e.key),
           displayName: defaultDisplayNames[e.key] ?? e.key,
         );
       }
@@ -134,7 +161,7 @@ class AuthService {
       if (parts.isNotEmpty) {
         final u = parts[0].toUpperCase();
         final p = parts.length > 1 ? parts[1] : (_defaults[u] ?? '');
-        final r = parts.length > 2 ? parts[2] : u;
+        final r = parts.length > 2 ? parts[2] : (defaultRoles[u] ?? (u.startsWith('SEKBID') ? 'SEKBID' : u));
         final d = parts.length > 3 ? parts[3] : (defaultDisplayNames[u] ?? u);
 
         map[u] = p;
@@ -149,7 +176,7 @@ class AuthService {
         _accountDetails![e.key] = AppAccount(
           username: e.key,
           password: e.value,
-          role: e.key,
+          role: defaultRoles[e.key] ?? (e.key.startsWith('SEKBID') ? 'SEKBID' : e.key),
           displayName: defaultDisplayNames[e.key] ?? e.key,
         );
         map[e.key] = e.value;
@@ -184,7 +211,7 @@ class AuthService {
         final seedData = _defaults.entries.map((e) => {
           'username': e.key,
           'password': e.value,
-          'role': e.key,
+          'role': defaultRoles[e.key] ?? (e.key.startsWith('SEKBID') ? 'SEKBID' : e.key),
           'display_name': defaultDisplayNames[e.key] ?? e.key,
         }).toList();
 
@@ -197,7 +224,7 @@ class AuthService {
       for (final r in rows) {
         final u = (r['username']?.toString() ?? '').trim().toUpperCase();
         final p = r['password']?.toString() ?? '';
-        final role = r['role']?.toString() ?? u;
+        final role = r['role']?.toString() ?? (defaultRoles[u] ?? (u.startsWith('SEKBID') ? 'SEKBID' : u));
         final dName = (r['display_name']?.toString() ?? '').trim().isNotEmpty
             ? r['display_name'].toString().trim()
             : (defaultDisplayNames[u] ?? u);
@@ -213,7 +240,7 @@ class AuthService {
           remoteAccounts[e.key] = AppAccount(
             username: e.key,
             password: e.value,
-            role: e.key,
+            role: defaultRoles[e.key] ?? (e.key.startsWith('SEKBID') ? 'SEKBID' : e.key),
             displayName: defaultDisplayNames[e.key] ?? e.key,
           );
         }
@@ -283,12 +310,50 @@ class AuthService {
     if (u == 'WAKIL') return 'Wakil Ketua OSIS';
     if (u == 'SEKRETARIS') return 'Sekretaris OSIS';
     if (u == 'BENDAHARA') return 'Bendahara OSIS';
+    if (u == 'USER' || u == 'VIEWER') return 'User (Hanya Melihat)';
     return username;
   }
 
   static String getRole(String username) {
     final u = normalizeUsername(username);
-    return _accountDetails?[u]?.role ?? (u.startsWith('SEKBID') ? 'SEKBID' : u);
+    final saved = _accountDetails?[u]?.role;
+    if (saved != null && saved.isNotEmpty) return saved.toUpperCase();
+    if (defaultRoles.containsKey(u)) return defaultRoles[u]!;
+    return (u.startsWith('SEKBID') ? 'SEKBID' : u);
+  }
+
+  /// Cek apakah pengguna hanya memiliki hak akses LIHAT SAJA (Read-Only)
+  static bool isReadOnly(String username) {
+    if (username.isEmpty) return false;
+    final u = normalizeUsername(username);
+    final r = getRole(u).toUpperCase();
+    return r == 'VIEWER' || r == 'USER' || r == 'LIHAT_SAJA' || r == 'GUEST' || u == 'USER' || u == 'VIEWER';
+  }
+
+  /// Cek apakah pengguna adalah Super Admin
+  static bool isAdmin(String username) {
+    if (username.isEmpty) return false;
+    final u = normalizeUsername(username);
+    final r = getRole(u).toUpperCase();
+    return u == 'ADMIN' || r == 'ADMIN';
+  }
+
+  /// Cek apakah pengguna adalah Pembina / Kesiswaan
+  static bool isPembinaOrKesiswaan(String username) {
+    if (username.isEmpty) return false;
+    final u = normalizeUsername(username);
+    final r = getRole(u).toUpperCase();
+    return isAdmin(u) || u == 'PEMBINA' || u == 'KESISWAAN' || r == 'PEMBINA' || r == 'KESISWAAN';
+  }
+
+  /// Cek apakah pengguna adalah BPH / SuperStaff (Admin, Pembina, Kesiswaan, Ketua, Wakil, Sekre, Bendahara)
+  static bool isSuperStaff(String username) {
+    if (username.isEmpty) return false;
+    if (isReadOnly(username)) return false;
+    final u = normalizeUsername(username);
+    final r = getRole(u).toUpperCase();
+    const superRoles = {'ADMIN', 'PEMBINA', 'KESISWAAN', 'KETUA', 'WAKIL', 'SEKRETARIS', 'BENDAHARA'};
+    return isPembinaOrKesiswaan(u) || superRoles.contains(u) || superRoles.contains(r);
   }
 
   /// Autentikasi user dengan pengecekan online Supabase + fallback offline cache.

@@ -39,12 +39,17 @@ class NotificationService {
 
   static bool isTargetRole(String? role) {
     if (role == null || role.trim().isEmpty) return false;
-    return targetStakeholders.contains(role.trim().toUpperCase());
+    final r = role.trim().toUpperCase();
+    if (r == 'VIEWER' || r == 'USER' || r == 'LIHAT_SAJA' || r == 'GUEST') return false;
+    return targetStakeholders.contains(r);
   }
 
   static final FlutterLocalNotificationsPlugin _localNotifs = FlutterLocalNotificationsPlugin();
   static bool _initialized = false;
   static RealtimeChannel? _realtimeChannel;
+
+  /// Reactive Notifier untuk jumlah notifikasi belum dibaca (Unread Count)
+  static final ValueNotifier<int> unreadCountNotifier = ValueNotifier<int>(0);
 
   // Anti-Spam Buffer & Throttling
   static final List<_BufferedRealtimeEvent> _eventBuffer = [];
@@ -62,7 +67,10 @@ class NotificationService {
   );
 
   static Future<void> init() async {
-    if (_initialized) return;
+    if (_initialized) {
+      await refreshUnreadCount();
+      return;
+    }
     try {
       if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.android ||
                       defaultTargetPlatform == TargetPlatform.iOS ||
@@ -97,9 +105,21 @@ class NotificationService {
 
       _initialized = true;
       _subscribeRealtime();
+      await refreshUnreadCount();
     } catch (e) {
       debugPrint('NotificationService init error: $e');
     }
+  }
+
+  static Future<void> refreshUnreadCount({String? forUser}) async {
+    try {
+      String? u = forUser;
+      if (u == null || u.isEmpty) {
+        u = await AuthService.getUserName();
+      }
+      final count = await getUnreadCount(forUser: u);
+      unreadCountNotifier.value = count;
+    } catch (_) {}
   }
 
   static void _subscribeRealtime() {
@@ -563,6 +583,7 @@ class NotificationService {
         final trimmed = list.take(100).toList();
         final jsonString = jsonEncode(trimmed.map((e) => e.toJson()).toList());
         await prefs.setString(_keyNotifications, jsonString);
+        await refreshUnreadCount(forUser: currentUser);
 
         // 3. Local Pop-up Banner: Munculkan hanya jika currentUser BUKAN pembuat perubahan itu sendiri
         if (currentUser.isNotEmpty && currentUser != actorUpper) {
@@ -615,7 +636,7 @@ class NotificationService {
     return list.where((n) => !n.isRead).length;
   }
 
-  static Future<void> markAsRead(String id) async {
+  static Future<void> markAsRead(String id, {String? forUser}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final all = await getNotifications();
@@ -634,6 +655,7 @@ class NotificationService {
         );
         final jsonString = jsonEncode(all.map((e) => e.toJson()).toList());
         await prefs.setString(_keyNotifications, jsonString);
+        await refreshUnreadCount(forUser: forUser);
       }
     } catch (e) {
       debugPrint('Error marking notification as read: $e');
@@ -658,18 +680,20 @@ class NotificationService {
       }).toList();
       final jsonString = jsonEncode(updated.map((e) => e.toJson()).toList());
       await prefs.setString(_keyNotifications, jsonString);
+      await refreshUnreadCount(forUser: forUser);
     } catch (e) {
       debugPrint('Error marking all notifications as read: $e');
     }
   }
 
-  static Future<void> deleteNotification(String id) async {
+  static Future<void> deleteNotification(String id, {String? forUser}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final all = await getNotifications();
       all.removeWhere((n) => n.id == id);
       final jsonString = jsonEncode(all.map((e) => e.toJson()).toList());
       await prefs.setString(_keyNotifications, jsonString);
+      await refreshUnreadCount(forUser: forUser);
     } catch (e) {
       debugPrint('Error deleting notification: $e');
     }
@@ -679,8 +703,10 @@ class NotificationService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_keyNotifications);
+      unreadCountNotifier.value = 0;
     } catch (e) {
       debugPrint('Error clearing notifications: $e');
     }
   }
 }
+

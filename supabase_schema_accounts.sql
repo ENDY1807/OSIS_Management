@@ -331,9 +331,11 @@ INSERT INTO public.accounts (username, password, role, display_name) VALUES
 ('SEKBID7', 'KebugaranJasmani', 'SEKBID', 'Sekbid 7 (Kebugaran Jasmani)'),
 ('SEKBID8', 'SastraBudaya', 'SEKBID', 'Sekbid 8 (Sastra & Budaya)'),
 ('SEKBID9', 'TeknologiInformasi', 'SEKBID', 'Sekbid 9 (Teknologi Informasi)'),
-('SEKBID10', 'KomunikasiBahasa', 'SEKBID', 'Sekbid 10 (Komunikasi & Bahasa)')
+('SEKBID10', 'KomunikasiBahasa', 'SEKBID', 'Sekbid 10 (Komunikasi & Bahasa)'),
+('VIEWER', 'SMK-Baknus666', 'VIEWER', 'Viewer')
 ON CONFLICT (username) DO UPDATE SET
     password = EXCLUDED.password,
     role = EXCLUDED.role,
     display_name = EXCLUDED.display_name,
     updated_at = now();
+

@@ -54,6 +54,10 @@ class _NotificationCenterSheetState extends State<NotificationCenterSheet> {
         _isLoading = false;
       });
     }
+    // Otomatis bersihkan badge lonceng di Control Panel saat pengguna membuka pusat notifikasi
+    if (list.any((n) => !n.isRead)) {
+      await NotificationService.markAllAsRead(forUser: widget.username);
+    }
   }
 
   List<AppNotification> get _filteredList {
@@ -501,7 +505,7 @@ class _NotificationCenterSheetState extends State<NotificationCenterSheet> {
         ),
       ),
       onDismissed: (_) async {
-        await NotificationService.deleteNotification(notification.id);
+        await NotificationService.deleteNotification(notification.id, forUser: widget.username);
         setState(() {
           _notifications.removeWhere((item) => item.id == notification.id);
         });
@@ -533,7 +537,7 @@ class _NotificationCenterSheetState extends State<NotificationCenterSheet> {
             borderRadius: BorderRadius.circular(14),
             onTap: () async {
               if (!notification.isRead) {
-                await NotificationService.markAsRead(notification.id);
+                await NotificationService.markAsRead(notification.id, forUser: widget.username);
                 setState(() {
                   final idx = _notifications.indexWhere((item) => item.id == notification.id);
                   if (idx != -1) {

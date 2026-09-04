@@ -123,12 +123,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   static const _superUsers = ['KETUA', 'WAKIL', 'SEKRETARIS', 'BENDAHARA'];
 
-  bool get _isAdmin     => _username == 'ADMIN' || AuthService.getRole(_username) == 'ADMIN';
-  bool get _isPembina   => _isAdmin || _username == 'PEMBINA' || _username == 'KESISWAAN' || AuthService.getRole(_username) == 'PEMBINA' || AuthService.getRole(_username) == 'KESISWAAN';
-  bool get _isSuperUser => _isAdmin || _isPembina || _superUsers.contains(_username) || _superUsers.contains(AuthService.getRole(_username));
-  bool get _isSekbid2   => _username == 'SEKBID2' || AuthService.getRole(_username) == 'SEKBID2';
-  bool get _canAccessManajemen => _isSuperUser || _isSekbid2;
-  bool get _canReceiveNotifications => NotificationService.isTargetRole(_username) || _isAdmin;
+  bool get _isReadOnly  => AuthService.isReadOnly(_username);
+  bool get _isAdmin     => !_isReadOnly && (_username == 'ADMIN' || AuthService.getRole(_username) == 'ADMIN');
+  bool get _isPembina   => !_isReadOnly && (_isAdmin || _username == 'PEMBINA' || _username == 'KESISWAAN' || AuthService.getRole(_username) == 'PEMBINA' || AuthService.getRole(_username) == 'KESISWAAN');
+  bool get _isSuperUser => !_isReadOnly && (_isAdmin || _isPembina || _superUsers.contains(_username) || _superUsers.contains(AuthService.getRole(_username)));
+  bool get _isSekbid2   => !_isReadOnly && (_username == 'SEKBID2' || AuthService.getRole(_username) == 'SEKBID2');
+  bool get _canAccessManajemen => !_isReadOnly && (_isSuperUser || _isSekbid2);
+  bool get _canReceiveNotifications => !_isReadOnly && (NotificationService.isTargetRole(_username) || _isAdmin);
 
   String _displayName = '';
   StreamSubscription<String>? _dataSub;
@@ -152,6 +153,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Future<void> _refreshUser() async {
     final u = await AuthService.getUserName() ?? '';
     final d = await AuthService.getCurrentDisplayName();
+    await NotificationService.refreshUnreadCount(forUser: u);
     if (mounted) {
       setState(() {
         _username = u;
@@ -384,12 +386,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               },
             ),
 
-            // 2. Notification Bell
+            // 2. Notification Bell (Reaktif Real-time)
             if (_canReceiveNotifications)
-              FutureBuilder<int>(
-                future: NotificationService.getUnreadCount(forUser: _username),
-                builder: (context, snap) {
-                  final unread = snap.data ?? 0;
+              ValueListenableBuilder<int>(
+                valueListenable: NotificationService.unreadCountNotifier,
+                builder: (context, unread, _) {
                   return Stack(
                     alignment: Alignment.center,
                     children: [
@@ -424,6 +425,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   );
                 },
               ),
+
 
             // 3. Tombol Manajemen (Akses Super Admin ada di pojok kanan atas layar Manajemen)
             if (_canAccessManajemen)

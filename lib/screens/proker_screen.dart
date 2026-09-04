@@ -27,35 +27,25 @@ class _ProkerScreenState extends State<ProkerScreen>
   String _filterSekbid = 'Semua';
   bool _userLoaded = false;
 
-  bool get _isAdmin {
-    final u = _currentUser.toUpperCase();
-    return u == 'ADMIN' || AuthService.getRole(u).toUpperCase() == 'ADMIN';
-  }
+  bool get _isReadOnly => AuthService.isReadOnly(_currentUser);
 
   /// Kesiswaan, Pembina, Ketua, Wakil, Sekre, Bendahara, dan Admin
   /// memiliki akses penuh untuk edit, hapus, dan kelola proker semua sekbid.
   bool get _isSuperStaff {
-    final u = _currentUser.toUpperCase();
-    final role = AuthService.getRole(u).toUpperCase();
-    const superRoles = {
-      'ADMIN',
-      'PEMBINA',
-      'KESISWAAN',
-      'KETUA',
-      'WAKIL',
-      'SEKRETARIS',
-      'BENDAHARA',
-    };
-    return _isAdmin || superRoles.contains(u) || superRoles.contains(role);
+    if (_isReadOnly) return false;
+    return AuthService.isSuperStaff(_currentUser);
   }
 
+
   bool get _canCreateProker =>
-      _isSuperStaff || AuthService.prokerUnits.contains(_currentUser);
+      !_isReadOnly && (_isSuperStaff || AuthService.prokerUnits.contains(_currentUser));
 
   /// Cek hak akses edit/hapus untuk suatu proker:
   /// - SuperStaff (Admin, Pembina, Kesiswaan, Ketua, Wakil, Sekre, Bendahara) -> BEBAS edit proker sekbid mana saja.
   /// - User Sekbid (contoh: sekbid1) -> HANYA bisa edit & hapus proker sekbid miliknya sendiri.
+  /// - Viewer (Hanya Melihat) -> TIDAK BISA edit maupun hapus proker apapun.
   bool _canEditProker(Proker p) {
+    if (_isReadOnly) return false;
     if (_isSuperStaff) return true;
     final u = _currentUser.toUpperCase();
     final pSekbid = p.sekbid.toUpperCase();

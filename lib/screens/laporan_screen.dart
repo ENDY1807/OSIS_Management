@@ -28,14 +28,17 @@ class _LaporanScreenState extends State<LaporanScreen> {
   String _filterStatus = 'Semua';
   StreamSubscription<String>? _dataSub;
 
+  bool get _isReadOnly => AuthService.isReadOnly(widget.username);
+
   bool get _isAdmin =>
-      widget.username == 'ADMIN' || AuthService.getRole(widget.username) == 'ADMIN';
+      !_isReadOnly && (widget.username == 'ADMIN' || AuthService.getRole(widget.username) == 'ADMIN');
+
   bool get _isPembina =>
-      _isAdmin ||
+      !_isReadOnly && (_isAdmin ||
       widget.username == 'PEMBINA' ||
       widget.username == 'KESISWAAN' ||
       AuthService.getRole(widget.username) == 'PEMBINA' ||
-      AuthService.getRole(widget.username) == 'KESISWAAN';
+      AuthService.getRole(widget.username) == 'KESISWAAN');
 
   @override
   void initState() {
@@ -71,13 +74,11 @@ class _LaporanScreenState extends State<LaporanScreen> {
       : _laporan.where((l) => l.status == _filterStatus).toList();
 
   bool _isOwner(LaporanKegiatan l) =>
-      l.pembuatId == widget.username ||
-      widget.username == 'ADMIN' ||
-      widget.username == 'PEMBINA' ||
-      widget.username == 'KESISWAAN' ||
-      AuthService.getRole(widget.username) == 'ADMIN' ||
-      AuthService.getRole(widget.username) == 'PEMBINA' ||
-      AuthService.getRole(widget.username) == 'KESISWAAN';
+      !_isReadOnly &&
+      (l.pembuatId == widget.username ||
+      _isAdmin ||
+      _isPembina);
+
 
   void _showForm({LaporanKegiatan? existing}) async {
     final configuredFields = List<AppCustomInputField>.from(
@@ -620,12 +621,15 @@ class _LaporanScreenState extends State<LaporanScreen> {
                 ),
         ),
       ]),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showForm(),
-        backgroundColor: primary,
-        foregroundColor: isDark ? Colors.black : Colors.white,
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: _isReadOnly
+          ? null
+          : FloatingActionButton(
+              onPressed: () => _showForm(),
+              backgroundColor: primary,
+              foregroundColor: isDark ? Colors.black : Colors.white,
+              child: const Icon(Icons.add),
+            ),
+
     );
   }
 

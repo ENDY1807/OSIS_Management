@@ -555,12 +555,32 @@ class DataService {
   }
 
   // ── Jenis Pelanggaran ────────────────────────────────────────────────────
+  static List<JenisPelanggaran> _deduplicateJenis(List<JenisPelanggaran> list) {
+    final seenNames = <String>{};
+    final seenIds = <String>{};
+    final result = <JenisPelanggaran>[];
+
+    for (final j in list) {
+      final cleanName = j.nama.trim().toLowerCase();
+      final cleanId = j.id.trim();
+      if (cleanName.isEmpty) continue;
+      if (seenNames.contains(cleanName) || (cleanId.isNotEmpty && seenIds.contains(cleanId))) {
+        continue;
+      }
+      seenNames.add(cleanName);
+      if (cleanId.isNotEmpty) seenIds.add(cleanId);
+      result.add(j);
+    }
+    return result;
+  }
+
   static Future<List<JenisPelanggaran>> getJenis() async {
     // 1. Jika offline, baca langsung dari cache lokal instan
     if (!SyncService.isOnline) {
       final cache = await _readCache(_keyJenis);
       if (cache.isNotEmpty) {
-        return cache.map(JenisPelanggaran.fromJson).toList();
+        final parsed = cache.map(JenisPelanggaran.fromJson).toList();
+        return _deduplicateJenis(parsed);
       }
       return _defaultJenis();
     }
@@ -581,61 +601,91 @@ class DataService {
         await _saveCache(_keyJenis, defaults.map((e) => e.toJson()).toList());
         return defaults;
       }
-      final list = (rows as List)
+      final rawList = (rows as List)
           .map((e) =>
               JenisPelanggaran.fromJson(Map<String, dynamic>.from(e as Map)))
           .toList();
+      final list = _deduplicateJenis(rawList);
       await _saveCache(_keyJenis, list.map((e) => e.toJson()).toList());
       return list;
     } catch (_) {
       final cache = await _readCache(_keyJenis);
       if (cache.isEmpty) return _defaultJenis();
-      return cache.map(JenisPelanggaran.fromJson).toList();
+      final parsed = cache.map(JenisPelanggaran.fromJson).toList();
+      return _deduplicateJenis(parsed);
     }
   }
 
   static List<JenisPelanggaran> _defaultJenis() => [
         // Senin saja
         JenisPelanggaran(
-            id: _uuid.v4(), nama: 'Tidak pakai Dasi', hariAktif: [1]),
+            id: 'jp_dasi', nama: 'Tidak pakai Dasi', hariAktif: [1]),
         JenisPelanggaran(
-            id: _uuid.v4(), nama: 'Tidak pakai Rompi', hariAktif: [1]),
+            id: 'jp_rompi', nama: 'Tidak pakai Rompi', hariAktif: [1]),
         JenisPelanggaran(
-            id: _uuid.v4(), nama: 'Tidak pakai Pin BNCC', hariAktif: [1]),
+            id: 'jp_pin_bncc', nama: 'Tidak pakai Pin BNCC', hariAktif: [1]),
         // Selasa saja
         JenisPelanggaran(
-            id: _uuid.v4(), nama: 'Tidak pakai Kacu', hariAktif: [2]),
+            id: 'jp_kacu', nama: 'Tidak pakai Kacu', hariAktif: [2]),
         // Senin–Jumat
         JenisPelanggaran(
-            id: _uuid.v4(),
+            id: 'jp_sabuk',
             nama: 'Tidak pakai Sabuk',
             hariAktif: [1, 2, 3, 4, 5]),
         JenisPelanggaran(
-            id: _uuid.v4(),
+            id: 'jp_kaos_kaki',
             nama: 'Kaos kaki tidak sesuai',
             hariAktif: [1, 2, 3, 4, 5]),
         JenisPelanggaran(
-            id: _uuid.v4(),
+            id: 'jp_id_card',
             nama: 'Tidak pakai ID Card',
             hariAktif: [1, 2, 3, 4, 5]),
         JenisPelanggaran(
-            id: _uuid.v4(),
+            id: 'jp_sepatu_sesuai',
             nama: 'Sepatu tidak sesuai',
             hariAktif: [1, 2, 3, 4, 5]),
         JenisPelanggaran(
-            id: _uuid.v4(),
+            id: 'jp_tanpa_sepatu',
             nama: 'Tidak pakai Sepatu',
             hariAktif: [1, 2, 3, 4, 5]),
       ];
 
   static Future<void> saveJenis(List<JenisPelanggaran> list) async {
-    await _saveCache(_keyJenis, list.map((e) => e.toJson()).toList());
+    final clean = _deduplicateJenis(list);
+    await _saveCache(_keyJenis, clean.map((e) => e.toJson()).toList());
+  }
+
+  static Future<int> cleanupDuplicateJenis() async {
+    try {
+      final cache = await _readCache(_keyJenis);
+      final seen = <String, String>{};
+      final duplicateIds = <String>[];
+
+      for (final item in cache) {
+        final name = (item['nama']?.toString() ?? '').trim().toLowerCase();
+        final id = (item['id']?.toString() ?? '').trim();
+        if (name.isEmpty || id.isEmpty) continue;
+        if (seen.containsKey(name)) {
+          duplicateIds.add(id);
+        } else {
+          seen[name] = id;
+        }
+      }
+
+      for (final dupId in duplicateIds) {
+        await deleteJenis(dupId);
+      }
+      return duplicateIds.length;
+    } catch (e) {
+      debugPrint('cleanupDuplicateJenis error: $e');
+      return 0;
+    }
   }
 
   static Future<JenisPelanggaran> addJenis(String nama,
       {List<int> hariAktif = const []}) async {
     final j =
-        JenisPelanggaran(id: _uuid.v4(), nama: nama, hariAktif: hariAktif);
+        JenisPelanggaran(id: _uuid.v4(), nama: nama.trim(), hariAktif: hariAktif);
     final dbData = {'id': j.id, 'nama': j.nama, 'hari_aktif': j.hariAktif};
 
     // 1. Update cache lokal instan

@@ -209,7 +209,23 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
     String selectedRole = existing?.role ?? 'SEKBID';
     bool obscure = true;
 
-    final roles = ['ADMIN', 'PEMBINA', 'KESISWAAN', 'KETUA', 'WAKIL', 'SEKRETARIS', 'BENDAHARA', 'SEKBID', 'USER'];
+    final roles = ['ADMIN', 'PEMBINA', 'KESISWAAN', 'KETUA', 'WAKIL', 'SEKRETARIS', 'BENDAHARA', 'SEKBID', 'VIEWER', 'USER'];
+
+    String roleLabel(String r) {
+      switch (r) {
+        case 'ADMIN': return 'ADMIN • Super Admin (Akses Penuh)';
+        case 'PEMBINA': return 'PEMBINA • Pembina OSIS';
+        case 'KESISWAAN': return 'KESISWAAN • Staf Kesiswaan';
+        case 'KETUA': return 'KETUA • Ketua OSIS';
+        case 'WAKIL': return 'WAKIL • Wakil Ketua OSIS';
+        case 'SEKRETARIS': return 'SEKRETARIS • Sekretaris OSIS';
+        case 'BENDAHARA': return 'BENDAHARA • Bendahara OSIS';
+        case 'SEKBID': return 'SEKBID • Seksi Bidang OSIS';
+        case 'VIEWER':
+        case 'USER': return 'VIEWER • User (Hanya Melihat Saja)';
+        default: return r;
+      }
+    }
 
     showDialog(
       context: context,
@@ -225,7 +241,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
                     controller: userC,
                     textCapitalization: TextCapitalization.characters,
                     decoration: const InputDecoration(
-                      labelText: 'Username (Huruf Kapital, cth: SEKBID11)',
+                      labelText: 'Username (Huruf Kapital, cth: USER_TAMU)',
                       prefixIcon: Icon(Icons.person_outline_rounded),
                     ),
                   ),
@@ -257,12 +273,17 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
                     labelText: 'Hak Akses (Role)',
                     prefixIcon: Icon(Icons.admin_panel_settings_outlined),
                   ),
-                  items: roles.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
+                  isExpanded: true,
+                  items: roles.map((r) => DropdownMenuItem(
+                    value: r,
+                    child: Text(roleLabel(r), style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis),
+                  )).toList(),
                   onChanged: (v) => setD(() => selectedRole = v ?? 'SEKBID'),
                 ),
               ],
             ),
           ),
+
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: Text(LocalizationService.tr('btn_cancel'))),
             ElevatedButton(

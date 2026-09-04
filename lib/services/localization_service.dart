@@ -106,6 +106,9 @@ class LocalizationService {
       'role_wakil': 'Wakil Ketua OSIS',
       'role_sekretaris': 'Sekretaris OSIS',
       'role_bendahara': 'Bendahara OSIS',
+      'role_sekbid': 'Seksi Bidang OSIS',
+      'role_viewer': 'Viewer (Hanya Melihat)',
+      'role_user': 'User (Hanya Melihat)',
 
       // Status
       'status_draft': 'Belum Mulai',
@@ -310,6 +313,10 @@ class LocalizationService {
       'role_wakil': 'Council Vice President (Wakil)',
       'role_sekretaris': 'General Secretary',
       'role_bendahara': 'Treasurer (Bendahara)',
+      'role_sekbid': 'Section Coordinator',
+      'role_viewer': 'Viewer (Read-Only)',
+      'role_user': 'User (Read-Only)',
+
 
       // Status
       'status_draft': 'Not Started',
