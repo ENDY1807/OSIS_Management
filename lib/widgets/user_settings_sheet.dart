@@ -111,18 +111,22 @@ class _UserSettingsSheetState extends State<UserSettingsSheet> {
     final displayName = AuthService.getDisplayName(widget.username);
     final isAdmin = role == 'ADMIN' || widget.username == 'ADMIN';
 
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 16,
-        bottom: MediaQuery.of(context).padding.bottom + 20,
-      ),
-      child: ValueListenableBuilder<ThemeMode>(
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 640),
+        child: Container(
+          decoration: BoxDecoration(
+            color: theme.scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 16,
+            bottom: MediaQuery.of(context).padding.bottom + 20,
+          ),
+          child: ValueListenableBuilder<ThemeMode>(
         valueListenable: AppSettingsService.themeModeNotifier,
         builder: (context, currentThemeMode, _) {
           return ValueListenableBuilder<Locale>(
@@ -493,7 +497,9 @@ class _UserSettingsSheetState extends State<UserSettingsSheet> {
           );
         },
       ),
-    );
+    ),
+  ),
+);
   }
 
   Widget _themeOptionButton({

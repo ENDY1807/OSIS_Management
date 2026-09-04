@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'screens/pelanggaran_screen.dart';
@@ -79,6 +80,14 @@ class OsisApp extends StatelessWidget {
                       themeMode: currentThemeMode,
                       theme: buildAppTheme(isDark: false, primaryColor: accentColor),
                       darkTheme: buildAppTheme(isDark: true, primaryColor: accentColor),
+                      scrollBehavior: const MaterialScrollBehavior().copyWith(
+                        dragDevices: {
+                          PointerDeviceKind.mouse,
+                          PointerDeviceKind.touch,
+                          PointerDeviceKind.trackpad,
+                          PointerDeviceKind.stylus,
+                        },
+                      ),
                       localizationsDelegates: const [
                         GlobalMaterialLocalizations.delegate,
                         GlobalWidgetsLocalizations.delegate,
@@ -249,6 +258,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final primary = theme.colorScheme.primary;
+    final isDesktop = MediaQuery.of(context).size.width >= 800;
 
     final navItems = [
       (title: LocalizationService.tr('nav_proker'),      icon: Icons.assignment_outlined,    activeIcon: Icons.assignment_rounded),
@@ -257,6 +267,105 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       (title: LocalizationService.tr('nav_pelanggaran'), icon: Icons.warning_amber_rounded,  activeIcon: Icons.warning_rounded),
       (title: LocalizationService.tr('nav_rekap'),       icon: Icons.bar_chart_outlined,     activeIcon: Icons.bar_chart_rounded),
     ];
+
+    if (isDesktop) {
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          _handleBackPress();
+        },
+        child: Scaffold(
+          body: Row(
+            children: [
+              // Desktop Sidebar
+              _buildDesktopSidebar(context, theme, isDark, primary, navItems),
+
+              // Desktop Main Content
+              Expanded(
+                child: Column(
+                  children: [
+                    // Desktop Top Navigation Bar
+                    Container(
+                      height: 56,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF0F172A) : Colors.white,
+                        border: Border(
+                          bottom: BorderSide(
+                            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+                            width: 1,
+                          ),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            navItems[_idx].activeIcon,
+                            size: 22,
+                            color: primary,
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            navItems[_idx].title,
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            ),
+                          ),
+                          const Spacer(),
+                          // Quick Language Switcher
+                          InkWell(
+                            onTap: () {
+                              final cur = LocalizationService.currentLocale.value.languageCode;
+                              LocalizationService.setLanguage(cur == 'id' ? 'en' : 'id');
+                            },
+                            borderRadius: BorderRadius.circular(16),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Text(
+                                LocalizationService.currentLocale.value.languageCode == 'id' ? '🇮🇩 ID' : '🇬🇧 EN',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? Colors.white70 : const Color(0xFF334155),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Quick Theme Toggle
+                          IconButton(
+                            icon: Icon(
+                              isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                              size: 20,
+                              color: isDark ? Colors.amberAccent : const Color(0xFF64748B),
+                            ),
+                            tooltip: 'Ganti Tema',
+                            onPressed: () {
+                              final newMode = isDark ? ThemeMode.light : ThemeMode.dark;
+                              AppSettingsService.setThemeMode(newMode);
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: IndexedStack(index: _idx, children: _screens),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return PopScope(
       canPop: false,
@@ -478,6 +587,318 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             )).toList(),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildDesktopSidebar(
+    BuildContext context,
+    ThemeData theme,
+    bool isDark,
+    Color primary,
+    List<({String title, IconData icon, IconData activeIcon})> navItems,
+  ) {
+    return Container(
+      width: 250,
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF0F172A) : Colors.white,
+        border: Border(
+          right: BorderSide(
+            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+            width: 1,
+          ),
+        ),
+      ),
+      child: Column(
+        children: [
+          // App Header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                  width: 1,
+                ),
+              ),
+            ),
+            child: Row(
+              children: [
+                AppSettingsService.buildLogoWidget(width: 40, height: 40, fit: BoxFit.contain),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ValueListenableBuilder<String>(
+                        valueListenable: AppSettingsService.appNameNotifier,
+                        builder: (context, appName, _) => Text(
+                          appName,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            letterSpacing: 0.3,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      ValueListenableBuilder<String>(
+                        valueListenable: AppSettingsService.appSubtitleNotifier,
+                        builder: (context, sub, _) => Text(
+                          sub,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Navigation Destination Items
+          Expanded(
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              itemCount: navItems.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 4),
+              itemBuilder: (context, i) {
+                final item = navItems[i];
+                final isSelected = _idx == i;
+                return Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {
+                      _onTabSelected(i);
+                      DataService.notifyDataChanged('all');
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? primary.withAlpha(isDark ? 50 : 25)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                        border: isSelected
+                            ? Border.all(color: primary.withAlpha(isDark ? 140 : 80), width: 1)
+                            : Border.all(color: Colors.transparent, width: 1),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            isSelected ? item.activeIcon : item.icon,
+                            size: 21,
+                            color: isSelected
+                                ? primary
+                                : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              item.title,
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                color: isSelected
+                                    ? (isDark ? Colors.white : primary)
+                                    : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF334155)),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+
+          // Bottom Action Bar & User Profile
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF0B1120) : const Color(0xFFF8FAFC),
+              border: Border(
+                top: BorderSide(
+                  color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+                  width: 1,
+                ),
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Quick Actions Row (Sync status, Notifications, Management, Settings)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    // Sync Status
+                    ValueListenableBuilder<SyncStatus>(
+                      valueListenable: SyncService.statusNotifier,
+                      builder: (context, syncStatus, _) {
+                        return ValueListenableBuilder<int>(
+                          valueListenable: SyncService.pendingCountNotifier,
+                          builder: (context, pendingCount, _) {
+                            final isOnline = syncStatus == SyncStatus.online;
+                            final isSyncing = syncStatus == SyncStatus.syncing;
+                            final dotColor = isSyncing
+                                ? Colors.lightBlueAccent
+                                : (isOnline ? const Color(0xFF10B981) : const Color(0xFFF59E0B));
+                            final tooltipMsg = isSyncing
+                                ? 'Sedang menyinkronkan data...'
+                                : (isOnline
+                                    ? (pendingCount > 0 ? 'Online • $pendingCount antrean' : 'Online')
+                                    : (pendingCount > 0 ? 'Offline • $pendingCount data tersimpan' : 'Offline'));
+
+                            return Tooltip(
+                              message: tooltipMsg,
+                              child: IconButton(
+                                icon: Icon(
+                                  isSyncing
+                                      ? Icons.sync_rounded
+                                      : (isOnline ? Icons.cloud_done_rounded : Icons.cloud_off_rounded),
+                                  color: dotColor,
+                                  size: 20,
+                                ),
+                                onPressed: () => SyncStatusDialog.show(context),
+                                splashRadius: 18,
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+
+                    // Notifications
+                    if (_canReceiveNotifications)
+                      ValueListenableBuilder<int>(
+                        valueListenable: NotificationService.unreadCountNotifier,
+                        builder: (context, unread, _) {
+                          return Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              IconButton(
+                                icon: Icon(
+                                  unread > 0 ? Icons.notifications_active_rounded : Icons.notifications_outlined,
+                                  color: unread > 0 ? Colors.amberAccent : (isDark ? Colors.white70 : const Color(0xFF64748B)),
+                                  size: 20,
+                                ),
+                                tooltip: LocalizationService.tr('notifications'),
+                                onPressed: _showNotificationCenter,
+                                splashRadius: 18,
+                              ),
+                              if (unread > 0)
+                                Positioned(
+                                  top: 6,
+                                  right: 6,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(2.5),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.redAccent,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    constraints: const BoxConstraints(minWidth: 12, minHeight: 12),
+                                    child: Text(
+                                      unread > 9 ? '9+' : '$unread',
+                                      style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          );
+                        },
+                      ),
+
+                    // Manajemen
+                    if (_canAccessManajemen)
+                      IconButton(
+                        icon: Icon(Icons.tune_rounded, color: isDark ? Colors.white70 : const Color(0xFF64748B), size: 20),
+                        tooltip: LocalizationService.tr('nav_manajemen'),
+                        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ManajemenScreen())),
+                        splashRadius: 18,
+                      ),
+
+                    // Settings
+                    IconButton(
+                      icon: Icon(Icons.settings_outlined, color: isDark ? Colors.white70 : const Color(0xFF64748B), size: 20),
+                      tooltip: LocalizationService.tr('nav_settings'),
+                      onPressed: () => UserSettingsSheet.show(context, username: _username),
+                      splashRadius: 18,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+
+                // User Info Card
+                InkWell(
+                  onTap: () => UserSettingsSheet.show(context, username: _username),
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 15,
+                          backgroundColor: primary.withAlpha(isDark ? 60 : 35),
+                          child: Text(
+                            _username.isNotEmpty ? _username[0].toUpperCase() : 'U',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: primary),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _displayName.isNotEmpty ? _displayName : _username,
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                _roleDisplay,
+                                style: TextStyle(
+                                  fontSize: 10.5,
+                                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.chevron_right_rounded, size: 16, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -77,7 +77,257 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final primary = theme.colorScheme.primary;
-    final h = MediaQuery.of(context).size.height;
+    final size = MediaQuery.of(context).size;
+    final isDesktop = size.width >= 800;
+
+    if (isDesktop) {
+      return Scaffold(
+        body: Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: isDark
+                  ? [const Color(0xFF0B0F17), const Color(0xFF131A26)]
+                  : [primary.withAlpha(220), primary],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: FadeTransition(
+                opacity: _fade,
+                child: SlideTransition(
+                  position: _slide,
+                  child: Container(
+                    width: 860,
+                    constraints: const BoxConstraints(minHeight: 480),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF131A26) : Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: isDark ? const Color(0xFF263348) : Colors.black.withAlpha(15),
+                        width: 1,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withAlpha(isDark ? 100 : 40),
+                          blurRadius: 30,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Left Brand Panel
+                        Expanded(
+                          flex: 5,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: isDark
+                                    ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+                                    : [primary, primary.withAlpha(200)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                            ),
+                            padding: const EdgeInsets.all(36),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                AppSettingsService.buildLogoWidget(
+                                  width: 64,
+                                  height: 64,
+                                  fit: BoxFit.contain,
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                const SizedBox(height: 20),
+                                ValueListenableBuilder<String>(
+                                  valueListenable: AppSettingsService.appNameNotifier,
+                                  builder: (context, appName, _) => Text(
+                                    appName,
+                                    style: const TextStyle(
+                                      fontSize: 26,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                ValueListenableBuilder<String>(
+                                  valueListenable: AppSettingsService.appSubtitleNotifier,
+                                  builder: (context, sub, _) => Text(
+                                    sub,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.white.withAlpha(210),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 28),
+                                _buildDesktopFeaturePill(Icons.assignment_rounded, 'Program Kerja & Laporan Kegiatan'),
+                                const SizedBox(height: 10),
+                                _buildDesktopFeaturePill(Icons.folder_shared_rounded, 'Arsip Dokumen Digital Cloud'),
+                                const SizedBox(height: 10),
+                                _buildDesktopFeaturePill(Icons.warning_amber_rounded, 'Monitoring Pelanggaran & Presensi'),
+                                const SizedBox(height: 10),
+                                _buildDesktopFeaturePill(Icons.cloud_sync_rounded, 'Sinkronisasi Otomatis & Mode Offline'),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        // Right Form Panel
+                        Expanded(
+                          flex: 6,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 32),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                // Top mini controls
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    InkWell(
+                                      onTap: () {
+                                        final current = LocalizationService.currentLocale.value.languageCode;
+                                        LocalizationService.setLanguage(current == 'id' ? 'en' : 'id');
+                                      },
+                                      borderRadius: BorderRadius.circular(20),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                        decoration: BoxDecoration(
+                                          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                        child: Text(
+                                          LocalizationService.currentLocale.value.languageCode == 'id' ? '🇮🇩 ID' : '🇬🇧 EN',
+                                          style: TextStyle(
+                                            color: isDark ? Colors.white70 : const Color(0xFF334155),
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    IconButton(
+                                      icon: Icon(
+                                        isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                                        color: isDark ? Colors.amberAccent : const Color(0xFF64748B),
+                                        size: 20,
+                                      ),
+                                      tooltip: 'Ganti Tema',
+                                      onPressed: () {
+                                        final newMode = isDark ? ThemeMode.light : ThemeMode.dark;
+                                        AppSettingsService.setThemeMode(newMode);
+                                      },
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  LocalizationService.tr('btn_login'),
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  LocalizationService.tr('login_instruction'),
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: isDark ? Colors.white60 : Colors.grey.shade600,
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+
+                                _inputBox(
+                                  controller: _userC,
+                                  hint: LocalizationService.tr('username'),
+                                  icon: Icons.person_outline_rounded,
+                                  capitalization: TextCapitalization.characters,
+                                  isDark: isDark,
+                                  onSubmitted: (_) => FocusScope.of(context).nextFocus(),
+                                ),
+                                const SizedBox(height: 12),
+
+                                _passwordBox(isDark: isDark),
+                                const SizedBox(height: 12),
+
+                                if (_error != null) ...[
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red.withAlpha(isDark ? 40 : 25),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(color: Colors.red.shade300),
+                                    ),
+                                    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                      Icon(Icons.error_outline_rounded, color: Colors.red.shade400, size: 16),
+                                      const SizedBox(width: 8),
+                                      Expanded(child: Text(_error!,
+                                          style: TextStyle(color: isDark ? Colors.red.shade300 : Colors.red.shade700, fontSize: 12))),
+                                    ]),
+                                  ),
+                                  const SizedBox(height: 12),
+                                ],
+
+                                SizedBox(
+                                  height: 48,
+                                  child: ElevatedButton(
+                                    onPressed: _loading ? null : _login,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: primary,
+                                      foregroundColor: isDark ? Colors.black : Colors.white,
+                                      elevation: 2,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    ),
+                                    child: _loading
+                                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                        : Text(
+                                            LocalizationService.tr('btn_login'),
+                                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                                          ),
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                                ValueListenableBuilder<String>(
+                                  valueListenable: AppSettingsService.appNameNotifier,
+                                  builder: (context, appName, child) => Center(
+                                    child: Text(
+                                      '$appName Desktop © ${DateTime.now().year}',
+                                      style: TextStyle(fontSize: 11, color: isDark ? Colors.white38 : Colors.grey.shade400),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final h = size.height;
 
     return Scaffold(
       body: Container(
@@ -310,6 +560,30 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildDesktopFeaturePill(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(20),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white.withAlpha(30)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 16),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              label,
+              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
+            ),
+          ),
+        ],
       ),
     );
   }

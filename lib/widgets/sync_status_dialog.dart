@@ -108,25 +108,29 @@ class _SyncStatusDialogState extends State<SyncStatusDialog> {
                     ? DateFormat('dd MMM yyyy, HH:mm:ss', 'id').format(lastSyncTime)
                     : 'Belum pernah';
 
-                return Container(
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF131A26) : Colors.white,
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withAlpha(isDark ? 100 : 30),
-                        blurRadius: 20,
-                        offset: const Offset(0, -4),
+                return Align(
+                  alignment: Alignment.bottomCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 600),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF131A26) : Colors.white,
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withAlpha(isDark ? 100 : 30),
+                            blurRadius: 20,
+                            offset: const Offset(0, -4),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  padding: EdgeInsets.only(
-                    top: 16,
-                    left: 20,
-                    right: 20,
-                    bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-                  ),
-                  child: Column(
+                      padding: EdgeInsets.only(
+                        top: 16,
+                        left: 20,
+                        right: 20,
+                        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+                      ),
+                      child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       // Handle bar
@@ -409,8 +413,10 @@ class _SyncStatusDialogState extends State<SyncStatusDialog> {
                       ),
                     ],
                   ),
-                );
-              },
+                ),
+              ),
+            );
+          },
             );
           },
         );

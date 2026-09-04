@@ -41,3 +41,24 @@ jobs:
           name: OSIS_Management_Windows_x64
           path: dist/OSIS_Management_Windows_x64.zip
           retention-days: 30
+
+      - name: Create Public GitHub Release & Link
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/heads/main') || startsWith(github.ref, 'refs/heads/master')
+        continue-on-error: true
+        with:
+          tag_name: v1.0.4-win-build${{ github.run_number }}
+          name: OSIS Management Windows v1.0.4 (Build #${{ github.run_number }})
+          body: |
+            ## 💻 Unduh Aplikasi OSIS Management untuk Windows
+            Unduh dan ekstrak file `OSIS_Management_Windows_x64.zip`, lalu buka file `osis_jurnal.exe` untuk menjalankan aplikasi di PC Windows.
+            
+            - **Platform**: Windows 10 / 11 (x64)
+            - **Build Number**: #${{ github.run_number }}
+            - **Commit**: ${{ github.sha }}
+          files: dist/OSIS_Management_Windows_x64.zip
+          draft: false
+          prerelease: false
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

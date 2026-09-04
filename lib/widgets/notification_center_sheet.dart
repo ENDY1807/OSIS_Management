@@ -102,21 +102,25 @@ class _NotificationCenterSheetState extends State<NotificationCenterSheet> {
         ? screenHeight * 0.90
         : (screenHeight * 0.82).clamp(480.0, 780.0);
 
-    return Container(
-      height: sheetHeight,
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF131A26) : Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: isDark ? const Border(top: BorderSide(color: Color(0xFF263348), width: 1)) : null,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(isDark ? 80 : 30),
-            blurRadius: 20,
-            offset: const Offset(0, -4),
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 640),
+        child: Container(
+          height: sheetHeight,
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF131A26) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: isDark ? const Border(top: BorderSide(color: Color(0xFF263348), width: 1)) : null,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withAlpha(isDark ? 80 : 30),
+                blurRadius: 20,
+                offset: const Offset(0, -4),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
+          child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Drag Handle
@@ -348,7 +352,9 @@ class _NotificationCenterSheetState extends State<NotificationCenterSheet> {
           ),
         ],
       ),
-    );
+    ),
+  ),
+);
   }
 
   Widget _buildFilterChip({
