@@ -1,6 +1,8 @@
 name: Build Android App Bundle (AAB)
 
 on:
+  push:
+    branches: [ master, main ]
   workflow_dispatch:
 
 permissions:
