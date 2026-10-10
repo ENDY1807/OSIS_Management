@@ -1120,6 +1120,15 @@ class DataService {
                 keterangan: e['keterangan'] ?? '',
               ))
           .toList();
+      final remoteIds = list.map((e) => e.id).toSet();
+      final localCache = await _readCache(_keyProker);
+      for (final raw in localCache) {
+        if (!remoteIds.contains(raw['id'])) {
+          try {
+            list.add(Proker.fromJson(raw));
+          } catch (_) {}
+        }
+      }
       final cacheData = list.map((p) => p.toJson()).toList();
       await _saveCache(_keyProker, cacheData);
       return list;
@@ -1146,8 +1155,9 @@ class DataService {
       'keterangan': p.keterangan,
     };
 
-    // 1. Update cache lokal instan
+    // 1. Update cache lokal instan (deduplikasi ID)
     final cache = await _readCache(_keyProker);
+    cache.removeWhere((item) => item['id'] == p.id);
     cache.add(p.toJson());
     await _saveCache(_keyProker, cache);
 

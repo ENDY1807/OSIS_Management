@@ -208,7 +208,7 @@ class AppSettingsService {
       AppCustomInputField(id: 'prok_pj', label: 'Penanggung Jawab', type: InputFieldType.text, placeholder: 'Nama PJ proker'),
       AppCustomInputField(id: 'prok_tgl_rencana', label: 'Tanggal Rencana', type: InputFieldType.date, isRequired: true),
       AppCustomInputField(id: 'prok_tgl_realisasi', label: 'Tanggal Realisasi', type: InputFieldType.date),
-      AppCustomInputField(id: 'prok_status', label: 'Status Proker', type: InputFieldType.dropdown, options: ['Belum Berjalan', 'Sedang Berjalan', 'Selesai']),
+      AppCustomInputField(id: 'prok_status', label: 'Status Proker', type: InputFieldType.dropdown, options: ['Belum', 'Berjalan', 'Selesai']),
       AppCustomInputField(id: 'prok_desk', label: 'Deskripsi Program', type: InputFieldType.text, placeholder: 'Rincian proker...'),
       AppCustomInputField(id: 'prok_ket', label: 'Keterangan Tambahan', type: InputFieldType.text, placeholder: 'Catatan tambahan...'),
     ],

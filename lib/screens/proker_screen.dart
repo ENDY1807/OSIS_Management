@@ -25,7 +25,6 @@ class _ProkerScreenState extends State<ProkerScreen>
   List<Proker> _proker = [];
   String _currentUser = '';
   String _filterSekbid = 'Semua';
-  bool _userLoaded = false;
 
   bool get _isReadOnly => AuthService.isReadOnly(_currentUser);
 
@@ -37,8 +36,20 @@ class _ProkerScreenState extends State<ProkerScreen>
   }
 
 
-  bool get _canCreateProker =>
-      !_isReadOnly && (_isSuperStaff || AuthService.prokerUnits.contains(_currentUser));
+  bool get _canCreateProker => !_isReadOnly;
+
+  /// Normalisasi status agar selalu selaras antara database, form, dan tab
+  static String _canonicalStatus(String? s) {
+    if (s == null) return StatusProker.belum;
+    final lower = s.trim().toLowerCase();
+    if (lower.contains('selesai') || lower.contains('done') || lower.contains('complete')) {
+      return StatusProker.selesai;
+    }
+    if (lower.contains('jalan') || lower.contains('progress')) {
+      return StatusProker.berjalan;
+    }
+    return StatusProker.belum;
+  }
 
   /// Cek hak akses edit/hapus untuk suatu proker:
   /// - SuperStaff (Admin, Pembina, Kesiswaan, Ketua, Wakil, Sekre, Bendahara) -> BEBAS edit proker sekbid mana saja.
@@ -57,6 +68,9 @@ class _ProkerScreenState extends State<ProkerScreen>
     super.initState();
     _tab = TabController(length: 3, vsync: this);
     _tab.addListener(() => setState(() {}));
+    if (widget.username.isNotEmpty) {
+      _currentUser = AuthService.normalizeUsername(widget.username);
+    }
     _initUser();
     _dataSub = DataService.onDataChanged.listen((table) {
       if (table == 'proker' || table == 'app_settings' || table == 'all') {
@@ -81,7 +95,6 @@ class _ProkerScreenState extends State<ProkerScreen>
     if (mounted) {
       setState(() {
         _currentUser = AuthService.normalizeUsername(u);
-        _userLoaded = true;
       });
       _load();
     }
@@ -104,22 +117,22 @@ class _ProkerScreenState extends State<ProkerScreen>
   List<Proker> get _filtered {
     List<Proker> list = _proker;
     if (_filterSekbid != 'Semua') {
-      list = list.where((p) => p.sekbid.toUpperCase() == _filterSekbid.toUpperCase()).toList();
+      list = list.where((p) => p.sekbid.trim().toUpperCase() == _filterSekbid.trim().toUpperCase()).toList();
     }
     switch (_tab.index) {
       case 0:
-        return list.where((p) => p.status == StatusProker.belum).toList();
+        return list.where((p) => _canonicalStatus(p.status) == StatusProker.belum).toList();
       case 1:
-        return list.where((p) => p.status == StatusProker.berjalan).toList();
+        return list.where((p) => _canonicalStatus(p.status) == StatusProker.berjalan).toList();
       case 2:
-        return list.where((p) => p.status == StatusProker.selesai).toList();
+        return list.where((p) => _canonicalStatus(p.status) == StatusProker.selesai).toList();
       default:
         return list;
     }
   }
 
   Color _statusColor(String s) {
-    switch (s) {
+    switch (_canonicalStatus(s)) {
       case StatusProker.berjalan:
         return const Color(0xFF0097B2);
       case StatusProker.selesai:
@@ -130,7 +143,7 @@ class _ProkerScreenState extends State<ProkerScreen>
   }
 
   IconData _statusIcon(String s) {
-    switch (s) {
+    switch (_canonicalStatus(s)) {
       case StatusProker.berjalan:
         return Icons.timelapse_rounded;
       case StatusProker.selesai:
@@ -140,23 +153,58 @@ class _ProkerScreenState extends State<ProkerScreen>
     }
   }
 
+  static List<AppCustomInputField> get _defaultProkerFields => [
+    AppCustomInputField(id: 'prok_nama', label: 'Nama Program Kerja', type: InputFieldType.text, placeholder: 'Nama program...', isRequired: true),
+    AppCustomInputField(id: 'prok_sekbid', label: 'Divisi / Sekbid', type: InputFieldType.dropdown),
+    AppCustomInputField(id: 'prok_pj', label: 'Penanggung Jawab', type: InputFieldType.text, placeholder: 'Nama PJ proker'),
+    AppCustomInputField(id: 'prok_tgl_rencana', label: 'Tanggal Rencana', type: InputFieldType.date, isRequired: true),
+    AppCustomInputField(id: 'prok_tgl_realisasi', label: 'Tanggal Realisasi', type: InputFieldType.date),
+    AppCustomInputField(id: 'prok_status', label: 'Status Proker', type: InputFieldType.dropdown, options: StatusProker.all),
+    AppCustomInputField(id: 'prok_desk', label: 'Deskripsi Program', type: InputFieldType.text, placeholder: 'Rincian proker...'),
+    AppCustomInputField(id: 'prok_ket', label: 'Keterangan Tambahan', type: InputFieldType.text, placeholder: 'Catatan tambahan...'),
+  ];
+
   void _showForm([Proker? existing]) async {
-    final configuredFields = List<AppCustomInputField>.from(
-      AppSettingsService.customFieldsNotifier.value['proker'] ?? [],
-    );
+    final rawFields = AppSettingsService.customFieldsNotifier.value['proker'];
+    List<AppCustomInputField> configuredFields = (rawFields != null && rawFields.isNotEmpty)
+        ? List<AppCustomInputField>.from(rawFields)
+        : List<AppCustomInputField>.from(_defaultProkerFields);
+
+    if (!configuredFields.any((f) => f.id == 'prok_nama')) {
+      configuredFields.insert(0, _defaultProkerFields[0]);
+    }
+    if (!configuredFields.any((f) => f.id == 'prok_sekbid')) {
+      configuredFields.insert(1, _defaultProkerFields[1]);
+    }
+    if (!configuredFields.any((f) => f.id == 'prok_status')) {
+      configuredFields.add(_defaultProkerFields[5]);
+    }
+    if (!configuredFields.any((f) => f.id == 'prok_tgl_rencana')) {
+      configuredFields.add(_defaultProkerFields[3]);
+    }
 
     final Map<String, TextEditingController> controllers = {};
     final Map<String, dynamic> dynamicValues = {};
 
     final prokerUnits = AuthService.prokerUnits;
-    String selectedSekbid = existing?.sekbid ??
-        (_isSuperStaff
-            ? (_currentUser.isNotEmpty && prokerUnits.contains(_currentUser)
-                ? _currentUser
-                : prokerUnits.first)
-            : _currentUser);
-    if (!prokerUnits.contains(selectedSekbid) && prokerUnits.isNotEmpty) {
-      selectedSekbid = prokerUnits.first;
+    String selectedSekbid = existing?.sekbid ?? '';
+    if (selectedSekbid.isEmpty) {
+      if (_currentUser.isNotEmpty) {
+        final match = prokerUnits.firstWhere(
+          (u) => u.toUpperCase() == _currentUser.toUpperCase(),
+          orElse: () => '',
+        );
+        selectedSekbid = match.isNotEmpty
+            ? match
+            : (_isSuperStaff
+                ? (prokerUnits.isNotEmpty ? prokerUnits.first : 'SEKBID1')
+                : _currentUser);
+      } else {
+        selectedSekbid = prokerUnits.isNotEmpty ? prokerUnits.first : 'SEKBID1';
+      }
+    }
+    if (selectedSekbid.isEmpty) {
+      selectedSekbid = prokerUnits.isNotEmpty ? prokerUnits.first : 'SEKBID1';
     }
 
     for (final field in configuredFields) {
@@ -181,7 +229,7 @@ class _ProkerScreenState extends State<ProkerScreen>
       } else if (field.id == 'prok_tgl_realisasi') {
         dynamicValues[field.id] = existing?.tanggalRealisasi ?? DateTime.now();
       } else if (field.id == 'prok_status') {
-        dynamicValues[field.id] = existing?.status ?? StatusProker.belum;
+        dynamicValues[field.id] = _canonicalStatus(existing?.status);
       } else if (field.id == 'prok_ket') {
         controllers[field.id] =
             TextEditingController(text: existing?.keterangan ?? '');
@@ -200,6 +248,8 @@ class _ProkerScreenState extends State<ProkerScreen>
     }
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    bool isSaving = false;
+
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -244,15 +294,15 @@ class _ProkerScreenState extends State<ProkerScreen>
                 const SizedBox(height: 16),
                 ...configuredFields.map((field) {
                   if (field.id == 'prok_sekbid') {
-                    if (_isSuperStaff) {
+                    final currentVal = prokerUnits.firstWhere(
+                      (u) => u.toUpperCase() == (dynamicValues[field.id]?.toString().toUpperCase() ?? selectedSekbid.toUpperCase()),
+                      orElse: () => prokerUnits.isNotEmpty ? prokerUnits.first : selectedSekbid,
+                    );
+                    if (_isSuperStaff || !prokerUnits.contains(_currentUser)) {
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: DropdownButtonFormField<String>(
-                          value: prokerUnits.contains(dynamicValues[field.id])
-                              ? dynamicValues[field.id]
-                              : (prokerUnits.isNotEmpty
-                                  ? prokerUnits.first
-                                  : selectedSekbid),
+                          value: prokerUnits.contains(currentVal) ? currentVal : (prokerUnits.isNotEmpty ? prokerUnits.first : null),
                           decoration: InputDecoration(
                             labelText:
                                 field.label + (field.isRequired ? ' *' : ''),
@@ -266,7 +316,7 @@ class _ProkerScreenState extends State<ProkerScreen>
                                   value: s,
                                   child: Text(AuthService.getDisplayName(s))))
                               .toList(),
-                          onChanged: (v) => setModal(() {
+                          onChanged: isSaving ? null : (v) => setModal(() {
                             dynamicValues[field.id] = v ?? selectedSekbid;
                             selectedSekbid = v ?? selectedSekbid;
                           }),
@@ -295,17 +345,11 @@ class _ProkerScreenState extends State<ProkerScreen>
                   }
 
                   if (field.id == 'prok_status') {
-                    final currentStatus = dynamicValues[field.id]?.toString() ??
-                        StatusProker.belum;
-                    final options = field.options.isNotEmpty
-                        ? field.options
-                        : StatusProker.all;
+                    final currentStatus = _canonicalStatus(dynamicValues[field.id]?.toString());
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: DropdownButtonFormField<String>(
-                        value: options.contains(currentStatus)
-                            ? currentStatus
-                            : options.first,
+                        value: currentStatus,
                         decoration: InputDecoration(
                           labelText:
                               field.label + (field.isRequired ? ' *' : ''),
@@ -313,14 +357,14 @@ class _ProkerScreenState extends State<ProkerScreen>
                               color: isDark ? Colors.white70 : Colors.black54),
                           prefixIcon: const Icon(Icons.flag, color: kAccent),
                         ),
-                        items: options
+                        items: StatusProker.all
                             .map((s) => DropdownMenuItem(
                                 value: s,
                                 child:
                                     Text(LocalizationService.formatStatus(s))))
                             .toList(),
-                        onChanged: (v) => setModal(
-                            () => dynamicValues[field.id] = v ?? currentStatus),
+                        onChanged: isSaving ? null : (v) => setModal(
+                            () => dynamicValues[field.id] = v ?? StatusProker.belum),
                       ),
                     );
                   }
@@ -336,14 +380,12 @@ class _ProkerScreenState extends State<ProkerScreen>
                 }),
                 const SizedBox(height: 12),
                 ElevatedButton(
-                  onPressed: () async {
+                  onPressed: isSaving ? null : () async {
                     final nama = controllers['prok_nama']?.text.trim() ??
                         dynamicValues['prok_nama']?.toString().trim() ??
                         (existing != null ? existing.nama : '');
 
-                    if (nama.isEmpty &&
-                        configuredFields
-                            .any((f) => f.id == 'prok_nama' && f.isRequired)) {
+                    if (nama.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                         content: Text('Nama program kerja wajib diisi!'),
                         backgroundColor: Colors.redAccent,
@@ -351,63 +393,91 @@ class _ProkerScreenState extends State<ProkerScreen>
                       return;
                     }
 
-                    final deskripsi = controllers['prok_desk']?.text.trim() ??
-                        dynamicValues['prok_desk']?.toString().trim() ??
-                        '';
-                    final penanggungJawab =
-                        controllers['prok_pj']?.text.trim() ??
-                            dynamicValues['prok_pj']?.toString().trim() ??
-                            '';
-                    final keterangan = controllers['prok_ket']?.text.trim() ??
-                        dynamicValues['prok_ket']?.toString().trim() ??
-                        '';
-                    final status = dynamicValues['prok_status']?.toString() ??
-                        StatusProker.belum;
-                    final tanggalRencana =
-                        dynamicValues['prok_tgl_rencana'] is DateTime
-                            ? dynamicValues['prok_tgl_rencana'] as DateTime
-                            : (existing?.tanggalRencana ?? DateTime.now());
-                    final tanggalRealisasi =
-                        dynamicValues['prok_tgl_realisasi'] is DateTime
-                            ? dynamicValues['prok_tgl_realisasi'] as DateTime
-                            : (status == StatusProker.selesai
-                                ? (existing?.tanggalRealisasi ?? DateTime.now())
-                                : null);
+                    setModal(() => isSaving = true);
 
-                    final p = Proker(
-                      id: existing?.id ?? const Uuid().v4(),
-                      nama: nama.isNotEmpty ? nama : 'Program Kerja',
-                      deskripsi: deskripsi,
-                      sekbid: dynamicValues['prok_sekbid']?.toString() ??
-                          selectedSekbid,
-                      penanggungJawab: penanggungJawab,
-                      tanggalRencana: tanggalRencana,
-                      tanggalRealisasi: status == StatusProker.selesai
-                          ? tanggalRealisasi
-                          : null,
-                      status: status,
-                      keterangan: keterangan,
-                    );
-                    if (existing == null) {
-                      await DataService.addProker(p);
-                      await NotificationService.notifyUpdate(
-                        title: 'Program Kerja Baru Dibuat',
-                        message: 'Proker "${p.nama}" dibuat oleh $_currentUser',
-                        category: 'proker',
-                        actor: _currentUser,
+                    try {
+                      final deskripsi = controllers['prok_desk']?.text.trim() ??
+                          dynamicValues['prok_desk']?.toString().trim() ??
+                          '';
+                      final penanggungJawab =
+                          controllers['prok_pj']?.text.trim() ??
+                              dynamicValues['prok_pj']?.toString().trim() ??
+                              '';
+                      final keterangan = controllers['prok_ket']?.text.trim() ??
+                          dynamicValues['prok_ket']?.toString().trim() ??
+                          '';
+                      final status = _canonicalStatus(dynamicValues['prok_status']?.toString());
+                      final tanggalRencana =
+                          dynamicValues['prok_tgl_rencana'] is DateTime
+                              ? dynamicValues['prok_tgl_rencana'] as DateTime
+                              : (existing?.tanggalRencana ?? DateTime.now());
+                      final tanggalRealisasi =
+                          dynamicValues['prok_tgl_realisasi'] is DateTime
+                              ? dynamicValues['prok_tgl_realisasi'] as DateTime
+                              : (status == StatusProker.selesai
+                                  ? (existing?.tanggalRealisasi ?? DateTime.now())
+                                  : null);
+
+                      final targetSekbid = (dynamicValues['prok_sekbid']?.toString().trim().isNotEmpty == true)
+                          ? dynamicValues['prok_sekbid'].toString().trim()
+                          : selectedSekbid;
+
+                      final p = Proker(
+                        id: existing?.id ?? const Uuid().v4(),
+                        nama: nama,
+                        deskripsi: deskripsi,
+                        sekbid: targetSekbid.isNotEmpty ? targetSekbid : 'SEKBID1',
+                        penanggungJawab: penanggungJawab,
+                        tanggalRencana: tanggalRencana,
+                        tanggalRealisasi: status == StatusProker.selesai
+                            ? tanggalRealisasi
+                            : null,
+                        status: status,
+                        keterangan: keterangan,
                       );
-                    } else {
-                      await DataService.updateProker(p);
-                      await NotificationService.notifyUpdate(
-                        title: 'Program Kerja Diperbarui',
-                        message:
-                            'Proker "${p.nama}" (${p.sekbid} - Status: ${p.status}) diperbarui oleh $_currentUser',
-                        category: 'proker',
-                        actor: _currentUser,
-                      );
+
+                      if (existing == null) {
+                        await DataService.addProker(p);
+                        try {
+                          await NotificationService.notifyUpdate(
+                            title: 'Program Kerja Baru Dibuat',
+                            message: 'Proker "${p.nama}" dibuat oleh $_currentUser',
+                            category: 'proker',
+                            actor: _currentUser,
+                          );
+                        } catch (_) {}
+                      } else {
+                        await DataService.updateProker(p);
+                        try {
+                          await NotificationService.notifyUpdate(
+                            title: 'Program Kerja Diperbarui',
+                            message:
+                                'Proker "${p.nama}" (${p.sekbid} - Status: ${p.status}) diperbarui oleh $_currentUser',
+                            category: 'proker',
+                            actor: _currentUser,
+                          );
+                        } catch (_) {}
+                      }
+
+                      if (ctx.mounted) Navigator.pop(ctx);
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          content: Text(existing == null
+                              ? 'Program kerja berhasil ditambahkan!'
+                              : 'Program kerja berhasil diperbarui!'),
+                          backgroundColor: Colors.green,
+                        ));
+                      }
+                      await _load();
+                    } catch (e) {
+                      setModal(() => isSaving = false);
+                      if (ctx.mounted) {
+                        ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                          content: Text('Gagal menyimpan program kerja: $e'),
+                          backgroundColor: Colors.redAccent,
+                        ));
+                      }
                     }
-                    if (ctx.mounted) Navigator.pop(ctx);
-                    await _load();
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Theme.of(context).colorScheme.primary,
@@ -417,13 +487,22 @@ class _ProkerScreenState extends State<ProkerScreen>
                         borderRadius: BorderRadius.circular(14)),
                     elevation: 2,
                   ),
-                  child: Text(
-                    LocalizationService.tr('btn_save'),
-                    style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white),
-                  ),
+                  child: isSaving
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          LocalizationService.tr('btn_save'),
+                          style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white),
+                        ),
                 ),
               ],
             ),
@@ -647,11 +726,11 @@ class _ProkerScreenState extends State<ProkerScreen>
         ? [LocalizationService.tr('btn_all'), ...AuthService.prokerUnits]
         : [LocalizationService.tr('btn_all'), _currentUser];
     final totalBelum =
-        _proker.where((p) => p.status == StatusProker.belum).length;
+        _proker.where((p) => _canonicalStatus(p.status) == StatusProker.belum).length;
     final totalBerjalan =
-        _proker.where((p) => p.status == StatusProker.berjalan).length;
+        _proker.where((p) => _canonicalStatus(p.status) == StatusProker.berjalan).length;
     final totalSelesai =
-        _proker.where((p) => p.status == StatusProker.selesai).length;
+        _proker.where((p) => _canonicalStatus(p.status) == StatusProker.selesai).length;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -787,7 +866,7 @@ class _ProkerScreenState extends State<ProkerScreen>
           ),
         ],
       ),
-      floatingActionButton: (_userLoaded && _canCreateProker)
+      floatingActionButton: _canCreateProker
           ? FloatingActionButton.extended(
               onPressed: () => _showForm(),
               icon: const Icon(Icons.add),
