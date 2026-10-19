@@ -100,6 +100,7 @@ class LocalizationService {
 
       // Roles
       'role_admin': 'Super Admin',
+      'role_kepsek': 'Kepala Sekolah (Principal)',
       'role_pembina': 'Pembina OSIS',
       'role_kesiswaan': 'Staf Kesiswaan',
       'role_ketua': 'Ketua OSIS',
@@ -109,6 +110,17 @@ class LocalizationService {
       'role_sekbid': 'Seksi Bidang OSIS',
       'role_viewer': 'Viewer (Hanya Melihat)',
       'role_user': 'User (Hanya Melihat)',
+
+      // Kebaikan
+      'kebaikan_heading': 'Catatan Kebaikan Siswa',
+      'kebaikan_sub': 'Buku catatan karakter, amal kebaikan & prestasi',
+      'kebaikan_add': 'Catat Kebaikan Baru',
+      'kebaikan_edit': 'Edit Catatan Kebaikan',
+      'kebaikan_delete_confirm': 'Hapus Catatan Kebaikan?',
+      'kebaikan_empty': 'Belum ada catatan kebaikan yang terdata',
+      'kebaikan_point': 'Poin Kebaikan',
+      'kebaikan_appreciation': 'Bentuk Apresiasi',
+      'kebaikan_leaderboard': 'Bintang Kebaikan Teratas',
 
       // Status
       'status_draft': 'Belum Mulai',
@@ -307,6 +319,7 @@ class LocalizationService {
 
       // Roles
       'role_admin': 'Super Admin',
+      'role_kepsek': 'Principal (Executive)',
       'role_pembina': 'Faculty Advisor (Pembina)',
       'role_kesiswaan': 'Student Affairs Staff',
       'role_ketua': 'Council President (Ketua)',
@@ -316,6 +329,17 @@ class LocalizationService {
       'role_sekbid': 'Section Coordinator',
       'role_viewer': 'Viewer (Read-Only)',
       'role_user': 'User (Read-Only)',
+
+      // Kebaikan
+      'kebaikan_heading': 'Student Good Deeds',
+      'kebaikan_sub': 'Character deeds, virtues & achievements log',
+      'kebaikan_add': 'Log Good Deed',
+      'kebaikan_edit': 'Edit Good Deed',
+      'kebaikan_delete_confirm': 'Delete Good Deed Record?',
+      'kebaikan_empty': 'No good deed records yet',
+      'kebaikan_point': 'Virtue Points',
+      'kebaikan_appreciation': 'Appreciation Given',
+      'kebaikan_leaderboard': 'Top Virtue Stars',
 
 
       // Status

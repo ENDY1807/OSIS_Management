@@ -28,8 +28,9 @@ class _ManajemenScreenState extends State<ManajemenScreen> with SingleTickerProv
   static const _superUsers = ['KETUA', 'WAKIL', 'SEKRETARIS', 'BENDAHARA'];
   bool get _isReadOnly  => AuthService.isReadOnly(_username);
   bool get _isAdmin     => !_isReadOnly && (_username == 'ADMIN' || AuthService.getRole(_username) == 'ADMIN');
-  bool get _isPembina   => !_isReadOnly && (_isAdmin || _username == 'PEMBINA' || _username == 'KESISWAAN' || AuthService.getRole(_username) == 'PEMBINA' || AuthService.getRole(_username) == 'KESISWAAN');
-  bool get _isSuperUser => !_isReadOnly && (_isAdmin || _isPembina || _superUsers.contains(_username) || _superUsers.contains(AuthService.getRole(_username)));
+  bool get _isKepsek    => !_isReadOnly && AuthService.isKepalaSekolah(_username);
+  bool get _isPembina   => !_isReadOnly && (_isAdmin || _isKepsek || _username == 'PEMBINA' || _username == 'KESISWAAN' || AuthService.getRole(_username) == 'PEMBINA' || AuthService.getRole(_username) == 'KESISWAAN');
+  bool get _isSuperUser => !_isReadOnly && (_isAdmin || _isKepsek || _isPembina || _superUsers.contains(_username) || _superUsers.contains(AuthService.getRole(_username)));
   bool get _isSekbid2   => !_isReadOnly && (_username == 'SEKBID2' || AuthService.getRole(_username) == 'SEKBID2');
   bool get _canSeeJenis => !_isReadOnly && (_isSuperUser || _isSekbid2);
   bool get _canEditJenis => !_isReadOnly && (_isSuperUser || _isSekbid2);

@@ -231,11 +231,13 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
     String selectedRole = existing?.role ?? 'SEKBID';
     bool obscure = true;
 
-    final roles = ['ADMIN', 'PEMBINA', 'KESISWAAN', 'KETUA', 'WAKIL', 'SEKRETARIS', 'BENDAHARA', 'SEKBID', 'VIEWER', 'USER'];
+    final roles = ['ADMIN', 'KEPALA_SEKOLAH', 'PEMBINA', 'KESISWAAN', 'KETUA', 'WAKIL', 'SEKRETARIS', 'BENDAHARA', 'SEKBID', 'VIEWER', 'USER'];
 
     String roleLabel(String r) {
       switch (r) {
         case 'ADMIN': return 'ADMIN • Super Admin (Akses Penuh)';
+        case 'KEPALA_SEKOLAH':
+        case 'KEPSEK': return 'KEPALA SEKOLAH • Pimpinan Eksekutif Tertinggi';
         case 'PEMBINA': return 'PEMBINA • Pembina OSIS';
         case 'KESISWAAN': return 'KESISWAAN • Staf Kesiswaan';
         case 'KETUA': return 'KETUA • Ketua OSIS';

@@ -126,6 +126,8 @@ class Proker {
   DateTime? tanggalRealisasi;
   String status;
   String keterangan;
+  bool disahkanKepsek;
+  String catatanKepsek;
 
   Proker({
     required this.id,
@@ -137,6 +139,8 @@ class Proker {
     this.tanggalRealisasi,
     this.status = StatusProker.belum,
     this.keterangan = '',
+    this.disahkanKepsek = false,
+    this.catatanKepsek = '',
   });
 
   Map<String, dynamic> toJson() => {
@@ -149,6 +153,8 @@ class Proker {
         'tanggalRealisasi': tanggalRealisasi?.toIso8601String(),
         'status': status,
         'keterangan': keterangan,
+        'disahkanKepsek': disahkanKepsek,
+        'catatanKepsek': catatanKepsek,
       };
   
   factory Proker.fromJson(Map<String, dynamic> j) => Proker(
@@ -163,6 +169,8 @@ class Proker {
             : null,
         status: j['status'] ?? StatusProker.belum,
         keterangan: j['keterangan'] ?? '',
+        disahkanKepsek: (j['disahkanKepsek'] ?? j['disahkan_kepsek']) == true || (j['disahkanKepsek'] ?? j['disahkan_kepsek']) == 1,
+        catatanKepsek: j['catatanKepsek'] ?? j['catatan_kepsek'] ?? '',
       );
 }
 
@@ -374,6 +382,86 @@ class SekbidItem {
     name: j['name']?.toString() ?? j['nama']?.toString() ?? '',
     deskripsi: j['deskripsi']?.toString() ?? '',
     urutan: (j['urutan'] as num?)?.toInt() ?? 0,
+  );
+}
+
+class KategoriKebaikan {
+  static const ibadah = 'Ibadah & Akhlak Mulia';
+  static const kejujuran = 'Kejujuran & Integritas';
+  static const sosial = 'Kepedulian Sosial & Gotong Royong';
+  static const prestasi = 'Prestasi & Akademik';
+  static const lingkungan = 'Kebersihan & Lingkungan';
+  static const kedisiplinan = 'Ketertiban & Kedisiplinan';
+  static const lainnya = 'Lainnya';
+
+  static const all = [
+    ibadah,
+    kejujuran,
+    sosial,
+    prestasi,
+    lingkungan,
+    kedisiplinan,
+    lainnya,
+  ];
+}
+
+class CatatanKebaikan {
+  String id;
+  String siswaId;
+  String judul;
+  String kategori;
+  int poin;
+  DateTime tanggal;
+  String keterangan;
+  String? namaSiswa;
+  String? kelasSiswa;
+  String? nisSiswa;
+  String petugas;
+  String apresiasi;
+
+  CatatanKebaikan({
+    required this.id,
+    required this.siswaId,
+    required this.judul,
+    this.kategori = KategoriKebaikan.ibadah,
+    this.poin = 10,
+    required this.tanggal,
+    this.keterangan = '',
+    this.namaSiswa,
+    this.kelasSiswa,
+    this.nisSiswa,
+    this.petugas = '',
+    this.apresiasi = 'Pujian Lisan & Catatan Prestasi',
+  });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'siswaId': siswaId,
+    'judul': judul,
+    'kategori': kategori,
+    'poin': poin,
+    'tanggal': tanggal.toIso8601String(),
+    'keterangan': keterangan,
+    if (namaSiswa != null) 'namaSiswa': namaSiswa,
+    if (kelasSiswa != null) 'kelasSiswa': kelasSiswa,
+    if (nisSiswa != null) 'nisSiswa': nisSiswa,
+    'petugas': petugas,
+    'apresiasi': apresiasi,
+  };
+
+  factory CatatanKebaikan.fromJson(Map<String, dynamic> j) => CatatanKebaikan(
+    id: j['id'] ?? '',
+    siswaId: j['siswaId'] ?? j['siswa_id'] ?? '',
+    judul: j['judul'] ?? j['nama'] ?? 'Aksi Kebaikan',
+    kategori: j['kategori'] ?? KategoriKebaikan.ibadah,
+    poin: (j['poin'] as num?)?.toInt() ?? 10,
+    tanggal: DateTime.parse(j['tanggal'] ?? DateTime.now().toIso8601String()),
+    keterangan: j['keterangan'] ?? '',
+    namaSiswa: j['namaSiswa'] ?? j['nama_siswa'] ?? j['siswa_nama'],
+    kelasSiswa: j['kelasSiswa'] ?? j['kelas_siswa'] ?? j['siswa_kelas'],
+    nisSiswa: j['nisSiswa'] ?? j['nis_siswa'] ?? j['siswa_nis'],
+    petugas: j['petugas'] ?? '',
+    apresiasi: j['apresiasi'] ?? 'Pujian Lisan & Catatan Prestasi',
   );
 }
 

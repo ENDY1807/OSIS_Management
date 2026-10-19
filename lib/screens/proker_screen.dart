@@ -28,13 +28,18 @@ class _ProkerScreenState extends State<ProkerScreen>
 
   bool get _isReadOnly => AuthService.isReadOnly(_currentUser);
 
-  /// Kesiswaan, Pembina, Ketua, Wakil, Sekre, Bendahara, dan Admin
+  /// Kesiswaan, Pembina, Kepala Sekolah, Ketua, Wakil, Sekre, Bendahara, dan Admin
   /// memiliki akses penuh untuk edit, hapus, dan kelola proker semua sekbid.
   bool get _isSuperStaff {
     if (_isReadOnly) return false;
     return AuthService.isSuperStaff(_currentUser);
   }
 
+  /// Cek apakah pengguna berhak mengesahkan proker (Kepala Sekolah, Pembina, Admin)
+  bool get _canApproveProker =>
+      !_isReadOnly &&
+      (AuthService.hasExecutiveAccess(_currentUser) ||
+          AuthService.isPembinaOrKesiswaan(_currentUser));
 
   bool get _canCreateProker => !_isReadOnly;
 
@@ -52,7 +57,7 @@ class _ProkerScreenState extends State<ProkerScreen>
   }
 
   /// Cek hak akses edit/hapus untuk suatu proker:
-  /// - SuperStaff (Admin, Pembina, Kesiswaan, Ketua, Wakil, Sekre, Bendahara) -> BEBAS edit proker sekbid mana saja.
+  /// - SuperStaff (Kepala Sekolah, Admin, Pembina, Kesiswaan, Ketua, Wakil, Sekre, Bendahara) -> BEBAS edit proker sekbid mana saja.
   /// - User Sekbid (contoh: sekbid1) -> HANYA bisa edit & hapus proker sekbid miliknya sendiri.
   /// - Viewer (Hanya Melihat) -> TIDAK BISA edit maupun hapus proker apapun.
   bool _canEditProker(Proker p) {
@@ -381,12 +386,16 @@ class _ProkerScreenState extends State<ProkerScreen>
                 const SizedBox(height: 12),
                 ElevatedButton(
                   onPressed: isSaving ? null : () async {
-                    final nama = controllers['prok_nama']?.text.trim() ??
-                        dynamicValues['prok_nama']?.toString().trim() ??
-                        (existing != null ? existing.nama : '');
+                    final rawNama = controllers['prok_nama']?.text.trim();
+                    final rawDynNama = dynamicValues['prok_nama']?.toString().trim();
+                    final nama = (rawNama != null && rawNama.isNotEmpty)
+                        ? rawNama
+                        : (rawDynNama != null && rawDynNama.isNotEmpty
+                            ? rawDynNama
+                            : (existing?.nama ?? ''));
 
                     if (nama.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                      ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
                         content: Text('Nama program kerja wajib diisi!'),
                         backgroundColor: Colors.redAccent,
                       ));
@@ -434,6 +443,8 @@ class _ProkerScreenState extends State<ProkerScreen>
                             : null,
                         status: status,
                         keterangan: keterangan,
+                        disahkanKepsek: existing?.disahkanKepsek ?? false,
+                        catatanKepsek: existing?.catatanKepsek ?? '',
                       );
 
                       if (existing == null) {
@@ -460,12 +471,36 @@ class _ProkerScreenState extends State<ProkerScreen>
                       }
 
                       if (ctx.mounted) Navigator.pop(ctx);
+                      
+                      // Auto-switch ke tab status yang sesuai dan reset filter agar proker langsung kelihatan
+                      final canon = _canonicalStatus(p.status);
+                      int targetTab = 0;
+                      if (canon == StatusProker.berjalan) targetTab = 1;
+                      if (canon == StatusProker.selesai) targetTab = 2;
+
                       if (mounted) {
+                        setState(() {
+                          _tab.index = targetTab;
+                          _filterSekbid = 'Semua';
+                        });
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                          content: Text(existing == null
-                              ? 'Program kerja berhasil ditambahkan!'
-                              : 'Program kerja berhasil diperbarui!'),
-                          backgroundColor: Colors.green,
+                          content: Row(
+                            children: [
+                              const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  existing == null
+                                      ? 'Program kerja "${p.nama}" berhasil ditambahkan!'
+                                      : 'Program kerja "${p.nama}" berhasil diperbarui!',
+                                  style: const TextStyle(fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                            ],
+                          ),
+                          backgroundColor: const Color(0xFF10B981),
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ));
                       }
                       await _load();
@@ -512,6 +547,116 @@ class _ProkerScreenState extends State<ProkerScreen>
     );
   }
 
+  /// Dialog Pengesahan / Disposisi Resmi oleh Kepala Sekolah
+  Future<void> _showApprovalDialog(Proker p) async {
+    final catatanCtrl = TextEditingController(text: p.catatanKepsek);
+    final bool newDisahkanState = !p.disahkanKepsek;
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setD) {
+          final isDark = Theme.of(ctx).brightness == Brightness.dark;
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Row(
+              children: [
+                Icon(
+                  newDisahkanState ? Icons.verified_rounded : Icons.highlight_off_rounded,
+                  color: newDisahkanState ? const Color(0xFF10B981) : Colors.orange,
+                  size: 26,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    newDisahkanState ? 'Pengesahan Kepala Sekolah' : 'Batalkan Pengesahan Proker',
+                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1B2433) : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(p.nama, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                        const SizedBox(height: 4),
+                        Text('Divisi: ${AuthService.getDisplayName(p.sekbid)} • PJ: ${p.penanggungJawab}',
+                            style: TextStyle(fontSize: 12, color: isDark ? Colors.white60 : Colors.black54)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    newDisahkanState
+                        ? 'Sebagai Kepala Sekolah, Anda akan memberikan status Pengesahan Resmi pada program kerja ini.'
+                        : 'Apakah Anda yakin ingin membatalkan status pengesahan resmi proker ini?',
+                    style: TextStyle(fontSize: 12.5, color: isDark ? Colors.white70 : Colors.black87),
+                  ),
+                  const SizedBox(height: 14),
+                  if (newDisahkanState)
+                    TextField(
+                      controller: catatanCtrl,
+                      maxLines: 2,
+                      decoration: InputDecoration(
+                        labelText: 'Catatan / Arahan Disposisi Kepala Sekolah',
+                        hintText: 'Contoh: Disetujui, laksanakan sesuai jadwal.',
+                        prefixIcon: const Icon(Icons.rate_review_outlined, color: kAccent),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(LocalizationService.tr('btn_cancel')),
+              ),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: newDisahkanState ? const Color(0xFF10B981) : Colors.redAccent,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                icon: Icon(newDisahkanState ? Icons.check_circle_rounded : Icons.close_rounded, size: 16),
+                label: Text(newDisahkanState ? 'Sahkan Resmi' : 'Batalkan Status'),
+                onPressed: () => Navigator.pop(ctx, true),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    if (result == true) {
+      await DataService.setApprovalProkerKepsek(
+        p.id,
+        disahkan: newDisahkanState,
+        catatan: newDisahkanState ? catatanCtrl.text.trim() : '',
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(newDisahkanState
+              ? 'Proker "${p.nama}" berhasil disahkan secara resmi oleh Kepala Sekolah!'
+              : 'Status pengesahan proker "${p.nama}" telah dicabut.'),
+          backgroundColor: newDisahkanState ? const Color(0xFF10B981) : Colors.orange,
+        ));
+      }
+      _load();
+    }
+  }
+
   Widget _buildProkerCard(Proker p) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -545,23 +690,56 @@ class _ProkerScreenState extends State<ProkerScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: Text(p.nama,
-                      style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: textTitle)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(p.nama,
+                          style: TextStyle(
+                              fontSize: 15.5,
+                              fontWeight: FontWeight.bold,
+                              color: textTitle)),
+                      if (p.disahkanKepsek) ...[
+                        const SizedBox(height: 5),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF10B981).withAlpha(isDark ? 40 : 25),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                                color: const Color(0xFF10B981).withAlpha(120),
+                                width: 1),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: const [
+                              Icon(Icons.verified_rounded, size: 12, color: Color(0xFF10B981)),
+                              SizedBox(width: 4),
+                              Text('Disahkan Kepala Sekolah',
+                                  style: TextStyle(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF10B981))),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 8),
                 Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
                       color: color.withAlpha(isDark ? 40 : 25),
-                      borderRadius: BorderRadius.circular(20)),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: color.withAlpha(80), width: 1)),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
                     Icon(_statusIcon(p.status), size: 13, color: color),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: 5),
                     Text(LocalizationService.formatStatus(p.status),
                         style: TextStyle(
                             fontSize: 11,
@@ -572,7 +750,7 @@ class _ProkerScreenState extends State<ProkerScreen>
               ],
             ),
             if (p.deskripsi.isNotEmpty) ...[
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               Text(p.deskripsi,
                   style: TextStyle(fontSize: 13, color: textSub),
                   maxLines: 2,
@@ -601,10 +779,38 @@ class _ProkerScreenState extends State<ProkerScreen>
                               LocalizationService
                                   .currentLocale.value.languageCode)
                           .format(p.tanggalRealisasi!),
-                      color: Colors.green,
+                      color: const Color(0xFF10B981),
                       isDark: isDark),
               ],
             ),
+            if (p.catatanKepsek.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withAlpha(isDark ? 25 : 15),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF10B981).withAlpha(70)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.school_rounded, size: 15, color: Color(0xFF10B981)),
+                    const SizedBox(width: 7),
+                    Expanded(
+                      child: Text(
+                        'Arahan Kepala Sekolah: "${p.catatanKepsek}"',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontStyle: FontStyle.italic,
+                          color: isDark ? const Color(0xFFA7F3D0) : const Color(0xFF065F46),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             if (p.keterangan.isNotEmpty) ...[
               const SizedBox(height: 8),
               Container(
@@ -628,6 +834,24 @@ class _ProkerScreenState extends State<ProkerScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
+                if (_canApproveProker) ...[
+                  TextButton.icon(
+                    style: TextButton.styleFrom(
+                      foregroundColor: p.disahkanKepsek ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    ),
+                    icon: Icon(
+                      p.disahkanKepsek ? Icons.verified_rounded : Icons.verified_outlined,
+                      size: 16,
+                    ),
+                    label: Text(
+                      p.disahkanKepsek ? 'Disahkan (Ubah)' : 'Sahkan Proker',
+                      style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                    ),
+                    onPressed: () => _showApprovalDialog(p),
+                  ),
+                  const SizedBox(width: 4),
+                ],
                 if (_canEditProker(p)) ...[
                   TextButton.icon(
                     style: TextButton.styleFrom(
@@ -834,21 +1058,56 @@ class _ProkerScreenState extends State<ProkerScreen>
                 final list = _filtered;
                 if (list.isEmpty) {
                   return Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.assignment_outlined,
-                            size: 64,
-                            color:
-                                isDark ? const Color(0xFF64748B) : kTextLight),
-                        const SizedBox(height: 12),
-                        Text(LocalizationService.tr('proker_empty'),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 76,
+                            height: 76,
+                            decoration: BoxDecoration(
+                              color: primary.withAlpha(isDark ? 35 : 25),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(Icons.assignment_add,
+                                size: 38,
+                                color: primary),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(LocalizationService.tr('proker_empty'),
+                              style: TextStyle(
+                                  color: isDark
+                                      ? const Color(0xFFF1F5F9)
+                                      : kTextDark,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16)),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Belum ada program kerja di kategori status ini. Klik tombol di bawah untuk membuat program kerja baru.',
+                            textAlign: TextAlign.center,
                             style: TextStyle(
-                                color: isDark
-                                    ? const Color(0xFF94A3B8)
-                                    : kTextLight,
-                                fontSize: 15)),
-                      ],
+                              color: isDark ? const Color(0xFF94A3B8) : Colors.black54,
+                              fontSize: 12.5,
+                            ),
+                          ),
+                          if (_canCreateProker) ...[
+                            const SizedBox(height: 18),
+                            ElevatedButton.icon(
+                              onPressed: () => _showForm(),
+                              icon: const Icon(Icons.add_rounded, size: 18),
+                              label: Text(LocalizationService.tr('proker_add')),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: primary,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                elevation: 1,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
                   );
                 }

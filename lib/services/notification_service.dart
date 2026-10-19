@@ -29,6 +29,8 @@ class NotificationService {
   static const _keyNotifications = 'app_notifications_v1';
   static const targetStakeholders = [
     'ADMIN',
+    'KEPALA_SEKOLAH',
+    'KEPSEK',
     'KETUA',
     'WAKIL',
     'SEKRETARIS',

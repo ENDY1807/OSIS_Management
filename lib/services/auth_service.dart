@@ -47,6 +47,7 @@ class AuthService {
 
   static const Map<String, String> _defaults = {
     'ADMIN'      : 'EndyMahavira24!!@',
+    'KEPSEK'     : 'KepalaSekolahBaknus',
     'PEMBINA'    : 'PembinaOSIS',
     'KESISWAAN'  : 'KesiswaanBaknus',
     'KETUA'      : 'OSISBN666',
@@ -69,6 +70,7 @@ class AuthService {
 
   static const Map<String, String> defaultDisplayNames = {
     'ADMIN'      : 'Admin Aplikasi OSIS Management',
+    'KEPSEK'     : 'Kepala Sekolah (Principal)',
     'PEMBINA'    : 'Pembina OSIS',
     'KESISWAAN'  : 'Staf Kesiswaan',
     'KETUA'      : 'Ketua OSIS',
@@ -92,6 +94,7 @@ class AuthService {
 
   static const Map<String, String> defaultRoles = {
     'ADMIN'      : 'ADMIN',
+    'KEPSEK'     : 'KEPALA_SEKOLAH',
     'PEMBINA'    : 'PEMBINA',
     'KESISWAAN'  : 'KESISWAAN',
     'KETUA'      : 'KETUA',
@@ -338,22 +341,53 @@ class AuthService {
     return u == 'ADMIN' || r == 'ADMIN';
   }
 
-  /// Cek apakah pengguna adalah Pembina / Kesiswaan
+  /// Cek apakah pengguna adalah Kepala Sekolah (Tingkat Pimpinan Eksekutif Tertinggi)
+  static bool isKepalaSekolah(String username) {
+    if (username.isEmpty) return false;
+    final u = normalizeUsername(username);
+    final r = getRole(u).toUpperCase();
+    return u == 'KEPSEK' ||
+        r == 'KEPALA_SEKOLAH' ||
+        r == 'KEPSEK' ||
+        r == 'PRINCIPAL' ||
+        r == 'HEADMASTER';
+  }
+
+  /// Cek apakah pengguna memiliki akses eksekutif tertinggi (Kepala Sekolah / Admin)
+  static bool hasExecutiveAccess(String username) {
+    if (username.isEmpty) return false;
+    final u = normalizeUsername(username);
+    return isAdmin(u) || isKepalaSekolah(u);
+  }
+
+  /// Cek apakah pengguna adalah Pembina / Kesiswaan / Kepala Sekolah
   static bool isPembinaOrKesiswaan(String username) {
     if (username.isEmpty) return false;
     final u = normalizeUsername(username);
     final r = getRole(u).toUpperCase();
-    return isAdmin(u) || u == 'PEMBINA' || u == 'KESISWAAN' || r == 'PEMBINA' || r == 'KESISWAAN';
+    return isAdmin(u) ||
+        isKepalaSekolah(u) ||
+        u == 'PEMBINA' ||
+        u == 'KESISWAAN' ||
+        r == 'PEMBINA' ||
+        r == 'KESISWAAN';
   }
 
-  /// Cek apakah pengguna adalah BPH / SuperStaff (Admin, Pembina, Kesiswaan, Ketua, Wakil, Sekre, Bendahara)
+  /// Cek apakah pengguna berhak memberikan pengesahan / approval resmi (Kepala Sekolah, Pembina, Admin)
+  static bool canApproveOfficial(String username) {
+    if (username.isEmpty) return false;
+    final u = normalizeUsername(username);
+    return isAdmin(u) || isKepalaSekolah(u) || isPembinaOrKesiswaan(u);
+  }
+
+  /// Cek apakah pengguna adalah BPH / SuperStaff (Kepala Sekolah, Admin, Pembina, Kesiswaan, Ketua, Wakil, Sekre, Bendahara)
   static bool isSuperStaff(String username) {
     if (username.isEmpty) return false;
     if (isReadOnly(username)) return false;
     final u = normalizeUsername(username);
     final r = getRole(u).toUpperCase();
-    const superRoles = {'ADMIN', 'PEMBINA', 'KESISWAAN', 'KETUA', 'WAKIL', 'SEKRETARIS', 'BENDAHARA'};
-    return isPembinaOrKesiswaan(u) || superRoles.contains(u) || superRoles.contains(r);
+    const superRoles = {'ADMIN', 'KEPALA_SEKOLAH', 'KEPSEK', 'PEMBINA', 'KESISWAAN', 'KETUA', 'WAKIL', 'SEKRETARIS', 'BENDAHARA'};
+    return isKepalaSekolah(u) || isPembinaOrKesiswaan(u) || superRoles.contains(u) || superRoles.contains(r);
   }
 
   /// Autentikasi user dengan pengecekan online Supabase + fallback offline cache.

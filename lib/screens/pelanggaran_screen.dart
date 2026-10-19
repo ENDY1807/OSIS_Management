@@ -58,6 +58,7 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
   bool get _canEdit =>
       !_isReadOnly &&
       (_isAdmin ||
+      AuthService.isKepalaSekolah(widget.username) ||
       _superUsers.contains(widget.username) ||
       widget.username == 'PEMBINA' ||
       widget.username == 'KESISWAAN' ||

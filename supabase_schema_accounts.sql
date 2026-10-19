@@ -147,6 +147,33 @@ ALTER TABLE public.proker ADD COLUMN IF NOT EXISTS tanggal_realisasi TIMESTAMPTZ
 ALTER TABLE public.proker ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'Belum';
 ALTER TABLE public.proker ADD COLUMN IF NOT EXISTS keterangan TEXT DEFAULT '';
 ALTER TABLE public.proker ADD COLUMN IF NOT EXISTS extra_fields JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE public.proker ADD COLUMN IF NOT EXISTS disahkan_kepsek BOOLEAN DEFAULT false;
+ALTER TABLE public.proker ADD COLUMN IF NOT EXISTS catatan_kepsek TEXT DEFAULT '';
+
+-- D2. Tabel 'kebaikan' (Catatan Kebaikan & Prestasi Siswa)
+CREATE TABLE IF NOT EXISTS public.kebaikan (
+    id TEXT PRIMARY KEY,
+    siswa_id TEXT NOT NULL,
+    judul TEXT NOT NULL,
+    kategori TEXT DEFAULT 'Ibadah & Akhlak Mulia',
+    poin INTEGER DEFAULT 10,
+    tanggal TIMESTAMPTZ DEFAULT now(),
+    keterangan TEXT DEFAULT '',
+    nama_siswa TEXT DEFAULT '',
+    kelas_siswa TEXT DEFAULT '',
+    nis_siswa TEXT DEFAULT '',
+    petugas TEXT DEFAULT '',
+    apresiasi TEXT DEFAULT 'Pujian Lisan & Catatan Prestasi',
+    extra_fields JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE public.kebaikan ADD COLUMN IF NOT EXISTS nama_siswa TEXT DEFAULT '';
+ALTER TABLE public.kebaikan ADD COLUMN IF NOT EXISTS kelas_siswa TEXT DEFAULT '';
+ALTER TABLE public.kebaikan ADD COLUMN IF NOT EXISTS nis_siswa TEXT DEFAULT '';
+ALTER TABLE public.kebaikan ADD COLUMN IF NOT EXISTS petugas TEXT DEFAULT '';
+ALTER TABLE public.kebaikan ADD COLUMN IF NOT EXISTS apresiasi TEXT DEFAULT 'Pujian Lisan & Catatan Prestasi';
+ALTER TABLE public.kebaikan ADD COLUMN IF NOT EXISTS extra_fields JSONB DEFAULT '{}'::jsonb;
 
 -- E. Tabel 'laporan_kegiatan'
 CREATE TABLE IF NOT EXISTS public.laporan_kegiatan (
@@ -234,6 +261,7 @@ ALTER TABLE public.sekbid REPLICA IDENTITY FULL;
 ALTER TABLE public.siswa REPLICA IDENTITY FULL;
 ALTER TABLE public.jenis_pelanggaran REPLICA IDENTITY FULL;
 ALTER TABLE public.pelanggaran REPLICA IDENTITY FULL;
+ALTER TABLE public.kebaikan REPLICA IDENTITY FULL;
 ALTER TABLE public.proker REPLICA IDENTITY FULL;
 ALTER TABLE public.laporan_kegiatan REPLICA IDENTITY FULL;
 ALTER TABLE public.arsip REPLICA IDENTITY FULL;
@@ -248,7 +276,7 @@ DECLARE
 BEGIN
     FOR tbl IN SELECT unnest(ARRAY[
         'accounts', 'app_settings', 'sekbid', 'siswa',
-        'jenis_pelanggaran', 'pelanggaran', 'proker',
+        'jenis_pelanggaran', 'pelanggaran', 'kebaikan', 'proker',
         'laporan_kegiatan', 'arsip', 'file_riwayat'
     ])
     LOOP
@@ -266,7 +294,7 @@ DECLARE
 BEGIN
     FOR tbl IN SELECT unnest(ARRAY[
         'accounts', 'app_settings', 'sekbid', 'siswa',
-        'jenis_pelanggaran', 'pelanggaran', 'proker',
+        'jenis_pelanggaran', 'pelanggaran', 'kebaikan', 'proker',
         'laporan_kegiatan', 'arsip', 'file_riwayat'
     ])
     LOOP
@@ -319,6 +347,7 @@ ON CONFLICT (id) DO UPDATE SET
 -- 9. Masukkan / Seed Data Akun Bawaan (Sesuai Struktur Database OSIS)
 INSERT INTO public.accounts (username, password, role, display_name) VALUES
 ('ADMIN', 'EndyMahavira24!!@', 'ADMIN', 'Admin Aplikasi OSIS Management'),
+('KEPSEK', 'KepalaSekolahBaknus', 'KEPALA_SEKOLAH', 'Kepala Sekolah (Principal)'),
 ('PEMBINA', 'PembinaOSIS', 'PEMBINA', 'Pembina OSIS'),
 ('KESISWAAN', 'KesiswaanBaknus', 'KESISWAAN', 'Staf Kesiswaan'),
 ('KETUA', 'OSISBN666', 'KETUA', 'Ketua OSIS'),

@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'screens/pelanggaran_screen.dart';
+import 'screens/karakter_siswa_screen.dart';
 import 'screens/rekap_screen.dart';
 import 'screens/manajemen_screen.dart';
 import 'screens/proker_screen.dart';
@@ -134,11 +134,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   bool get _isReadOnly  => AuthService.isReadOnly(_username);
   bool get _isAdmin     => !_isReadOnly && (_username == 'ADMIN' || AuthService.getRole(_username) == 'ADMIN');
-  bool get _isPembina   => !_isReadOnly && (_isAdmin || _username == 'PEMBINA' || _username == 'KESISWAAN' || AuthService.getRole(_username) == 'PEMBINA' || AuthService.getRole(_username) == 'KESISWAAN');
-  bool get _isSuperUser => !_isReadOnly && (_isAdmin || _isPembina || _superUsers.contains(_username) || _superUsers.contains(AuthService.getRole(_username)));
+  bool get _isKepsek    => !_isReadOnly && AuthService.isKepalaSekolah(_username);
+  bool get _isPembina   => !_isReadOnly && (_isAdmin || _isKepsek || _username == 'PEMBINA' || _username == 'KESISWAAN' || AuthService.getRole(_username) == 'PEMBINA' || AuthService.getRole(_username) == 'KESISWAAN');
+  bool get _isSuperUser => !_isReadOnly && (_isAdmin || _isKepsek || _isPembina || _superUsers.contains(_username) || _superUsers.contains(AuthService.getRole(_username)));
   bool get _isSekbid2   => !_isReadOnly && (_username == 'SEKBID2' || AuthService.getRole(_username) == 'SEKBID2');
-  bool get _canAccessManajemen => !_isReadOnly && (_isSuperUser || _isSekbid2);
-  bool get _canReceiveNotifications => !_isReadOnly && (NotificationService.isTargetRole(_username) || _isAdmin);
+  bool get _canAccessManajemen => !_isReadOnly && (_isSuperUser || _isSekbid2 || _isKepsek);
+  bool get _canReceiveNotifications => !_isReadOnly && (NotificationService.isTargetRole(_username) || _isAdmin || _isKepsek);
 
   String _displayName = '';
   StreamSubscription<String>? _dataSub;
@@ -251,7 +252,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     ProkerScreen(key: ValueKey('proker_${_username}_${LocalizationService.currentLocale.value.languageCode}'), username: _username),
     LaporanScreen(key: ValueKey('laporan_${_username}_${LocalizationService.currentLocale.value.languageCode}'), username: _username),
     ArsipScreen(key: _arsipKey, username: _username),
-    PelanggaranScreen(key: ValueKey('pelanggaran_${_username}_${LocalizationService.currentLocale.value.languageCode}'), username: _username),
+    KarakterSiswaScreen(key: ValueKey('karakter_${_username}_${LocalizationService.currentLocale.value.languageCode}'), username: _username),
     RekapScreen(key: ValueKey('rekap_${LocalizationService.currentLocale.value.languageCode}')),
   ];
 
@@ -266,7 +267,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       (title: LocalizationService.tr('nav_proker'),      icon: Icons.assignment_outlined,    activeIcon: Icons.assignment_rounded),
       (title: LocalizationService.tr('nav_laporan'),     icon: Icons.article_outlined,       activeIcon: Icons.article_rounded),
       (title: LocalizationService.tr('nav_arsip'),       icon: Icons.folder_outlined,        activeIcon: Icons.folder_rounded),
-      (title: LocalizationService.tr('nav_pelanggaran'), icon: Icons.warning_amber_rounded,  activeIcon: Icons.warning_rounded),
+      (title: 'Karakter & Siswa',                         icon: Icons.verified_user_outlined, activeIcon: Icons.verified_user_rounded),
       (title: LocalizationService.tr('nav_rekap'),       icon: Icons.bar_chart_outlined,     activeIcon: Icons.bar_chart_rounded),
     ];
 
@@ -415,11 +416,38 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       },
                     ),
                     if (_displayName.isNotEmpty || _username.isNotEmpty)
-                      Text(
-                        _roleDisplay,
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.white70, letterSpacing: 0.2),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              _roleDisplay,
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.white70, letterSpacing: 0.2),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (_isKepsek) ...[
+                            const SizedBox(width: 5),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.shade300.withAlpha(50),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: Colors.amber.shade300, width: 0.8),
+                              ),
+                              child: const Text(
+                                'KEPSEK',
+                                style: TextStyle(
+                                  fontSize: 8.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.amberAccent,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                   ],
                 ),

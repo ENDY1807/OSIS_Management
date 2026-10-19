@@ -33,8 +33,10 @@ class _LaporanScreenState extends State<LaporanScreen> {
   bool get _isAdmin =>
       !_isReadOnly && (widget.username == 'ADMIN' || AuthService.getRole(widget.username) == 'ADMIN');
 
+  bool get _isKepsek => !_isReadOnly && AuthService.isKepalaSekolah(widget.username);
+
   bool get _isPembina =>
-      !_isReadOnly && (_isAdmin ||
+      !_isReadOnly && (_isAdmin || _isKepsek ||
       widget.username == 'PEMBINA' ||
       widget.username == 'KESISWAAN' ||
       AuthService.getRole(widget.username) == 'PEMBINA' ||

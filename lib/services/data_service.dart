@@ -25,6 +25,7 @@ class DataService {
   static const _keySiswa = 'siswa';
   static const _keyJenis = 'jenis_pelanggaran';
   static const _keyPelanggaran = 'pelanggaran';
+  static const _keyKebaikan = 'kebaikan';
   static const _keyProker = 'proker';
   static const _keyArsip = 'arsip';
   static const _keyArsipFolder = 'arsip_folder';
@@ -1093,6 +1094,156 @@ class DataService {
     await broadcastDataChange('pelanggaran');
   }
 
+  // ── Kebaikan (Catatan Kebaikan & Prestasi Siswa) ─────────────────────────
+  static Future<List<CatatanKebaikan>> getKebaikan() async {
+    if (!SyncService.isOnline) {
+      final cache = await _readCache(_keyKebaikan);
+      return cache.map(CatatanKebaikan.fromJson).toList();
+    }
+    try {
+      final rows = await _db
+          .from('kebaikan')
+          .select()
+          .order('tanggal', ascending: false)
+          .timeout(const Duration(seconds: 4));
+      final list = (rows as List)
+          .map((e) => CatatanKebaikan.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
+      final remoteIds = list.map((e) => e.id).toSet();
+      final localCache = await _readCache(_keyKebaikan);
+      for (final raw in localCache) {
+        if (!remoteIds.contains(raw['id'])) {
+          try {
+            list.add(CatatanKebaikan.fromJson(raw));
+          } catch (_) {}
+        }
+      }
+      final cacheData = list.map((k) => k.toJson()).toList();
+      await _saveCache(_keyKebaikan, cacheData);
+      return list;
+    } catch (_) {
+      final cache = await _readCache(_keyKebaikan);
+      return cache.map(CatatanKebaikan.fromJson).toList();
+    }
+  }
+
+  static Future<void> addKebaikan(CatatanKebaikan k) async {
+    final dbData = {
+      'id': k.id,
+      'siswa_id': k.siswaId,
+      'judul': k.judul,
+      'kategori': k.kategori,
+      'poin': k.poin,
+      'tanggal': k.tanggal.toIso8601String(),
+      'keterangan': k.keterangan,
+      'nama_siswa': k.namaSiswa ?? '',
+      'kelas_siswa': k.kelasSiswa ?? '',
+      'nis_siswa': k.nisSiswa ?? '',
+      'petugas': k.petugas,
+      'apresiasi': k.apresiasi,
+    };
+
+    // 1. Update cache lokal instan
+    final cache = await _readCache(_keyKebaikan);
+    cache.removeWhere((item) => item['id'] == k.id);
+    cache.insert(0, k.toJson());
+    await _saveCache(_keyKebaikan, cache);
+
+    // 2. Kirim ke Supabase atau antrekan ke SyncService
+    if (SyncService.isOnline) {
+      try {
+        await _db.from('kebaikan').insert(dbData);
+      } catch (e) {
+        await SyncService.enqueueAction(
+          actionType: SyncActionType.insert,
+          table: 'kebaikan',
+          data: dbData,
+          targetId: k.id,
+        );
+      }
+    } else {
+      await SyncService.enqueueAction(
+        actionType: SyncActionType.insert,
+        table: 'kebaikan',
+        data: dbData,
+        targetId: k.id,
+      );
+    }
+    await broadcastDataChange('kebaikan');
+  }
+
+  static Future<void> updateKebaikan(CatatanKebaikan k) async {
+    final dbData = {
+      'id': k.id,
+      'siswa_id': k.siswaId,
+      'judul': k.judul,
+      'kategori': k.kategori,
+      'poin': k.poin,
+      'tanggal': k.tanggal.toIso8601String(),
+      'keterangan': k.keterangan,
+      'nama_siswa': k.namaSiswa ?? '',
+      'kelas_siswa': k.kelasSiswa ?? '',
+      'nis_siswa': k.nisSiswa ?? '',
+      'petugas': k.petugas,
+      'apresiasi': k.apresiasi,
+    };
+
+    final cache = await _readCache(_keyKebaikan);
+    final idx = cache.indexWhere((item) => item['id'] == k.id);
+    if (idx != -1) {
+      cache[idx] = k.toJson();
+    } else {
+      cache.insert(0, k.toJson());
+    }
+    await _saveCache(_keyKebaikan, cache);
+
+    if (SyncService.isOnline) {
+      try {
+        await _db.from('kebaikan').upsert(dbData);
+      } catch (e) {
+        await SyncService.enqueueAction(
+          actionType: SyncActionType.upsert,
+          table: 'kebaikan',
+          data: dbData,
+          targetId: k.id,
+        );
+      }
+    } else {
+      await SyncService.enqueueAction(
+        actionType: SyncActionType.upsert,
+        table: 'kebaikan',
+        data: dbData,
+        targetId: k.id,
+      );
+    }
+    await broadcastDataChange('kebaikan');
+  }
+
+  static Future<void> deleteKebaikan(String id) async {
+    final cache = await _readCache(_keyKebaikan);
+    cache.removeWhere((item) => item['id'] == id);
+    await _saveCache(_keyKebaikan, cache);
+
+    if (SyncService.isOnline) {
+      try {
+        await _db.from('kebaikan').delete().eq('id', id);
+      } catch (e) {
+        await SyncService.enqueueAction(
+          actionType: SyncActionType.delete,
+          table: 'kebaikan',
+          targetId: id,
+        );
+      }
+    } else {
+      await SyncService.enqueueAction(
+        actionType: SyncActionType.delete,
+        table: 'kebaikan',
+        targetId: id,
+      );
+    }
+    await broadcastDataChange('kebaikan');
+  }
+
   // ── Proker ───────────────────────────────────────────────────────────────
   static Future<List<Proker>> getProker() async {
     if (!SyncService.isOnline) {
@@ -1118,6 +1269,8 @@ class DataService {
                     : null,
                 status: e['status'] ?? StatusProker.belum,
                 keterangan: e['keterangan'] ?? '',
+                disahkanKepsek: e['disahkan_kepsek'] == true || e['disahkan_kepsek'] == 1,
+                catatanKepsek: e['catatan_kepsek']?.toString() ?? '',
               ))
           .toList();
       final remoteIds = list.map((e) => e.id).toSet();
@@ -1153,6 +1306,8 @@ class DataService {
       'tanggal_realisasi': p.tanggalRealisasi?.toIso8601String(),
       'status': p.status,
       'keterangan': p.keterangan,
+      'disahkan_kepsek': p.disahkanKepsek,
+      'catatan_kepsek': p.catatanKepsek,
     };
 
     // 1. Update cache lokal instan (deduplikasi ID)
@@ -1195,6 +1350,8 @@ class DataService {
       'tanggal_realisasi': p.tanggalRealisasi?.toIso8601String(),
       'status': p.status,
       'keterangan': p.keterangan,
+      'disahkan_kepsek': p.disahkanKepsek,
+      'catatan_kepsek': p.catatanKepsek,
     };
 
     // 1. Update cache lokal instan
@@ -1228,6 +1385,22 @@ class DataService {
       );
     }
     await broadcastDataChange('proker');
+  }
+
+  /// Pengesahan Program Kerja oleh Kepala Sekolah
+  static Future<void> setApprovalProkerKepsek(
+    String prokerId, {
+    required bool disahkan,
+    String catatan = '',
+  }) async {
+    final prokers = await getProker();
+    final idx = prokers.indexWhere((p) => p.id == prokerId);
+    if (idx != -1) {
+      final p = prokers[idx];
+      p.disahkanKepsek = disahkan;
+      p.catatanKepsek = catatan;
+      await updateProker(p);
+    }
   }
 
   static Future<void> deleteProker(String id) async {
