@@ -270,8 +270,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       (title: LocalizationService.tr('nav_proker'),      icon: Icons.assignment_outlined,        activeIcon: Icons.assignment_rounded),
       (title: LocalizationService.tr('nav_laporan'),     icon: Icons.article_outlined,           activeIcon: Icons.article_rounded),
       (title: LocalizationService.tr('nav_arsip'),       icon: Icons.folder_outlined,            activeIcon: Icons.folder_rounded),
-      (title: 'Kas & Absensi',                           icon: Icons.account_balance_wallet_outlined, activeIcon: Icons.account_balance_wallet_rounded),
-      (title: 'Karakter & Siswa',                         icon: Icons.verified_user_outlined,     activeIcon: Icons.verified_user_rounded),
+      (title: 'Kas & Absen',                             icon: Icons.account_balance_wallet_outlined, activeIcon: Icons.account_balance_wallet_rounded),
+      (title: 'Karakter',                                icon: Icons.verified_user_outlined,     activeIcon: Icons.verified_user_rounded),
       (title: LocalizationService.tr('nav_rekap'),       icon: Icons.bar_chart_outlined,         activeIcon: Icons.bar_chart_rounded),
     ];
 
@@ -607,35 +607,80 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         body: IndexedStack(index: _idx, children: _screens),
         bottomNavigationBar: Container(
           decoration: BoxDecoration(
-            color: theme.navigationBarTheme.backgroundColor,
+            color: isDark ? const Color(0xFF0F172A) : Colors.white,
             border: Border(
               top: BorderSide(
-                color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0),
-                width: 1,
+                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+                width: 1.2,
               ),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withAlpha(isDark ? 50 : 15),
-                blurRadius: 16,
-                offset: const Offset(0, -2),
+                color: Colors.black.withAlpha(isDark ? 60 : 10),
+                blurRadius: 14,
+                offset: const Offset(0, -3),
               ),
             ],
           ),
-          child: NavigationBar(
-            selectedIndex: _idx,
-            onDestinationSelected: (i) {
-              _onTabSelected(i);
-              DataService.notifyDataChanged('all');
-            },
-            backgroundColor: Colors.transparent,
-            indicatorColor: primary.withAlpha(isDark ? 50 : 35),
-            elevation: 0,
-            destinations: navItems.map((item) => NavigationDestination(
-              icon: Icon(item.icon, size: 22, color: isDark ? const Color(0xFF64748B) : Colors.grey),
-              selectedIcon: Icon(item.activeIcon, size: 22, color: primary),
-              label: item.title,
-            )).toList(),
+          child: SafeArea(
+            top: false,
+            child: SizedBox(
+              height: 60,
+              child: Row(
+                children: List.generate(navItems.length, (i) {
+                  final item = navItems[i];
+                  final isSelected = _idx == i;
+                  return Expanded(
+                    child: InkWell(
+                      onTap: () {
+                        _onTabSelected(i);
+                        DataService.notifyDataChanged('all');
+                      },
+                      splashColor: primary.withAlpha(20),
+                      highlightColor: Colors.transparent,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            curve: Curves.easeOut,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3.5),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? primary.withAlpha(isDark ? 45 : 30)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Icon(
+                              isSelected ? item.activeIcon : item.icon,
+                              size: 20,
+                              color: isSelected
+                                  ? primary
+                                  : (isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            item.title,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                              color: isSelected
+                                  ? (isDark ? Colors.white : primary)
+                                  : (isDark ? const Color(0xFF64748B) : const Color(0xFF64748B)),
+                              letterSpacing: 0.1,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ),
           ),
         ),
       ),

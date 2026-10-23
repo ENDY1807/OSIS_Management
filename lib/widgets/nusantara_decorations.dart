@@ -505,59 +505,92 @@ class NusantaraBadge extends StatelessWidget {
 }
 
 /// Custom Painter motif Batik Mega Mendung Tradisional Modern khas Cirebon.
-/// Karakteristik awan bergradasi horisontal dengan lengkungan bertingkat
+/// Karakteristik awan bergradasi horisontal dengan lengkungan bertingkat,
+/// pilin spiral di pusat inti awan (khas motif Mega Mendung asli pada kain),
 /// dan ujung meruncing lancip halus yang melambangkan ketenangan batin,
 /// kesabaran, serta kepemimpinan yang mengayomi seluruh lapisan.
 class ModernMegaMendungPainter extends CustomPainter {
   final Color color;
   final double scale;
   final bool fillMode;
+  final bool usePhotoPalette;
 
   const ModernMegaMendungPainter({
     required this.color,
     this.scale = 90.0,
     this.fillMode = false,
+    this.usePhotoPalette = false,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final strokePaint = Paint()
-      ..color = color
+    // Palet warna autentik Cirebon sesuai foto referensi user (Pink - Lilac - Indigo)
+    final Color outerCol = usePhotoPalette ? const Color(0xFF4338CA) : color;
+    final Color midCol = usePhotoPalette ? const Color(0xFF818CF8) : color.withValues(alpha: (color.a * 0.7).clamp(0.0, 1.0));
+    final Color innerCol = usePhotoPalette ? const Color(0xFFEC4899) : color.withValues(alpha: (color.a * 0.45).clamp(0.0, 1.0));
+    final Color spiralCol = usePhotoPalette ? const Color(0xFFF472B6) : color;
+    final Color waxCol = usePhotoPalette ? const Color(0xFFFAF5FF) : color.withValues(alpha: (color.a * 0.9).clamp(0.0, 1.0));
+
+    final strokeOuter = Paint()
+      ..color = outerCol
       ..style = fillMode ? PaintingStyle.fill : PaintingStyle.stroke
-      ..strokeWidth = 1.1
+      ..strokeWidth = 1.3
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
 
-    final innerStroke = Paint()
-      ..color = color.withValues(alpha: (color.a * 0.7).clamp(0.0, 1.0))
+    final strokeMid = Paint()
+      ..color = midCol
       ..style = fillMode ? PaintingStyle.fill : PaintingStyle.stroke
-      ..strokeWidth = 0.8;
+      ..strokeWidth = 1.1;
 
-    final coreStroke = Paint()
-      ..color = color.withValues(alpha: (color.a * 0.45).clamp(0.0, 1.0))
+    final strokeInner = Paint()
+      ..color = innerCol
       ..style = fillMode ? PaintingStyle.fill : PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+
+    final strokeSpiral = Paint()
+      ..color = spiralCol
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2
+      ..strokeCap = StrokeCap.round;
+
+    final waxOutline = Paint()
+      ..color = waxCol
+      ..style = PaintingStyle.stroke
       ..strokeWidth = 0.7;
 
     final dotPaint = Paint()
-      ..color = color.withValues(alpha: (color.a * 0.85).clamp(0.0, 1.0))
+      ..color = waxCol
       ..style = PaintingStyle.fill;
 
     final w = scale;
     final h = scale * 0.48;
-    final stepX = w * 0.9;
+    final stepX = w * 0.92;
     final stepY = h * 1.35;
 
     int row = 0;
     for (double y = -h * 0.5; y < size.height + h; y += stepY) {
       final offsetX = (row % 2 == 1) ? stepX * 0.5 : 0.0;
       for (double x = -w * 0.5 + offsetX; x < size.width + w; x += stepX) {
-        _drawMegaMendungCloud(canvas, x, y, w, h, strokePaint, innerStroke, coreStroke, dotPaint);
+        _drawMegaMendungCloudWithSpiral(
+          canvas,
+          x,
+          y,
+          w,
+          h,
+          strokeOuter,
+          strokeMid,
+          strokeInner,
+          strokeSpiral,
+          waxOutline,
+          dotPaint,
+        );
       }
       row++;
     }
   }
 
-  void _drawMegaMendungCloud(
+  void _drawMegaMendungCloudWithSpiral(
     Canvas canvas,
     double x,
     double y,
@@ -566,13 +599,16 @@ class ModernMegaMendungPainter extends CustomPainter {
     Paint outerPaint,
     Paint middlePaint,
     Paint innerPaint,
+    Paint spiralPaint,
+    Paint waxPaint,
     Paint dotPaint,
   ) {
-    // Layer 1: Siluet Awan Luar Mega Mendung
+    // 1. Layer Luar Awan Mega Mendung
     final outerPath = _createCloudPath(x, y, w, h);
     canvas.drawPath(outerPath, outerPaint);
+    canvas.drawPath(outerPath, waxPaint);
 
-    // Layer 2: Awan Tingkat Kedua (Konsentris Mengecil ke Pusat)
+    // 2. Layer Tengah (Lavender / Blue-violet)
     final midW = w * 0.72;
     final midH = h * 0.72;
     final midX = x + (w - midW) * 0.35;
@@ -580,7 +616,7 @@ class ModernMegaMendungPainter extends CustomPainter {
     final midPath = _createCloudPath(midX, midY, midW, midH);
     canvas.drawPath(midPath, middlePaint);
 
-    // Layer 3: Inti Awan (Pusat Awan Mega Mendung)
+    // 3. Layer Inti (Pink / Magenta pastel)
     final inW = w * 0.44;
     final inH = h * 0.44;
     final inX = x + (w - inW) * 0.38;
@@ -588,9 +624,31 @@ class ModernMegaMendungPainter extends CustomPainter {
     final inPath = _createCloudPath(inX, inY, inW, inH);
     canvas.drawPath(inPath, innerPaint);
 
-    // Isen-isen batik cecek (titisan hujan / aksen tradisional)
-    canvas.drawCircle(Offset(x + w * 0.92, y + h * 0.48), 1.2, dotPaint);
-    canvas.drawCircle(Offset(x + w * 0.46, y + h * 0.22), 1.0, dotPaint);
+    // 4. PILIN SPIRAL PUSAT (Khas Mega Mendung Cirebon asli seperti Gambar 1)
+    final spiralCenter = Offset(inX + inW * 0.42, inY + inH * 0.46);
+    final spiralPath = Path();
+    const double turns = 1.35;
+    const int points = 32;
+    final double maxR = inW * 0.22;
+
+    for (int i = 0; i <= points; i++) {
+      final t = i / points;
+      final angle = t * turns * 2 * math.pi;
+      final r = maxR * (1.0 - t * 0.85);
+      final px = spiralCenter.dx + r * math.cos(angle);
+      final py = spiralCenter.dy + r * math.sin(angle);
+      if (i == 0) {
+        spiralPath.moveTo(px, py);
+      } else {
+        spiralPath.lineTo(px, py);
+      }
+    }
+    canvas.drawPath(spiralPath, spiralPaint);
+
+    // Isen-isen batik cecek (titisan titik putih canting malam)
+    canvas.drawCircle(Offset(x + w * 0.94, y + h * 0.50), 1.2, dotPaint);
+    canvas.drawCircle(Offset(x + w * 0.48, y + h * 0.20), 1.1, dotPaint);
+    canvas.drawCircle(Offset(x + w * 0.22, y + h * 0.75), 1.0, dotPaint);
   }
 
   Path _createCloudPath(double x, double y, double w, double h) {
@@ -598,7 +656,7 @@ class ModernMegaMendungPainter extends CustomPainter {
     // Titik awal dari pangkal kiri
     p.moveTo(x + w * 0.05, y + h * 0.65);
 
-    // Lengkungan dasar mengalir ke kanan bawah
+    // Lengkungan dasar mengalir ke kanan bawah meruncing lancip
     p.cubicTo(
       x + w * 0.28, y + h * 0.88,
       x + w * 0.60, y + h * 0.82,
@@ -633,7 +691,8 @@ class ModernMegaMendungPainter extends CustomPainter {
   bool shouldRepaint(covariant ModernMegaMendungPainter oldDelegate) =>
       oldDelegate.color != color ||
       oldDelegate.scale != scale ||
-      oldDelegate.fillMode != fillMode;
+      oldDelegate.fillMode != fillMode ||
+      oldDelegate.usePhotoPalette != usePhotoPalette;
 }
 
 /// Hero Banner Mega Mendung Elegan Berestetika Tinggi (Human-Crafted).

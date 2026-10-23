@@ -40,6 +40,10 @@ class _KasOsisScreenState extends State<KasOsisScreen>
   String _searchQuery = '';
   final TextEditingController _searchCtrl = TextEditingController();
 
+  String _kasFilter = 'ALL'; // ALL, LUNAS, BELUM
+  String _absenFilter = 'ALL'; // ALL, Hadir, Izin, Sakit, Alpa
+  String _bukuKasFilter = 'ALL'; // ALL, MASUK, KELUAR
+
   final _currencyFormat =
       NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
   final _dateFormat = DateFormat('EEEE, d MMMM yyyy', 'id_ID');
@@ -431,6 +435,252 @@ class _KasOsisScreenState extends State<KasOsisScreen>
     _simpanKasSession(showToast: false);
   }
 
+  void _showEditNominalDialog(KasOsisItem item) {
+    if (!_canEdit) return;
+    final nominalCtrl = TextEditingController(
+      text: item.nominalBayar > 0
+          ? item.nominalBayar.toString()
+          : (_selectedKasSession?.nominalWajib.toString() ?? '5000'),
+    );
+    bool tandaiLunas = item.sudahBayar;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        final primary = Theme.of(ctx).colorScheme.primary;
+
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF111827) : Colors.white,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withAlpha(80),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: NusantaraColors.gold.withAlpha(35),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: NusantaraColors.gold.withAlpha(100)),
+                        ),
+                        child: const Icon(Icons.payments_rounded, color: NusantaraColors.gold, size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Pasang Nominal Iuran Siswa', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            Text(
+                              '${item.nama} • ${item.kelas}',
+                              style: TextStyle(fontSize: 12, color: isDark ? Colors.white60 : Colors.black54),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Nominal Pembayaran (Rp):', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: nominalCtrl,
+                    keyboardType: TextInputType.number,
+                    autofocus: true,
+                    decoration: const InputDecoration(
+                      prefixText: 'Rp ',
+                      isDense: true,
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text('Pilihan Cepat:', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _buildPresetChip('2.000', () {
+                        setModalState(() => nominalCtrl.text = '2000');
+                      }),
+                      _buildPresetChip('5.000', () {
+                        setModalState(() => nominalCtrl.text = '5000');
+                      }),
+                      _buildPresetChip('10.000', () {
+                        setModalState(() => nominalCtrl.text = '10000');
+                      }),
+                      _buildPresetChip('20.000', () {
+                        setModalState(() => nominalCtrl.text = '20000');
+                      }),
+                      _buildPresetChip('Target Penuh (${_selectedKasSession?.nominalWajib ?? 5000})', () {
+                        setModalState(() {
+                          nominalCtrl.text = (_selectedKasSession?.nominalWajib ?? 5000).toString();
+                          tandaiLunas = true;
+                        });
+                      }, isPrimary: true),
+                      _buildPresetChip('Reset (Rp 0)', () {
+                        setModalState(() {
+                          nominalCtrl.text = '0';
+                          tandaiLunas = false;
+                        });
+                      }),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  CheckboxListTile(
+                    value: tandaiLunas,
+                    onChanged: (val) => setModalState(() => tandaiLunas = val ?? false),
+                    title: const Text('Tandai sebagai LUNAS', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                    subtitle: const Text('Otomatis mencatat status iuran telah lunas', style: TextStyle(fontSize: 11)),
+                    contentPadding: EdgeInsets.zero,
+                    controlAffinity: ListTileControlAffinity.leading,
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      final nom = int.tryParse(nominalCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+                      Navigator.pop(ctx);
+                      setState(() {
+                        item.nominalBayar = nom;
+                        item.sudahBayar = tandaiLunas || (_selectedKasSession != null && nom >= _selectedKasSession!.nominalWajib);
+                        if (item.sudahBayar) {
+                          item.tanggalBayar = DateTime.now();
+                        } else if (nom == 0) {
+                          item.tanggalBayar = null;
+                        }
+                      });
+                      _simpanKasSession(showToast: true);
+                    },
+                    icon: const Icon(Icons.check_circle_outline_rounded, color: Colors.white),
+                    label: const Text('Simpan Nominal Kas', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primary,
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildPresetChip(String label, VoidCallback onTap, {bool isPrimary = false}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isPrimary ? NusantaraColors.gold.withAlpha(40) : Colors.grey.withAlpha(25),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isPrimary ? NusantaraColors.gold : Colors.grey.withAlpha(60),
+            width: 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11.5,
+            fontWeight: FontWeight.bold,
+            color: isPrimary ? NusantaraColors.goldDark : null,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _ubahNominalWajibSesi() {
+    if (_selectedKasSession == null || !_canEdit) return;
+    final nominalCtrl = TextEditingController(text: _selectedKasSession!.nominalWajib.toString());
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.tune_rounded, color: NusantaraColors.gold),
+            SizedBox(width: 10),
+            Text('Atur Iuran Sesi Kas', style: TextStyle(fontSize: 16)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Sesi: ${_selectedKasSession!.judul}',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            const Text('Nominal Iuran Wajib per Siswa (Rp):', style: TextStyle(fontSize: 12)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: nominalCtrl,
+              keyboardType: TextInputType.number,
+              autofocus: true,
+              decoration: const InputDecoration(
+                prefixText: 'Rp ',
+                isDense: true,
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+          ElevatedButton(
+            onPressed: () {
+              final newNom = int.tryParse(nominalCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+              if (newNom <= 0) return;
+              Navigator.pop(ctx);
+              setState(() {
+                _selectedKasSession!.nominalWajib = newNom;
+                for (final item in _selectedKasSession!.items) {
+                  item.sudahBayar = item.nominalBayar >= newNom;
+                }
+              });
+              _simpanKasSession(showToast: true);
+            },
+            child: const Text('Simpan'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _tambahSesiKasBaru() {
     final judulCtrl = TextEditingController(
       text: 'Iuran Kas Bulan ${DateFormat('MMMM yyyy', 'id_ID').format(DateTime.now())}',
@@ -709,114 +959,251 @@ class _KasOsisScreenState extends State<KasOsisScreen>
 
   // ── Actions Buku Kas & Transaksi ───────────────────────────────────────────
 
-  void _tambahTransaksiBaru() {
-    final jenisCtrl = ValueNotifier<String>('MASUK');
+  void _tambahTransaksiBaru([String initialJenis = 'MASUK']) {
+    final jenisCtrl = ValueNotifier<String>(initialJenis);
     final nominalCtrl = TextEditingController();
     final ketCtrl = TextEditingController();
-    final kategoriCtrl = TextEditingController(text: 'Iuran');
+    final kategoriCtrl = TextEditingController(text: initialJenis == 'MASUK' ? 'Iuran Kas' : 'Konsumsi');
 
+    final nominalPresets = [5000, 10000, 25000, 50000, 100000, 250000];
+    final kategoriMasuk = ['Iuran Kas', 'Donasi / Sponsor', 'Penjualan Merchandise', 'Dana Sekolah', 'Lainnya'];
+    final kategoriKeluar = ['Konsumsi Rapat', 'ATK & Print', 'Perlengkapan Proker', 'Transportasi', 'Spanduk & Banner', 'Lainnya'];
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: Row(
+              children: [
+                Icon(
+                  jenisCtrl.value == 'MASUK' ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
+                  color: jenisCtrl.value == 'MASUK' ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  jenisCtrl.value == 'MASUK' ? 'Catat Pemasukan Kas' : 'Catat Pengeluaran Kas',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: ValueListenableBuilder<String>(
+                valueListenable: jenisCtrl,
+                builder: (context, jenis, _) {
+                  final activeKategoriList = jenis == 'MASUK' ? kategoriMasuk : kategoriKeluar;
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Toggle Masuk / Keluar
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ChoiceChip(
+                              label: const Center(child: Text('Pemasukan (+)')),
+                              selected: jenis == 'MASUK',
+                              selectedColor: const Color(0xFF10B981).withAlpha(50),
+                              labelStyle: TextStyle(
+                                color: jenis == 'MASUK' ? const Color(0xFF059669) : null,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              onSelected: (val) {
+                                if (val) {
+                                  jenisCtrl.value = 'MASUK';
+                                  kategoriCtrl.text = 'Iuran Kas';
+                                  setDialogState(() {});
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: ChoiceChip(
+                              label: const Center(child: Text('Pengeluaran (-)')),
+                              selected: jenis == 'KELUAR',
+                              selectedColor: const Color(0xFFEF4444).withAlpha(50),
+                              labelStyle: TextStyle(
+                                color: jenis == 'KELUAR' ? const Color(0xFFDC2626) : null,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              onSelected: (val) {
+                                if (val) {
+                                  jenisCtrl.value = 'KELUAR';
+                                  kategoriCtrl.text = 'Konsumsi Rapat';
+                                  setDialogState(() {});
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Nominal
+                      const Text('Nominal (Rp):', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: nominalCtrl,
+                        keyboardType: TextInputType.number,
+                        autofocus: true,
+                        decoration: const InputDecoration(
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                          prefixText: 'Rp ',
+                          hintText: '0',
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Preset Nominal Chips
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: nominalPresets.map((nom) {
+                          return ActionChip(
+                            label: Text(
+                              _currencyFormat.format(nom),
+                              style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600),
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            onPressed: () {
+                              nominalCtrl.text = nom.toString();
+                            },
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Kategori Keperluan
+                      const Text('Kategori:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: activeKategoriList.map((kat) {
+                          final isSelected = kategoriCtrl.text == kat;
+                          return ChoiceChip(
+                            label: Text(kat, style: const TextStyle(fontSize: 11)),
+                            selected: isSelected,
+                            onSelected: (sel) {
+                              if (sel) {
+                                setDialogState(() {
+                                  kategoriCtrl.text = kat;
+                                });
+                              }
+                            },
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Keterangan / Keperluan
+                      const Text('Keterangan / Keperluan:',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: ketCtrl,
+                        decoration: InputDecoration(
+                          isDense: true,
+                          border: const OutlineInputBorder(),
+                          hintText: jenis == 'MASUK'
+                              ? 'Contoh: Kas iuran kegiatan LDKS'
+                              : 'Contoh: Beli konsumsi rapat pleno OSIS',
+                          hintStyle: const TextStyle(fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+              ElevatedButton(
+                onPressed: () async {
+                  final nom = int.tryParse(nominalCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+                  final ket = ketCtrl.text.trim();
+                  if (nom <= 0) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Nominal harus lebih dari Rp 0!'), backgroundColor: Colors.orange),
+                    );
+                    return;
+                  }
+                  if (ket.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Keterangan keperluan tidak boleh kosong!'), backgroundColor: Colors.orange),
+                    );
+                    return;
+                  }
+
+                  Navigator.pop(ctx);
+                  final trx = KasOsisTransaksi(
+                    id: 'trx-${DateTime.now().millisecondsSinceEpoch}',
+                    tanggal: DateTime.now(),
+                    jenis: jenisCtrl.value,
+                    judul: ket,
+                    nominal: nom,
+                    keterangan: ket,
+                    kategori: kategoriCtrl.text.trim(),
+                    penanggungJawab: widget.username,
+                  );
+
+                  await DataService.addKasTransaksi(trx);
+                  await _loadData();
+
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Catatan ${trx.jenis == 'MASUK' ? 'Pemasukan' : 'Pengeluaran'} Rp $nom berhasil disimpan!'),
+                        backgroundColor: const Color(0xFF059669),
+                      ),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: jenisCtrl.value == 'MASUK' ? const Color(0xFF059669) : const Color(0xFFDC2626),
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Simpan Transaksi'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _hapusTransaksi(KasOsisTransaksi trx) {
+    if (!_isBendahara) return;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Row(
           children: [
-            Icon(Icons.swap_horiz_rounded, color: NusantaraColors.terracotta),
-            SizedBox(width: 10),
-            Text('Catat Mutasi Kas', style: TextStyle(fontSize: 16)),
+            Icon(Icons.delete_outline_rounded, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Hapus Transaksi Kas', style: TextStyle(fontSize: 16)),
           ],
         ),
-        content: ValueListenableBuilder<String>(
-          valueListenable: jenisCtrl,
-          builder: (context, jenis, _) {
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: ChoiceChip(
-                        label: const Center(child: Text('Kas Masuk')),
-                        selected: jenis == 'MASUK',
-                        selectedColor: const Color(0xFF10B981).withAlpha(50),
-                        labelStyle: TextStyle(
-                          color: jenis == 'MASUK' ? const Color(0xFF059669) : null,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        onSelected: (val) {
-                          if (val) jenisCtrl.value = 'MASUK';
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: ChoiceChip(
-                        label: const Center(child: Text('Kas Keluar')),
-                        selected: jenis == 'KELUAR',
-                        selectedColor: const Color(0xFFEF4444).withAlpha(50),
-                        labelStyle: TextStyle(
-                          color: jenis == 'KELUAR' ? const Color(0xFFDC2626) : null,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        onSelected: (val) {
-                          if (val) jenisCtrl.value = 'KELUAR';
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                const Text('Nominal (Rp):', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: nominalCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    isDense: true,
-                    border: OutlineInputBorder(),
-                    prefixText: 'Rp ',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Text('Keterangan / Keperluan:',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: ketCtrl,
-                  decoration: const InputDecoration(
-                    isDense: true,
-                    border: OutlineInputBorder(),
-                    hintText: 'Contoh: Pembelian konsumsi rapat',
-                  ),
-                ),
-              ],
-            );
-          },
+        content: Text(
+          'Hapus catatan "${trx.keterangan}" (${trx.jenis == 'MASUK' ? '+' : '-'} ${_currencyFormat.format(trx.nominal)}) dari buku kas?',
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
           ElevatedButton(
             onPressed: () async {
-              final nom = int.tryParse(nominalCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
-              final ket = ketCtrl.text.trim();
-              if (nom <= 0 || ket.isEmpty) return;
-
               Navigator.pop(ctx);
-              final trx = KasOsisTransaksi(
-                id: 'trx-${DateTime.now().millisecondsSinceEpoch}',
-                tanggal: DateTime.now(),
-                jenis: jenisCtrl.value,
-                judul: ket,
-                nominal: nom,
-                keterangan: ket,
-                kategori: kategoriCtrl.text.trim(),
-                penanggungJawab: widget.username,
-              );
-
-              await DataService.addKasTransaksi(trx);
+              await DataService.deleteKasTransaksi(trx.id);
               await _loadData();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Transaksi berhasil dihapus.'), backgroundColor: Colors.red),
+                );
+              }
             },
-            child: const Text('Simpan'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: const Text('Hapus'),
           ),
         ],
       ),
@@ -1036,11 +1423,16 @@ class _KasOsisScreenState extends State<KasOsisScreen>
     final items = session.items;
 
     final filteredItems = items.where((i) {
-      if (_searchQuery.isEmpty) return true;
-      final q = _searchQuery.toLowerCase();
-      return i.nama.toLowerCase().contains(q) ||
-          i.kelas.toLowerCase().contains(q) ||
-          i.jabatan.toLowerCase().contains(q);
+      if (_searchQuery.isNotEmpty) {
+        final q = _searchQuery.toLowerCase();
+        final match = i.nama.toLowerCase().contains(q) ||
+            i.kelas.toLowerCase().contains(q) ||
+            i.jabatan.toLowerCase().contains(q);
+        if (!match) return false;
+      }
+      if (_kasFilter == 'LUNAS') return i.sudahBayar;
+      if (_kasFilter == 'BELUM') return !i.sudahBayar;
+      return true;
     }).toList();
 
     return Column(
@@ -1054,6 +1446,11 @@ class _KasOsisScreenState extends State<KasOsisScreen>
           trailing: Wrap(
             spacing: 6,
             children: [
+              IconButton.filledTonal(
+                icon: const Icon(Icons.tune_rounded, size: 20, color: NusantaraColors.gold),
+                tooltip: 'Atur Iuran Wajib Sesi',
+                onPressed: _ubahNominalWajibSesi,
+              ),
               IconButton.filledTonal(
                 icon: const Icon(Icons.upload_file_rounded, size: 20, color: NusantaraColors.gold),
                 tooltip: 'Impor dari Excel',
@@ -1111,13 +1508,68 @@ class _KasOsisScreenState extends State<KasOsisScreen>
           ),
         ),
 
-        // Ringkasan Keuangan Sesi Kas
+        // Ringkasan Keuangan Sesi Kas & Atur Iuran
         MegaMendungCard(
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           padding: const EdgeInsets.all(14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Dropdown Sesi & Tombol Atur Iuran
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: session.id,
+                        isExpanded: true,
+                        icon: const Icon(Icons.arrow_drop_down_circle_outlined, size: 18),
+                        items: _kasSessions.map((s) {
+                          return DropdownMenuItem<String>(
+                            value: s.id,
+                            child: Text(
+                              s.judul,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (id) {
+                          if (id != null) {
+                            setState(() {
+                              _selectedKasSession = _kasSessions.firstWhere((s) => s.id == id);
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                  if (_canEdit) ...[
+                    const SizedBox(width: 8),
+                    InkWell(
+                      onTap: _ubahNominalWajibSesi,
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: NusantaraColors.gold.withAlpha(isDark ? 35 : 20),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: NusantaraColors.gold.withAlpha(120), width: 0.9),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.tune_rounded, size: 14, color: NusantaraColors.gold),
+                            SizedBox(width: 4),
+                            Text('Atur Iuran', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: NusantaraColors.gold)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              const Divider(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -1170,7 +1622,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    '${session.totalLunas} dari ${session.items.length} anggota sudah bayar',
+                    '${session.totalLunas} dari ${session.items.length} anggota lunas',
                     style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w500),
                   ),
                   Text(
@@ -1178,6 +1630,27 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                     style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
                   ),
                 ],
+              ),
+              const SizedBox(height: 12),
+
+              // Filter Chips: Semua, Lunas, Belum Bayar
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildFilterChip('Semua (${items.length})', _kasFilter == 'ALL', () {
+                      setState(() => _kasFilter = 'ALL');
+                    }, isDark),
+                    const SizedBox(width: 6),
+                    _buildFilterChip('Lunas (${session.totalLunas})', _kasFilter == 'LUNAS', () {
+                      setState(() => _kasFilter = 'LUNAS');
+                    }, isDark, activeCol: const Color(0xFF10B981)),
+                    const SizedBox(width: 6),
+                    _buildFilterChip('Belum Bayar (${items.length - session.totalLunas})', _kasFilter == 'BELUM', () {
+                      setState(() => _kasFilter = 'BELUM');
+                    }, isDark, activeCol: Colors.redAccent),
+                  ],
+                ),
               ),
             ],
           ),
@@ -1237,30 +1710,63 @@ class _KasOsisScreenState extends State<KasOsisScreen>
 
         // Daftar Anggota dengan Ceklis Kas
         Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-            itemCount: filteredItems.length,
-            itemBuilder: (ctx, idx) {
-              final item = filteredItems[idx];
-              return _buildKasMemberCard(item, isDark, primary);
-            },
-          ),
+          child: filteredItems.isEmpty
+              ? const Center(
+                  child: Text('Tidak ada anggota sesuai filter.', style: TextStyle(color: Colors.grey)),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                  itemCount: filteredItems.length,
+                  itemBuilder: (ctx, idx) {
+                    final item = filteredItems[idx];
+                    return _buildKasMemberCard(item, session, isDark, primary);
+                  },
+                ),
         ),
       ],
     );
   }
 
-  Widget _buildKasMemberCard(KasOsisItem item, bool isDark, Color primary) {
+  Widget _buildFilterChip(String label, bool isSelected, VoidCallback onTap, bool isDark, {Color? activeCol}) {
+    final col = activeCol ?? NusantaraColors.gold;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? col : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected ? col : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+            width: 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11.5,
+            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+            color: isSelected ? Colors.white : (isDark ? Colors.white70 : const Color(0xFF334155)),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildKasMemberCard(KasOsisItem item, KasOsisSession session, bool isDark, Color primary) {
+    final isLunas = item.sudahBayar;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF131B2A) : Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: item.sudahBayar
-              ? const Color(0xFF10B981).withAlpha(120)
+          color: isLunas
+              ? const Color(0xFF10B981).withAlpha(140)
               : (isDark ? const Color(0xFF223048) : const Color(0xFFE2E8F0)),
-          width: item.sudahBayar ? 1.5 : 1,
+          width: isLunas ? 1.5 : 1.1,
         ),
         boxShadow: [
           BoxShadow(
@@ -1270,127 +1776,182 @@ class _KasOsisScreenState extends State<KasOsisScreen>
           ),
         ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => _toggleBayarItem(item),
-          borderRadius: BorderRadius.circular(14),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 19,
-                  backgroundColor: item.sudahBayar
-                      ? const Color(0xFF10B981).withAlpha(35)
-                      : Colors.grey.withAlpha(25),
-                  child: Icon(
-                    item.sudahBayar ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                    color: item.sudahBayar ? const Color(0xFF10B981) : Colors.grey,
-                    size: 22,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            // 1. AREA CEKLIS BESAR & LEGA (Touch target 52x52 dp, ikon 28dp)
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => _toggleBayarItem(item),
+                borderRadius: BorderRadius.circular(26),
+                child: Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: isLunas
+                        ? const Color(0xFF10B981).withAlpha(isDark ? 45 : 30)
+                        : Colors.grey.withAlpha(isDark ? 30 : 20),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isLunas ? const Color(0xFF10B981) : Colors.grey.withAlpha(100),
+                      width: 2,
+                    ),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      isLunas ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                      color: isLunas ? const Color(0xFF10B981) : Colors.grey,
+                      size: 28,
+                    ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              ),
+            ),
+            const SizedBox(width: 12),
+
+            // 2. DATA SISWA & DISPLAY NOMINAL BAYAR
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.nama,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14.5,
+                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 3),
+                  Wrap(
+                    spacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+                            width: 0.8,
+                          ),
+                        ),
+                        child: Text(
+                          item.kelas,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white70 : const Color(0xFF475569),
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                        decoration: BoxDecoration(
+                          color: NusantaraColors.gold.withAlpha(isDark ? 35 : 20),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: NusantaraColors.gold.withAlpha(120),
+                            width: 0.8,
+                          ),
+                        ),
+                        child: Text(
+                          item.jabatan,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? NusantaraColors.goldLight : NusantaraColors.goldDark,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 5),
+                  // Display Nominal Bayar vs Target
+                  Row(
                     children: [
                       Text(
-                        item.nama,
+                        'Bayar: ${_currencyFormat.format(item.nominalBayar)}',
                         style: TextStyle(
+                          fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                          color: isLunas ? const Color(0xFF10B981) : Colors.redAccent,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 3),
-                      Wrap(
-                        spacing: 6,
-                        crossAxisAlignment: WrapCrossAlignment.center,
+                      Text(
+                        ' / ${_currencyFormat.format(session.nominalWajib)}',
+                        style: const TextStyle(fontSize: 11.5, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+
+            // 3. STATUS BADGE & TOMBOL PASANG / UBAH NOMINAL
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
+                  decoration: BoxDecoration(
+                    color: isLunas
+                        ? const Color(0xFF10B981).withAlpha(isDark ? 40 : 25)
+                        : Colors.red.withAlpha(isDark ? 40 : 20),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isLunas ? const Color(0xFF10B981) : Colors.red.withAlpha(120),
+                      width: 1,
+                    ),
+                  ),
+                  child: Text(
+                    isLunas ? 'Lunas' : 'Belum Lunas',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: isLunas ? const Color(0xFF10B981) : Colors.red,
+                    ),
+                  ),
+                ),
+                if (_canEdit) ...[
+                  const SizedBox(height: 6),
+                  InkWell(
+                    onTap: () => _showEditNominalDialog(item),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: NusantaraColors.gold.withAlpha(isDark ? 35 : 20),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: NusantaraColors.gold.withAlpha(120), width: 0.9),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                            decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(
-                                color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
-                                width: 0.8,
-                              ),
-                            ),
-                            child: Text(
-                              item.kelas,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: isDark ? Colors.white70 : const Color(0xFF475569),
-                              ),
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                            decoration: BoxDecoration(
-                              color: NusantaraColors.gold.withAlpha(isDark ? 35 : 20),
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(
-                                color: NusantaraColors.gold.withAlpha(120),
-                                width: 0.8,
-                              ),
-                            ),
-                            child: Text(
-                              item.jabatan,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: isDark ? NusantaraColors.goldLight : NusantaraColors.goldDark,
-                              ),
+                          Icon(Icons.payments_outlined, size: 13, color: NusantaraColors.gold),
+                          SizedBox(width: 4),
+                          Text(
+                            'Pasang Rp',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: NusantaraColors.gold,
                             ),
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5.5),
-                  decoration: BoxDecoration(
-                    color: item.sudahBayar
-                        ? const Color(0xFF10B981).withAlpha(isDark ? 40 : 25)
-                        : Colors.red.withAlpha(isDark ? 40 : 20),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: item.sudahBayar
-                          ? const Color(0xFF10B981).withAlpha(140)
-                          : Colors.red.withAlpha(120),
-                      width: 1,
                     ),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        item.sudahBayar ? Icons.check_rounded : Icons.pending_outlined,
-                        size: 13,
-                        color: item.sudahBayar ? const Color(0xFF10B981) : Colors.red,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        item.sudahBayar ? 'Lunas' : 'Belum Bayar',
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.bold,
-                          color: item.sudahBayar ? const Color(0xFF10B981) : Colors.red,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                ],
               ],
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -1432,6 +1993,9 @@ class _KasOsisScreenState extends State<KasOsisScreen>
     final items = session.items;
 
     final filteredItems = items.where((i) {
+      if (_absenFilter != 'ALL' && i.status.toUpperCase() != _absenFilter.toUpperCase()) {
+        return false;
+      }
       if (_searchQuery.isEmpty) return true;
       final q = _searchQuery.toLowerCase();
       return i.nama.toLowerCase().contains(q) ||
@@ -1574,6 +2138,89 @@ class _KasOsisScreenState extends State<KasOsisScreen>
           ),
         ),
 
+        // Filter Bar Status Presensi
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
+          child: Row(
+            children: [
+              ChoiceChip(
+                label: Text('Semua (${session.items.length})'),
+                selected: _absenFilter == 'ALL',
+                selectedColor: primary.withAlpha(40),
+                labelStyle: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: _absenFilter == 'ALL' ? primary : null,
+                ),
+                onSelected: (val) {
+                  if (val) setState(() => _absenFilter = 'ALL');
+                },
+              ),
+              const SizedBox(width: 6),
+              ChoiceChip(
+                avatar: const Icon(Icons.check_circle_rounded, size: 14, color: Color(0xFF059669)),
+                label: Text('Hadir (${session.totalHadir})'),
+                selected: _absenFilter == 'Hadir',
+                selectedColor: const Color(0xFF10B981).withAlpha(45),
+                labelStyle: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: _absenFilter == 'Hadir' ? const Color(0xFF059669) : null,
+                ),
+                onSelected: (val) {
+                  setState(() => _absenFilter = val ? 'Hadir' : 'ALL');
+                },
+              ),
+              const SizedBox(width: 6),
+              ChoiceChip(
+                avatar: const Icon(Icons.article_outlined, size: 14, color: Color(0xFF0284C7)),
+                label: Text('Izin (${session.totalIzin})'),
+                selected: _absenFilter == 'Izin',
+                selectedColor: const Color(0xFF3B82F6).withAlpha(45),
+                labelStyle: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: _absenFilter == 'Izin' ? const Color(0xFF0284C7) : null,
+                ),
+                onSelected: (val) {
+                  setState(() => _absenFilter = val ? 'Izin' : 'ALL');
+                },
+              ),
+              const SizedBox(width: 6),
+              ChoiceChip(
+                avatar: const Icon(Icons.healing_outlined, size: 14, color: Color(0xFFD97706)),
+                label: Text('Sakit (${session.totalSakit})'),
+                selected: _absenFilter == 'Sakit',
+                selectedColor: const Color(0xFFF59E0B).withAlpha(45),
+                labelStyle: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: _absenFilter == 'Sakit' ? const Color(0xFFD97706) : null,
+                ),
+                onSelected: (val) {
+                  setState(() => _absenFilter = val ? 'Sakit' : 'ALL');
+                },
+              ),
+              const SizedBox(width: 6),
+              ChoiceChip(
+                avatar: const Icon(Icons.close_rounded, size: 14, color: Color(0xFFDC2626)),
+                label: Text('Alpa (${session.totalAlpa})'),
+                selected: _absenFilter == 'Alpa',
+                selectedColor: const Color(0xFFEF4444).withAlpha(45),
+                labelStyle: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: _absenFilter == 'Alpa' ? const Color(0xFFDC2626) : null,
+                ),
+                onSelected: (val) {
+                  setState(() => _absenFilter = val ? 'Alpa' : 'ALL');
+                },
+              ),
+            ],
+          ),
+        ),
+
         // Pencarian Nama Siswa
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -1609,40 +2256,88 @@ class _KasOsisScreenState extends State<KasOsisScreen>
 
         // Daftar Siswa Anggota OSIS untuk Presensi
         Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-            itemCount: filteredItems.length,
-            itemBuilder: (ctx, idx) {
-              final item = filteredItems[idx];
-              return _buildAbsenStudentCard(item, session, isDark);
-            },
-          ),
+          child: filteredItems.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.search_off_rounded, size: 40, color: Colors.grey.withAlpha(120)),
+                      const SizedBox(height: 8),
+                      Text(
+                        _searchQuery.isNotEmpty
+                            ? 'Tidak ada siswa cocok dengan "$_searchQuery"'
+                            : 'Tidak ada data presensi dengan status $_absenFilter',
+                        style: const TextStyle(color: Colors.grey, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                  itemCount: filteredItems.length,
+                  itemBuilder: (ctx, idx) {
+                    final item = filteredItems[idx];
+                    return _buildAbsenStudentCard(item, session, isDark);
+                  },
+                ),
         ),
       ],
     );
   }
 
   Widget _buildAbsenMetric(String label, int count, Color color) {
-    return Column(
-      children: [
-        Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: color.withAlpha(30),
-            shape: BoxShape.circle,
-            border: Border.all(color: color.withAlpha(120), width: 1.5),
-          ),
-          child: Center(
-            child: Text(
-              '$count',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: color),
+    final isSelected = _absenFilter == label;
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _absenFilter = isSelected ? 'ALL' : label;
+        });
+      },
+      borderRadius: BorderRadius.circular(10),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+        child: Column(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: isSelected ? color : color.withAlpha(30),
+                shape: BoxShape.circle,
+                border: Border.all(color: color, width: isSelected ? 2.2 : 1.5),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: color.withAlpha(90),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: Center(
+                child: Text(
+                  '$count',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 13,
+                    color: isSelected ? Colors.white : color,
+                  ),
+                ),
+              ),
             ),
-          ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.w900 : FontWeight.bold,
+                color: isSelected ? color : null,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 4),
-        Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-      ],
+      ),
     );
   }
 
@@ -1828,7 +2523,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                         borderRadius: BorderRadius.circular(8),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 180),
-                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
                             color: isSelected ? col : Colors.transparent,
                             borderRadius: BorderRadius.circular(8),
@@ -1847,7 +2542,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                             children: [
                               Icon(
                                 icon,
-                                size: 13,
+                                size: 15,
                                 color: isSelected
                                     ? Colors.white
                                     : (isDark ? Colors.white60 : const Color(0xFF475569)),
@@ -1856,7 +2551,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                               Text(
                                 st,
                                 style: TextStyle(
-                                  fontSize: 11.5,
+                                  fontSize: 12,
                                   fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
                                   color: isSelected
                                       ? Colors.white
@@ -1895,6 +2590,12 @@ class _KasOsisScreenState extends State<KasOsisScreen>
       }
     }
     final saldoSaatIni = totalMasuk - totalKeluar;
+
+    final filteredTrx = _transaksiList.where((t) {
+      if (_bukuKasFilter == 'MASUK') return t.jenis == 'MASUK';
+      if (_bukuKasFilter == 'KELUAR') return t.jenis == 'KELUAR';
+      return true;
+    }).toList();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -1962,32 +2663,111 @@ class _KasOsisScreenState extends State<KasOsisScreen>
           ),
           const SizedBox(height: 14),
 
-          // Action Catat Mutasi
+          // Action Catat Pemasukan & Pengeluaran Berdampingan
           if (_isBendahara)
-            ElevatedButton.icon(
-              onPressed: _tambahTransaksiBaru,
-              icon: const Icon(Icons.add_circle_outline_rounded),
-              label: const Text('Catat Pengeluaran / Pemasukan Kas'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: NusantaraColors.batikNavy,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _tambahTransaksiBaru('MASUK'),
+                    icon: const Icon(Icons.add_circle_outline_rounded, size: 18),
+                    label: const Text('Catat Pemasukan', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF059669),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _tambahTransaksiBaru('KELUAR'),
+                    icon: const Icon(Icons.remove_circle_outline_rounded, size: 18),
+                    label: const Text('Catat Pengeluaran', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFDC2626),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+              ],
             ),
           const SizedBox(height: 18),
 
-          // Riwayat Transaksi Manual
-          const Text('Riwayat Mutasi Transaksi:',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+          // Riwayat Transaksi Manual dengan Filter Chips
+          Row(
+            children: [
+              const Text('Riwayat Mutasi:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+              const Spacer(),
+              ChoiceChip(
+                label: Text('Semua (${_transaksiList.length})'),
+                selected: _bukuKasFilter == 'ALL',
+                labelStyle: const TextStyle(fontSize: 11),
+                onSelected: (val) {
+                  if (val) setState(() => _bukuKasFilter = 'ALL');
+                },
+              ),
+              const SizedBox(width: 4),
+              ChoiceChip(
+                label: Text('Masuk (${_transaksiList.where((t) => t.jenis == 'MASUK').length})'),
+                selected: _bukuKasFilter == 'MASUK',
+                selectedColor: const Color(0xFF10B981).withAlpha(40),
+                labelStyle: TextStyle(
+                  fontSize: 11,
+                  color: _bukuKasFilter == 'MASUK' ? const Color(0xFF059669) : null,
+                  fontWeight: _bukuKasFilter == 'MASUK' ? FontWeight.bold : FontWeight.normal,
+                ),
+                onSelected: (val) {
+                  if (val) setState(() => _bukuKasFilter = 'MASUK');
+                },
+              ),
+              const SizedBox(width: 4),
+              ChoiceChip(
+                label: Text('Keluar (${_transaksiList.where((t) => t.jenis == 'KELUAR').length})'),
+                selected: _bukuKasFilter == 'KELUAR',
+                selectedColor: const Color(0xFFEF4444).withAlpha(40),
+                labelStyle: TextStyle(
+                  fontSize: 11,
+                  color: _bukuKasFilter == 'KELUAR' ? const Color(0xFFDC2626) : null,
+                  fontWeight: _bukuKasFilter == 'KELUAR' ? FontWeight.bold : FontWeight.normal,
+                ),
+                onSelected: (val) {
+                  if (val) setState(() => _bukuKasFilter = 'KELUAR');
+                },
+              ),
+            ],
+          ),
           const SizedBox(height: 8),
-          if (_transaksiList.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(20),
-              child: Center(child: Text('Belum ada catatan mutasi kas.', style: TextStyle(color: Colors.grey))),
+
+          if (filteredTrx.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF131B2A) : const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0)),
+              ),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.receipt_long_outlined, size: 36, color: Colors.grey.withAlpha(120)),
+                    const SizedBox(height: 8),
+                    Text(
+                      _bukuKasFilter == 'ALL'
+                          ? 'Belum ada catatan mutasi kas.'
+                          : 'Belum ada transaksi ${_bukuKasFilter.toLowerCase()}.',
+                      style: const TextStyle(color: Colors.grey, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
             )
           else
-            ..._transaksiList.map((t) {
+            ...filteredTrx.map((t) {
               final isMasuk = t.jenis == 'MASUK';
               return Container(
                 margin: const EdgeInsets.only(bottom: 8),
@@ -1997,30 +2777,75 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                   border: Border.all(color: isDark ? const Color(0xFF223048) : const Color(0xFFE2E8F0)),
                 ),
                 child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                   leading: CircleAvatar(
-                    radius: 16,
+                    radius: 17,
                     backgroundColor: isMasuk
                         ? const Color(0xFF10B981).withAlpha(30)
                         : Colors.red.withAlpha(30),
                     child: Icon(
                       isMasuk ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
                       color: isMasuk ? const Color(0xFF10B981) : Colors.red,
-                      size: 18,
+                      size: 19,
                     ),
                   ),
-                  title: Text(t.keterangan, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
-                  subtitle: Text(
-                    '${_dateFormat.format(t.tanggal)} • PJ: ${t.penanggungJawab}',
-                    style: const TextStyle(fontSize: 11, color: Colors.grey),
+                  title: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          t.keterangan,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (t.kategori.isNotEmpty) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: primary.withAlpha(25),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: primary.withAlpha(60), width: 0.8),
+                          ),
+                          child: Text(
+                            t.kategori,
+                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: primary),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                  trailing: Text(
-                    '${isMasuk ? '+' : '-'} ${_currencyFormat.format(t.nominal)}',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13.5,
-                      color: isMasuk ? const Color(0xFF10B981) : Colors.red,
+                  subtitle: Padding(
+                    padding: const EdgeInsets.only(top: 3),
+                    child: Text(
+                      '${_dateFormat.format(t.tanggal)} • PJ: ${t.penanggungJawab}',
+                      style: const TextStyle(fontSize: 11, color: Colors.grey),
                     ),
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '${isMasuk ? '+' : '-'} ${_currencyFormat.format(t.nominal)}',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13.5,
+                          color: isMasuk ? const Color(0xFF10B981) : Colors.red,
+                        ),
+                      ),
+                      if (_isBendahara) ...[
+                        const SizedBox(width: 4),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.grey),
+                          tooltip: 'Hapus transaksi',
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                          onPressed: () => _hapusTransaksi(t),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               );
