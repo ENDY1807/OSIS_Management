@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:uuid/uuid.dart';
 import '../models/models.dart';
@@ -51,6 +52,11 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
   // 5. Tata Tertib & Pelanggaran Lists
   List<String> _pelanggaranFields = [];
 
+  // 6. Kas OSIS Controllers
+  final _kasIuranCtrl = TextEditingController();
+  final _kasTargetSaldoCtrl = TextEditingController();
+  final _kasAturanCtrl = TextEditingController();
+
   bool _saving = false;
   bool _isSyncing = false;
   StreamSubscription<String>? _dataSub;
@@ -61,7 +67,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 6, vsync: this);
+    _tabCtrl = TabController(length: 7, vsync: this);
 
     _loadCurrentConfigs();
     _loadAccounts();
@@ -129,6 +135,11 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
     _arsipMaxMbCtrl.text = AppSettingsService.arsipMaxMbNotifier.value.toString();
     _arsipFolders = List<String>.from(AppSettingsService.arsipFoldersNotifier.value);
     _arsipAllowedExts = List<String>.from(AppSettingsService.arsipAllowedExtsNotifier.value);
+
+    // Kas OSIS Config
+    _kasIuranCtrl.text = AppSettingsService.kasDefaultIuranNotifier.value.toString();
+    _kasTargetSaldoCtrl.text = AppSettingsService.kasTargetSaldoNotifier.value.toString();
+    _kasAturanCtrl.text = AppSettingsService.kasAturanNotifier.value;
   }
 
   @override
@@ -145,6 +156,10 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
     _skorsingCtrl.dispose();
 
     _arsipMaxMbCtrl.dispose();
+
+    _kasIuranCtrl.dispose();
+    _kasTargetSaldoCtrl.dispose();
+    _kasAturanCtrl.dispose();
 
     _dataSub?.cancel();
     super.dispose();
@@ -175,7 +190,14 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
       enabledLanguages: _selectedLanguages.isEmpty ? ['id'] : _selectedLanguages,
     );
 
-    // 2. Simpan Konfigurasi Lainnya
+    // 2. Simpan Kas OSIS Config
+    await AppSettingsService.saveKasConfig(
+      defaultIuran: int.tryParse(_kasIuranCtrl.text.trim()),
+      targetSaldo: int.tryParse(_kasTargetSaldoCtrl.text.trim()),
+      aturan: _kasAturanCtrl.text.trim(),
+    );
+
+    // 3. Simpan Konfigurasi Lainnya
     await AppSettingsService.saveAdminConfigs(
       sp1: int.tryParse(_sp1Ctrl.text.trim()),
       sp2: int.tryParse(_sp2Ctrl.text.trim()),
@@ -328,6 +350,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
                 if (!ctx.mounted) return;
                 Navigator.pop(ctx);
                 _loadAccounts();
+                if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Akun berhasil disimpan'), backgroundColor: Colors.green),
                 );
@@ -438,6 +461,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
           tabs: const [
             Tab(text: 'Branding & Warna', icon: Icon(Icons.palette_outlined, size: 18)),
             Tab(text: 'Konfigurasi Input', icon: Icon(Icons.tune_rounded, size: 18)),
+            Tab(text: 'Kas OSIS', icon: Icon(Icons.account_balance_wallet_outlined, size: 18)),
             Tab(text: 'Tata Tertib', icon: Icon(Icons.warning_amber_rounded, size: 18)),
             Tab(text: 'Proker & Sekbid', icon: Icon(Icons.assignment_outlined, size: 18)),
             Tab(text: 'Arsip & Berkas', icon: Icon(Icons.folder_outlined, size: 18)),
@@ -450,6 +474,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
         children: [
           _buildBrandingTab(theme, isDark, primary),
           _buildKonfigurasiInputTab(theme, isDark, primary),
+          _buildKasConfigTab(theme, isDark, primary),
           _buildTataTertibTab(theme, isDark, primary),
           _buildProkerLaporanTab(theme, isDark, primary),
           _buildArsipTab(theme, isDark, primary),
@@ -1867,7 +1892,209 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
     );
   }
 
+  Widget _buildKasConfigTab(ThemeData theme, bool isDark, Color primary) {
+    final currencyFmt = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Banner Info
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF131B2A) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: isDark ? const Color(0xFF223048) : const Color(0xFFE2E8F0)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: primary.withAlpha(isDark ? 50 : 25),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(Icons.account_balance_wallet_rounded, color: primary, size: 24),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Konfigurasi Kas & Iuran OSIS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      SizedBox(height: 2),
+                      Text(
+                        'Atur nominal iuran standar, target saldo organisasi, dan aturan kas.',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
 
+          // 1. Iuran Kas Wajib Bawaan
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF131B2A) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: isDark ? const Color(0xFF223048) : const Color(0xFFE2E8F0)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.payments_outlined, size: 18),
+                    SizedBox(width: 8),
+                    Text('Iuran Kas Wajib Standar per Pertemuan', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Nominal ini akan otomatis terpasang saat Bendahara membuat sesi pencatatan kas baru.',
+                  style: TextStyle(fontSize: 11.5, color: isDark ? Colors.white60 : Colors.black54),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _kasIuranCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    prefixText: 'Rp ',
+                    isDense: true,
+                    border: OutlineInputBorder(),
+                    hintText: '5000',
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  children: [2000, 3000, 5000, 10000, 15000, 20000].map((nom) {
+                    return ActionChip(
+                      label: Text(currencyFmt.format(nom), style: const TextStyle(fontSize: 11)),
+                      onPressed: () {
+                        setState(() {
+                          _kasIuranCtrl.text = nom.toString();
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // 2. Target Saldo Kas Organisasi
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF131B2A) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: isDark ? const Color(0xFF223048) : const Color(0xFFE2E8F0)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.savings_outlined, size: 18),
+                    SizedBox(width: 8),
+                    Text('Target Saldo Kas Operasional', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Batas target saldo kas organisasi untuk kebutuhan kegiatan sekolah.',
+                  style: TextStyle(fontSize: 11.5, color: isDark ? Colors.white60 : Colors.black54),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _kasTargetSaldoCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    prefixText: 'Rp ',
+                    isDense: true,
+                    border: OutlineInputBorder(),
+                    hintText: '1000000',
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  children: [500000, 1000000, 2000000, 5000000].map((nom) {
+                    return ActionChip(
+                      label: Text(currencyFmt.format(nom), style: const TextStyle(fontSize: 11)),
+                      onPressed: () {
+                        setState(() {
+                          _kasTargetSaldoCtrl.text = nom.toString();
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // 3. Aturan & SOP Kas OSIS
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF131B2A) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: isDark ? const Color(0xFF223048) : const Color(0xFFE2E8F0)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.rule_folder_outlined, size: 18),
+                    SizedBox(width: 8),
+                    Text('Aturan & SOP Pembayaran Kas OSIS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Pedoman tata tertib kas yang berlaku bagi seluruh pengurus OSIS.',
+                  style: TextStyle(fontSize: 11.5, color: isDark ? Colors.white60 : Colors.black54),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _kasAturanCtrl,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    border: OutlineInputBorder(),
+                    hintText: 'Tuliskan aturan kas OSIS...',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Tombol Simpan Kas
+          ElevatedButton.icon(
+            onPressed: _saving ? null : _saveAllConfigs,
+            icon: const Icon(Icons.check_circle_outline_rounded),
+            label: const Text('Simpan Pengaturan Kas OSIS', style: TextStyle(fontWeight: FontWeight.bold)),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+          const SizedBox(height: 40),
+        ],
+      ),
+    );
+  }
 
   Widget _buildAccountsTab(ThemeData theme, bool isDark, Color primary) {
     return Column(

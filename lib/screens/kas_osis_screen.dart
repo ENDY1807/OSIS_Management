@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import '../models/models.dart';
 import '../services/data_service.dart';
 import '../services/auth_service.dart';
+import '../services/app_settings_service.dart';
 import '../widgets/nusantara_decorations.dart';
 
 class KasOsisScreen extends StatefulWidget {
@@ -48,14 +49,16 @@ class _KasOsisScreenState extends State<KasOsisScreen>
       NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
   final _dateFormat = DateFormat('EEEE, d MMMM yyyy', 'id_ID');
 
-  bool get _canEdit => !AuthService.isReadOnly(widget.username);
+  bool get _canAccess => AuthService.canAccessKasAndAbsensi(widget.username);
+  bool get _canEdit => _canAccess && !AuthService.isReadOnly(widget.username);
 
   bool get _isBendahara =>
-      widget.username == 'BENDAHARA' ||
-      widget.username == 'ADMIN' ||
-      widget.username == 'KETUA' ||
-      widget.username == 'WAKIL' ||
-      widget.username == 'PEMBINA';
+      _canAccess &&
+      (widget.username == 'BENDAHARA' ||
+          widget.username == 'ADMIN' ||
+          widget.username == 'KETUA' ||
+          widget.username.startsWith('WAKIL') ||
+          widget.username == 'PEMBINA');
 
   @override
   void initState() {
@@ -685,7 +688,9 @@ class _KasOsisScreenState extends State<KasOsisScreen>
     final judulCtrl = TextEditingController(
       text: 'Iuran Kas Bulan ${DateFormat('MMMM yyyy', 'id_ID').format(DateTime.now())}',
     );
-    final nominalCtrl = TextEditingController(text: '5000');
+    final nominalCtrl = TextEditingController(
+      text: AppSettingsService.kasDefaultIuranNotifier.value.toString(),
+    );
 
     showDialog(
       context: context,
@@ -963,11 +968,6 @@ class _KasOsisScreenState extends State<KasOsisScreen>
     final jenisCtrl = ValueNotifier<String>(initialJenis);
     final nominalCtrl = TextEditingController();
     final ketCtrl = TextEditingController();
-    final kategoriCtrl = TextEditingController(text: initialJenis == 'MASUK' ? 'Iuran Kas' : 'Konsumsi');
-
-    final nominalPresets = [5000, 10000, 25000, 50000, 100000, 250000];
-    final kategoriMasuk = ['Iuran Kas', 'Donasi / Sponsor', 'Penjualan Merchandise', 'Dana Sekolah', 'Lainnya'];
-    final kategoriKeluar = ['Konsumsi Rapat', 'ATK & Print', 'Perlengkapan Proker', 'Transportasi', 'Spanduk & Banner', 'Lainnya'];
 
     showDialog(
       context: context,
@@ -991,7 +991,6 @@ class _KasOsisScreenState extends State<KasOsisScreen>
               child: ValueListenableBuilder<String>(
                 valueListenable: jenisCtrl,
                 builder: (context, jenis, _) {
-                  final activeKategoriList = jenis == 'MASUK' ? kategoriMasuk : kategoriKeluar;
                   return Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1011,7 +1010,6 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                               onSelected: (val) {
                                 if (val) {
                                   jenisCtrl.value = 'MASUK';
-                                  kategoriCtrl.text = 'Iuran Kas';
                                   setDialogState(() {});
                                 }
                               },
@@ -1030,7 +1028,6 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                               onSelected: (val) {
                                 if (val) {
                                   jenisCtrl.value = 'KELUAR';
-                                  kategoriCtrl.text = 'Konsumsi Rapat';
                                   setDialogState(() {});
                                 }
                               },
@@ -1038,7 +1035,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                           ),
                         ],
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 16),
 
                       // Nominal
                       const Text('Nominal (Rp):', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
@@ -1054,62 +1051,21 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                           hintText: '0',
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 16),
 
-                      // Preset Nominal Chips
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 4,
-                        children: nominalPresets.map((nom) {
-                          return ActionChip(
-                            label: Text(
-                              _currencyFormat.format(nom),
-                              style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600),
-                            ),
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            onPressed: () {
-                              nominalCtrl.text = nom.toString();
-                            },
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 14),
-
-                      // Kategori Keperluan
-                      const Text('Kategori:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 4,
-                        children: activeKategoriList.map((kat) {
-                          final isSelected = kategoriCtrl.text == kat;
-                          return ChoiceChip(
-                            label: Text(kat, style: const TextStyle(fontSize: 11)),
-                            selected: isSelected,
-                            onSelected: (sel) {
-                              if (sel) {
-                                setDialogState(() {
-                                  kategoriCtrl.text = kat;
-                                });
-                              }
-                            },
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 14),
-
-                      // Keterangan / Keperluan
-                      const Text('Keterangan / Keperluan:',
+                      // Keterangan
+                      const Text('Keterangan:',
                           style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 6),
                       TextField(
                         controller: ketCtrl,
+                        maxLines: 2,
                         decoration: InputDecoration(
                           isDense: true,
                           border: const OutlineInputBorder(),
                           hintText: jenis == 'MASUK'
-                              ? 'Contoh: Kas iuran kegiatan LDKS'
-                              : 'Contoh: Beli konsumsi rapat pleno OSIS',
+                              ? 'Contoh: Iuran kas kegiatan OSIS'
+                              : 'Contoh: Pembelian konsumsi rapat OSIS',
                           hintStyle: const TextStyle(fontSize: 12),
                         ),
                       ),
@@ -1132,12 +1088,13 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                   }
                   if (ket.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Keterangan keperluan tidak boleh kosong!'), backgroundColor: Colors.orange),
+                      const SnackBar(content: Text('Keterangan tidak boleh kosong!'), backgroundColor: Colors.orange),
                     );
                     return;
                   }
 
                   Navigator.pop(ctx);
+                  final messenger = ScaffoldMessenger.of(context);
                   final trx = KasOsisTransaksi(
                     id: 'trx-${DateTime.now().millisecondsSinceEpoch}',
                     tanggal: DateTime.now(),
@@ -1145,7 +1102,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                     judul: ket,
                     nominal: nom,
                     keterangan: ket,
-                    kategori: kategoriCtrl.text.trim(),
+                    kategori: jenisCtrl.value == 'MASUK' ? 'Pemasukan' : 'Pengeluaran',
                     penanggungJawab: widget.username,
                   );
 
@@ -1153,7 +1110,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                   await _loadData();
 
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    messenger.showSnackBar(
                       SnackBar(
                         content: Text('Catatan ${trx.jenis == 'MASUK' ? 'Pemasukan' : 'Pengeluaran'} Rp $nom berhasil disimpan!'),
                         backgroundColor: const Color(0xFF059669),
@@ -1215,7 +1172,6 @@ class _KasOsisScreenState extends State<KasOsisScreen>
   void _tambahAnggotaManual() {
     final namaCtrl = TextEditingController();
     final kelasCtrl = TextEditingController(text: 'XI RPL 1');
-    final nisCtrl = TextEditingController();
     final jabatanCtrl = TextEditingController(text: 'Anggota OSIS');
 
     showDialog(
@@ -1245,37 +1201,15 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                 ),
               ),
               const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Kelas:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 6),
-                        TextField(
-                          controller: kelasCtrl,
-                          decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('NIS:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 6),
-                        TextField(
-                          controller: nisCtrl,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+              const Text('Kelas:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 6),
+              TextField(
+                controller: kelasCtrl,
+                decoration: const InputDecoration(
+                  isDense: true,
+                  border: OutlineInputBorder(),
+                  hintText: 'Contoh: XI RPL 1',
+                ),
               ),
               const SizedBox(height: 12),
               const Text('Jabatan / Sekbid:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
@@ -1303,7 +1237,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                 id: 'ang-${DateTime.now().millisecondsSinceEpoch}',
                 nama: nama,
                 kelas: kelasCtrl.text.trim(),
-                nis: nisCtrl.text.trim(),
+                nis: '-',
                 jabatan: jabatanCtrl.text.trim(),
               );
 
@@ -1324,6 +1258,85 @@ class _KasOsisScreenState extends State<KasOsisScreen>
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final primary = theme.colorScheme.primary;
+
+    if (!_canAccess) {
+      return Scaffold(
+        backgroundColor: isDark ? const Color(0xFF090D16) : const Color(0xFFF8FAFC),
+        body: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 480),
+            margin: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(20),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withAlpha(30),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.lock_person_rounded,
+                    color: Color(0xFFD97706),
+                    size: 48,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                const Text(
+                  'Akses Khusus 7 Inti & Pimpinan',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Pencatatan Kas & Absensi OSIS hanya dapat diakses oleh 7 Pengurus Inti & Pimpinan Sekolah:\n\n'
+                  '• Ketua OSIS\n'
+                  '• Wakil Ketua 1 & Wakil Ketua 2\n'
+                  '• Sekretaris (1 & 2)\n'
+                  '• Bendahara (1 & 2)\n'
+                  '• Admin & Kesiswaan\n'
+                  '• Pembina OSIS & Kepala Sekolah',
+                  style: TextStyle(
+                    fontSize: 13,
+                    height: 1.5,
+                    color: isDark ? Colors.white70 : const Color(0xFF475569),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    if (Navigator.canPop(context)) {
+                      Navigator.pop(context);
+                    }
+                  },
+                  icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                  label: const Text('Kembali'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF090D16) : const Color(0xFFF8FAFC),

@@ -100,7 +100,7 @@ class _KarakterSiswaScreenState extends State<KarakterSiswaScreen>
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.star_rounded, size: 17),
+                      Icon(Icons.volunteer_activism_rounded, size: 16),
                       SizedBox(width: 6),
                       Text('Catatan Kebaikan'),
                     ],

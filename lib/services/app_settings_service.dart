@@ -93,6 +93,9 @@ class AppSettingsService {
   static const _keyLaporanFields = 'cfg_laporan_fields';
   static const _keyPelanggaranFields = 'cfg_pelanggaran_fields';
   static const _keyRekapTypes = 'cfg_rekap_types';
+  static const _keyKasDefaultIuran = 'cfg_kas_default_iuran';
+  static const _keyKasTargetSaldo = 'cfg_kas_target_saldo';
+  static const _keyKasAturan = 'cfg_kas_aturan';
 
   // Rich, curated modern presets
   static const List<ThemePreset> presets = [
@@ -186,9 +189,12 @@ class AppSettingsService {
     'kelas',
     'siswa',
     'jenis',
-    'tingkat',
     'sp_level',
   ]);
+
+  static final ValueNotifier<int> kasDefaultIuranNotifier = ValueNotifier(5000);
+  static final ValueNotifier<int> kasTargetSaldoNotifier = ValueNotifier(1000000);
+  static final ValueNotifier<String> kasAturanNotifier = ValueNotifier('Uang kas wajib dibayarkan oleh seluruh pengurus OSIS setiap pertemuan.');
 
   static const _keyCustomFields = 'cfg_dynamic_custom_fields';
 
@@ -421,8 +427,37 @@ class AppSettingsService {
     // 6. Initialize Localization
     await LocalizationService.init();
 
+    // Kas OSIS Config
+    kasDefaultIuranNotifier.value = prefs.getInt(_keyKasDefaultIuran) ?? kasDefaultIuranNotifier.value;
+    kasTargetSaldoNotifier.value = prefs.getInt(_keyKasTargetSaldo) ?? kasTargetSaldoNotifier.value;
+    final savedKasAturan = prefs.getString(_keyKasAturan);
+    if (savedKasAturan != null && savedKasAturan.isNotEmpty) {
+      kasAturanNotifier.value = savedKasAturan;
+    }
+
     // 7. Sync from Cloud
     syncFromSupabase();
+  }
+
+  static Future<void> saveKasConfig({
+    int? defaultIuran,
+    int? targetSaldo,
+    String? aturan,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (defaultIuran != null) {
+      kasDefaultIuranNotifier.value = defaultIuran;
+      await prefs.setInt(_keyKasDefaultIuran, defaultIuran);
+    }
+    if (targetSaldo != null) {
+      kasTargetSaldoNotifier.value = targetSaldo;
+      await prefs.setInt(_keyKasTargetSaldo, targetSaldo);
+    }
+    if (aturan != null) {
+      kasAturanNotifier.value = aturan;
+      await prefs.setString(_keyKasAturan, aturan);
+    }
+    await _saveToSupabase();
   }
 
   static ThemeMode _stringToThemeMode(String mode) {

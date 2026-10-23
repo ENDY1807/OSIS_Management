@@ -390,6 +390,33 @@ class AuthService {
     return isKepalaSekolah(u) || isPembinaOrKesiswaan(u) || superRoles.contains(u) || superRoles.contains(r);
   }
 
+  /// Cek apakah pengguna berhak mengakses pencatatan Kas OSIS & Absensi OSIS:
+  /// Hanya 7 Inti / Pimpinan yang berhak:
+  /// Ketua, Wakil 1, Wakil 2, Sekretaris, Bendahara, Admin, Kesiswaan, Pembina OSIS, dan Kepala Sekolah.
+  static bool canAccessKasAndAbsensi(String username) {
+    if (username.isEmpty) return false;
+    final u = normalizeUsername(username);
+    final r = getRole(u).toUpperCase();
+
+    const allowed = {
+      'KETUA',
+      'WAKIL',
+      'WAKIL1',
+      'WAKIL2',
+      'SEKRETARIS',
+      'BENDAHARA',
+      'ADMIN',
+      'KESISWAAN',
+      'PEMBINA',
+      'KEPSEK',
+      'KEPALA_SEKOLAH',
+      'PRINCIPAL',
+    };
+    if (allowed.contains(u) || allowed.contains(r)) return true;
+    if (u.startsWith('WAKIL') || r.startsWith('WAKIL')) return true;
+    return false;
+  }
+
   /// Autentikasi user dengan pengecekan online Supabase + fallback offline cache.
   static Future<bool> authenticate(String username, String password) async {
     final uname = normalizeUsername(username);
