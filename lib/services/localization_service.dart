@@ -13,8 +13,8 @@ class LocalizationService {
   static final ValueNotifier<Locale> currentLocale = ValueNotifier(const Locale('id'));
 
   static const List<AppLanguage> allSupportedLanguages = [
-    AppLanguage(code: 'id', name: 'Bahasa Indonesia', flag: '🇮🇩'),
-    AppLanguage(code: 'en', name: 'English (US)', flag: '🇬🇧'),
+    AppLanguage(code: 'id', name: 'Bahasa Indonesia', flag: 'ID'),
+    AppLanguage(code: 'en', name: 'English (US)', flag: 'EN'),
   ];
 
   static const Map<String, Map<String, String>> _localizedValues = {

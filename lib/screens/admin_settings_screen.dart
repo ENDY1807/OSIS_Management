@@ -1073,7 +1073,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
                   if (currentFields.length > 1) ...[
                     const SizedBox(height: 2),
                     Text(
-                      'Tahan & geser ikon ☰ untuk mengatur urutan input',
+                      'Tahan & geser baris untuk mengatur urutan input',
                       style: TextStyle(
                           fontSize: 10,
                           color: _selectedAccent,

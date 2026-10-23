@@ -524,30 +524,30 @@ class _KasOsisScreenState extends State<KasOsisScreen>
     final belum = s.items.where((i) => !i.sudahBayar).toList();
 
     final buffer = StringBuffer();
-    buffer.writeln('📢 *REKAP KAS OSIS - ${s.judul.toUpperCase()}*');
-    buffer.writeln('📅 Tanggal: ${_dateFormat.format(s.tanggal)}');
-    buffer.writeln('💰 Iuran Wajib: ${_currencyFormat.format(s.nominalWajib)} / anggota');
-    buffer.writeln('💵 Terkumpul: *${_currencyFormat.format(s.totalTerkumpul)}* dari target ${_currencyFormat.format(s.totalTarget)} (${s.persentaseBayar.toStringAsFixed(1)}%)\n');
+    buffer.writeln('[REKAP KAS OSIS - ${s.judul.toUpperCase()}]');
+    buffer.writeln('Tanggal: ${_dateFormat.format(s.tanggal)}');
+    buffer.writeln('Iuran Wajib: ${_currencyFormat.format(s.nominalWajib)} / anggota');
+    buffer.writeln('Terkumpul: *${_currencyFormat.format(s.totalTerkumpul)}* dari target ${_currencyFormat.format(s.totalTarget)} (${s.persentaseBayar.toStringAsFixed(1)}%)\n');
 
-    buffer.writeln('✅ *SUDAH LUNAS (${lunas.length}/${s.items.length}):*');
+    buffer.writeln('[DAFTAR ANGGOTA SUDAH LUNAS (${lunas.length}/${s.items.length})]:');
     if (lunas.isEmpty) {
-      buffer.writeln('_(Belum ada yang bayar)_');
+      buffer.writeln('(Belum ada anggota yang membayar)');
     } else {
       for (int i = 0; i < lunas.length; i++) {
-        buffer.writeln('${i + 1}. ${lunas[i].nama} (${lunas[i].kelas}) - LUNAS');
+        buffer.writeln('${i + 1}. ${lunas[i].nama} (${lunas[i].kelas}) - [LUNAS]');
       }
     }
 
-    buffer.writeln('\n⏳ *BELUM MEMBAYAR (${belum.length}):*');
+    buffer.writeln('\n[DAFTAR ANGGOTA BELUM MEMBAYAR (${belum.length})]:');
     if (belum.isEmpty) {
-      buffer.writeln('_(Alhamdulillah semua anggota lunas 🎉)_');
+      buffer.writeln('(Semua anggota OSIS telah lunas)');
     } else {
       for (int i = 0; i < belum.length; i++) {
         buffer.writeln('${i + 1}. ${belum[i].nama} (${belum[i].kelas})');
       }
     }
 
-    buffer.writeln('\n_Pesan otomatis Sistem Kas OSIS Bakti Nusantara 666_');
+    buffer.writeln('\n_Sistem Kas OSIS SMK Bakti Nusantara 666_');
 
     SharePlus.instance.share(ShareParams(text: buffer.toString(), subject: 'Rekap Kas OSIS: ${s.judul}'));
   }
@@ -691,23 +691,16 @@ class _KasOsisScreenState extends State<KasOsisScreen>
     if (_selectedAbsensiSession == null) return;
     final s = _selectedAbsensiSession!;
     final buffer = StringBuffer();
-    buffer.writeln('📋 *PRESENSI KEGIATAN OSIS*');
-    buffer.writeln('📌 Kegiatan: *${s.namaKegiatan}*');
-    buffer.writeln('📅 Tanggal: ${_dateFormat.format(s.tanggal)}');
-    buffer.writeln('📍 Lokasi: ${s.lokasi}');
-    buffer.writeln('📊 Kehadiran: *${s.persentaseHadir.toStringAsFixed(1)}%* (Hadir: ${s.totalHadir}, Izin: ${s.totalIzin}, Sakit: ${s.totalSakit}, Alpa: ${s.totalAlpa})\n');
+    buffer.writeln('[PRESENSI KEGIATAN OSIS]');
+    buffer.writeln('Kegiatan: *${s.namaKegiatan}*');
+    buffer.writeln('Tanggal: ${_dateFormat.format(s.tanggal)}');
+    buffer.writeln('Lokasi: ${s.lokasi}');
+    buffer.writeln('Tingkat Kehadiran: *${s.persentaseHadir.toStringAsFixed(1)}%* (Hadir: ${s.totalHadir}, Izin: ${s.totalIzin}, Sakit: ${s.totalSakit}, Alpa: ${s.totalAlpa})\n');
 
-    buffer.writeln('👥 *RINCIAN ANGGOTA:*');
+    buffer.writeln('[RINCIAN KEHADIRAN ANGGOTA]:');
     for (int i = 0; i < s.items.length; i++) {
       final it = s.items[i];
-      final icon = it.status == 'Hadir'
-          ? '✅'
-          : it.status == 'Izin'
-              ? '🔵'
-              : it.status == 'Sakit'
-                  ? '🟡'
-                  : '❌';
-      buffer.writeln('${i + 1}. $icon ${it.nama} (${it.kelas} - ${it.jabatan}): *${it.status.toUpperCase()}*');
+      buffer.writeln('${i + 1}. [${it.status.toUpperCase()}] ${it.nama} (${it.kelas} - ${it.jabatan})');
     }
 
     buffer.writeln('\n_Dicatat melalui Jurnal OSIS Digital SMK Bakti Nusantara 666_');
@@ -965,9 +958,9 @@ class _KasOsisScreenState extends State<KasOsisScreen>
               children: [
                 Positioned.fill(
                   child: Opacity(
-                    opacity: isDark ? 0.04 : 0.06,
+                    opacity: isDark ? 0.06 : 0.08,
                     child: CustomPaint(
-                      painter: ModernKawungPainter(color: primary, scale: 28),
+                      painter: ModernMegaMendungPainter(color: NusantaraColors.gold, scale: 75),
                     ),
                   ),
                 ),
@@ -1052,8 +1045,8 @@ class _KasOsisScreenState extends State<KasOsisScreen>
 
     return Column(
       children: [
-        // Header Banner Tradisional Elegan
-        NusantaraHeaderBanner(
+        // Header Banner Tradisional Elegan Mega Mendung
+        MegaMendungHeroBanner(
           title: session.judul,
           subtitle: '${_currencyFormat.format(session.nominalWajib)} / anggota • ${_dateFormat.format(session.tanggal)}',
           icon: Icons.account_balance_wallet_rounded,
@@ -1093,7 +1086,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                   },
                   icon: const Icon(Icons.how_to_reg_rounded, size: 18),
                   label: const Text(
-                    '📋 Buka / Pasang Absensi OSIS',
+                    'Buka Presensi OSIS',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                   ),
                   style: ElevatedButton.styleFrom(
@@ -1119,7 +1112,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
         ),
 
         // Ringkasan Keuangan Sesi Kas
-        BatikCard(
+        MegaMendungCard(
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           padding: const EdgeInsets.all(14),
           child: Column(
@@ -1269,63 +1262,133 @@ class _KasOsisScreenState extends State<KasOsisScreen>
               : (isDark ? const Color(0xFF223048) : const Color(0xFFE2E8F0)),
           width: item.sudahBayar ? 1.5 : 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(isDark ? 25 : 6),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-        leading: CircleAvatar(
-          radius: 18,
-          backgroundColor: item.sudahBayar
-              ? const Color(0xFF10B981).withAlpha(40)
-              : Colors.grey.withAlpha(30),
-          child: Icon(
-            item.sudahBayar ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
-            color: item.sudahBayar ? const Color(0xFF10B981) : Colors.grey,
-            size: 20,
-          ),
-        ),
-        title: Text(
-          item.nama,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-            color: isDark ? Colors.white : Colors.black87,
-          ),
-        ),
-        subtitle: Wrap(
-          spacing: 6,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            Text(item.kelas, style: const TextStyle(fontSize: 11.5, color: Colors.grey)),
-            const Text('•', style: TextStyle(color: Colors.grey)),
-            Text(
-              item.jabatan,
-              style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: NusantaraColors.gold),
-            ),
-          ],
-        ),
-        trailing: InkWell(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
           onTap: () => _toggleBayarItem(item),
-          borderRadius: BorderRadius.circular(20),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: item.sudahBayar
-                  ? const Color(0xFF10B981).withAlpha(40)
-                  : Colors.red.withAlpha(25),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: item.sudahBayar
-                    ? const Color(0xFF10B981).withAlpha(140)
-                    : Colors.red.withAlpha(100),
-              ),
-            ),
-            child: Text(
-              item.sudahBayar ? 'Lunas' : 'Belum Bayar',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: item.sudahBayar ? const Color(0xFF10B981) : Colors.red,
-              ),
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 19,
+                  backgroundColor: item.sudahBayar
+                      ? const Color(0xFF10B981).withAlpha(35)
+                      : Colors.grey.withAlpha(25),
+                  child: Icon(
+                    item.sudahBayar ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                    color: item.sudahBayar ? const Color(0xFF10B981) : Colors.grey,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.nama,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 3),
+                      Wrap(
+                        spacing: 6,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+                                width: 0.8,
+                              ),
+                            ),
+                            child: Text(
+                              item.kelas,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? Colors.white70 : const Color(0xFF475569),
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: NusantaraColors.gold.withAlpha(isDark ? 35 : 20),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: NusantaraColors.gold.withAlpha(120),
+                                width: 0.8,
+                              ),
+                            ),
+                            child: Text(
+                              item.jabatan,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: isDark ? NusantaraColors.goldLight : NusantaraColors.goldDark,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5.5),
+                  decoration: BoxDecoration(
+                    color: item.sudahBayar
+                        ? const Color(0xFF10B981).withAlpha(isDark ? 40 : 25)
+                        : Colors.red.withAlpha(isDark ? 40 : 20),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: item.sudahBayar
+                          ? const Color(0xFF10B981).withAlpha(140)
+                          : Colors.red.withAlpha(120),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        item.sudahBayar ? Icons.check_rounded : Icons.pending_outlined,
+                        size: 13,
+                        color: item.sudahBayar ? const Color(0xFF10B981) : Colors.red,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        item.sudahBayar ? 'Lunas' : 'Belum Bayar',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.bold,
+                          color: item.sudahBayar ? const Color(0xFF10B981) : Colors.red,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -1378,8 +1441,8 @@ class _KasOsisScreenState extends State<KasOsisScreen>
 
     return Column(
       children: [
-        // Header Banner Presensi Rapat
-        NusantaraHeaderBanner(
+        // Header Banner Presensi Rapat Mega Mendung
+        MegaMendungHeroBanner(
           title: session.namaKegiatan,
           subtitle: '${_dateFormat.format(session.tanggal)} • Lokasi: ${session.lokasi}',
           icon: Icons.how_to_reg_rounded,
@@ -1419,7 +1482,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                   },
                   icon: const Icon(Icons.account_balance_wallet_rounded, size: 18),
                   label: const Text(
-                    '💰 Beralih ke Ceklis Kas OSIS',
+                    'Beralih ke Ceklis Kas OSIS',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                   ),
                   style: ElevatedButton.styleFrom(
@@ -1445,7 +1508,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
         ),
 
         // Sesi Dropdown & Ringkasan Chip Kehadiran
-        BatikCard(
+        MegaMendungCard(
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           padding: const EdgeInsets.all(14),
           child: Column(
@@ -1590,113 +1653,227 @@ class _KasOsisScreenState extends State<KasOsisScreen>
   ) {
     const statuses = ['Hadir', 'Izin', 'Sakit', 'Alpa'];
     final colors = {
-      'Hadir': const Color(0xFF10B981),
-      'Izin': const Color(0xFF3B82F6),
-      'Sakit': const Color(0xFFF59E0B),
-      'Alpa': const Color(0xFFEF4444),
+      'Hadir': const Color(0xFF059669),
+      'Izin': const Color(0xFF0284C7),
+      'Sakit': const Color(0xFFD97706),
+      'Alpa': const Color(0xFFDC2626),
+    };
+    final statusIcons = {
+      'Hadir': Icons.check_rounded,
+      'Izin': Icons.article_outlined,
+      'Sakit': Icons.healing_outlined,
+      'Alpa': Icons.close_rounded,
     };
 
     final activeColor = colors[item.status] ?? Colors.grey;
+    final activeIcon = statusIcons[item.status] ?? Icons.help_outline;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF131B2A) : Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: activeColor.withAlpha(100),
+          color: activeColor.withAlpha(120),
           width: 1.2,
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 17,
-                backgroundColor: activeColor.withAlpha(35),
-                child: Text(
-                  item.status[0],
-                  style: TextStyle(fontWeight: FontWeight.bold, color: activeColor, fontSize: 13),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // NAMA SISWA SEBAGAI JUDUL UTAMA
-                    Text(
-                      item.nama,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                    ),
-                    const SizedBox(height: 2),
-                    Wrap(
-                      spacing: 6,
-                      children: [
-                        Text(item.kelas, style: const TextStyle(fontSize: 11.5, color: Colors.grey)),
-                        const Text('•', style: TextStyle(color: Colors.grey)),
-                        Text(
-                          item.jabatan,
-                          style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: NusantaraColors.gold),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(isDark ? 25 : 6),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
           ),
-          const SizedBox(height: 10),
-
-          // Tombol Interaktif Presensi (H, I, S, A)
-          Row(
-            children: statuses.map((st) {
-              final isSelected = item.status == st;
-              final col = colors[st]!;
-
-              return Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 3),
-                  child: InkWell(
-                    onTap: !_canEdit
-                        ? null
-                        : () {
-                            setState(() {
-                              item.status = st;
-                            });
-                            _simpanAbsensiSession(showToast: false);
-                          },
-                    borderRadius: BorderRadius.circular(8),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 7),
-                      decoration: BoxDecoration(
-                        color: isSelected ? col : col.withAlpha(isDark ? 25 : 15),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: isSelected ? col : col.withAlpha(60),
-                          width: 1,
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 19,
+                  backgroundColor: NusantaraColors.batikNavy.withAlpha(isDark ? 50 : 25),
+                  child: Text(
+                    item.nama.isNotEmpty ? item.nama[0] : 'S',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: NusantaraColors.batikNavy,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // NAMA SISWA UTAMA
+                      Text(
+                        item.nama,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 3),
+                      Wrap(
+                        spacing: 6,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+                                width: 0.8,
+                              ),
+                            ),
+                            child: Text(
+                              item.kelas,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? Colors.white70 : const Color(0xFF475569),
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: NusantaraColors.gold.withAlpha(isDark ? 35 : 20),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: NusantaraColors.gold.withAlpha(120),
+                                width: 0.8,
+                              ),
+                            ),
+                            child: Text(
+                              item.jabatan,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: isDark ? NusantaraColors.goldLight : NusantaraColors.goldDark,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Status Badge Aktif
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: activeColor.withAlpha(isDark ? 40 : 25),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: activeColor.withAlpha(130), width: 1),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(activeIcon, size: 13, color: activeColor),
+                      const SizedBox(width: 4),
+                      Text(
+                        item.status,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: activeColor,
                         ),
                       ),
-                      child: Center(
-                        child: Text(
-                          st,
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.bold,
-                            color: isSelected ? Colors.white : col,
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // Segmented Status Selector: H, I, S, A
+            Container(
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+                ),
+              ),
+              padding: const EdgeInsets.all(3),
+              child: Row(
+                children: statuses.map((st) {
+                  final isSelected = item.status == st;
+                  final col = colors[st]!;
+                  final icon = statusIcons[st]!;
+
+                  return Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 1.5),
+                      child: InkWell(
+                        onTap: !_canEdit
+                            ? null
+                            : () {
+                                setState(() {
+                                  item.status = st;
+                                });
+                                _simpanAbsensiSession(showToast: false);
+                              },
+                        borderRadius: BorderRadius.circular(8),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 180),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isSelected ? col : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: isSelected
+                                ? [
+                                    BoxShadow(
+                                      color: col.withAlpha(80),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 1.5),
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                icon,
+                                size: 13,
+                                color: isSelected
+                                    ? Colors.white
+                                    : (isDark ? Colors.white60 : const Color(0xFF475569)),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                st,
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                                  color: isSelected
+                                      ? Colors.white
+                                      : (isDark ? Colors.white70 : const Color(0xFF334155)),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1725,7 +1902,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Banner Saldo Kas Utama
-          BatikCard(
+          MegaMendungCard(
             padding: const EdgeInsets.all(18),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1858,7 +2035,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
   Widget _buildTabAnggota(ThemeData theme, bool isDark, Color primary) {
     return Column(
       children: [
-        NusantaraHeaderBanner(
+        MegaMendungHeroBanner(
           title: 'Daftar Anggota & Pengurus OSIS',
           subtitle: 'Total ${_anggotaList.length} siswa resmi terdaftar dalam kepengurusan OSIS',
           icon: Icons.groups_rounded,
@@ -1886,9 +2063,9 @@ class _KasOsisScreenState extends State<KasOsisScreen>
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           child: ElevatedButton.icon(
             onPressed: _pickAndImportExcel,
-            icon: const Icon(Icons.table_view_rounded, size: 18),
+            icon: const Icon(Icons.upload_file_rounded, size: 18),
             label: const Text(
-              '📥 Impor File Excel Daftar Anggota OSIS',
+              'Impor Anggota dari File Excel',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
             ),
             style: ElevatedButton.styleFrom(

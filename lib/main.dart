@@ -336,7 +336,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: Text(
-                                LocalizationService.currentLocale.value.languageCode == 'id' ? '🇮🇩 ID' : '🇬🇧 EN',
+                                LocalizationService.currentLocale.value.languageCode == 'id' ? 'ID' : 'EN',
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
@@ -399,9 +399,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ),
             ),
             child: CustomPaint(
-              painter: ModernKawungPainter(
-                color: isDark ? Colors.white.withAlpha(10) : Colors.white.withAlpha(25),
-                scale: 30.0,
+              painter: ModernMegaMendungPainter(
+                color: NusantaraColors.gold.withAlpha(isDark ? 30 : 45),
+                scale: 75.0,
               ),
             ),
           ),

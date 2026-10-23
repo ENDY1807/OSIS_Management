@@ -349,7 +349,25 @@ class _UserSettingsSheetState extends State<UserSettingsSheet> {
                                 if (i > 0)
                                   Divider(height: 1, color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0)),
                                 ListTile(
-                                  leading: Text(listToShow[i].flag, style: const TextStyle(fontSize: 20)),
+                                  leading: Container(
+                                    width: 34,
+                                    height: 34,
+                                    decoration: BoxDecoration(
+                                      color: primary.withAlpha(25),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: primary.withAlpha(70)),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        listToShow[i].flag,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                          color: primary,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                                   title: Text(listToShow[i].name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                                   trailing: currentLocale.languageCode == listToShow[i].code
                                       ? Icon(Icons.check_circle_rounded, color: primary, size: 20)

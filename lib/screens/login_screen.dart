@@ -99,9 +99,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             children: [
               Positioned.fill(
                 child: CustomPaint(
-                  painter: ModernKawungPainter(
-                    color: isDark ? Colors.white.withAlpha(8) : Colors.white.withAlpha(20),
-                    scale: 36.0,
+                  painter: ModernMegaMendungPainter(
+                    color: isDark ? NusantaraColors.gold.withAlpha(20) : Colors.white.withAlpha(30),
+                    scale: 90.0,
                   ),
                 ),
               ),
@@ -222,7 +222,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                           borderRadius: BorderRadius.circular(20),
                                         ),
                                         child: Text(
-                                          LocalizationService.currentLocale.value.languageCode == 'id' ? '🇮🇩 ID' : '🇬🇧 EN',
+                                          LocalizationService.currentLocale.value.languageCode == 'id' ? 'ID' : 'EN',
                                           style: TextStyle(
                                             color: isDark ? Colors.white70 : const Color(0xFF334155),
                                             fontSize: 12,
@@ -362,9 +362,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             child: Opacity(
               opacity: isDark ? 0.04 : 0.07,
               child: CustomPaint(
-                painter: ModernKawungPainter(
-                  color: Colors.white,
-                  scale: 46.0,
+                painter: ModernMegaMendungPainter(
+                  color: isDark ? NusantaraColors.gold : Colors.white,
+                  scale: 85.0,
                 ),
               ),
             ),
@@ -398,7 +398,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  LocalizationService.currentLocale.value.languageCode == 'id' ? '🇮🇩 ID' : '🇬🇧 EN',
+                                  LocalizationService.currentLocale.value.languageCode == 'id' ? 'ID' : 'EN',
                                   style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                                 ),
                               ],

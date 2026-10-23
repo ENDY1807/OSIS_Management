@@ -503,3 +503,413 @@ class NusantaraBadge extends StatelessWidget {
     );
   }
 }
+
+/// Custom Painter motif Batik Mega Mendung Tradisional Modern khas Cirebon.
+/// Karakteristik awan bergradasi horisontal dengan lengkungan bertingkat
+/// dan ujung meruncing lancip halus yang melambangkan ketenangan batin,
+/// kesabaran, serta kepemimpinan yang mengayomi seluruh lapisan.
+class ModernMegaMendungPainter extends CustomPainter {
+  final Color color;
+  final double scale;
+  final bool fillMode;
+
+  const ModernMegaMendungPainter({
+    required this.color,
+    this.scale = 90.0,
+    this.fillMode = false,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final strokePaint = Paint()
+      ..color = color
+      ..style = fillMode ? PaintingStyle.fill : PaintingStyle.stroke
+      ..strokeWidth = 1.1
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    final innerStroke = Paint()
+      ..color = color.withValues(alpha: (color.a * 0.7).clamp(0.0, 1.0))
+      ..style = fillMode ? PaintingStyle.fill : PaintingStyle.stroke
+      ..strokeWidth = 0.8;
+
+    final coreStroke = Paint()
+      ..color = color.withValues(alpha: (color.a * 0.45).clamp(0.0, 1.0))
+      ..style = fillMode ? PaintingStyle.fill : PaintingStyle.stroke
+      ..strokeWidth = 0.7;
+
+    final dotPaint = Paint()
+      ..color = color.withValues(alpha: (color.a * 0.85).clamp(0.0, 1.0))
+      ..style = PaintingStyle.fill;
+
+    final w = scale;
+    final h = scale * 0.48;
+    final stepX = w * 0.9;
+    final stepY = h * 1.35;
+
+    int row = 0;
+    for (double y = -h * 0.5; y < size.height + h; y += stepY) {
+      final offsetX = (row % 2 == 1) ? stepX * 0.5 : 0.0;
+      for (double x = -w * 0.5 + offsetX; x < size.width + w; x += stepX) {
+        _drawMegaMendungCloud(canvas, x, y, w, h, strokePaint, innerStroke, coreStroke, dotPaint);
+      }
+      row++;
+    }
+  }
+
+  void _drawMegaMendungCloud(
+    Canvas canvas,
+    double x,
+    double y,
+    double w,
+    double h,
+    Paint outerPaint,
+    Paint middlePaint,
+    Paint innerPaint,
+    Paint dotPaint,
+  ) {
+    // Layer 1: Siluet Awan Luar Mega Mendung
+    final outerPath = _createCloudPath(x, y, w, h);
+    canvas.drawPath(outerPath, outerPaint);
+
+    // Layer 2: Awan Tingkat Kedua (Konsentris Mengecil ke Pusat)
+    final midW = w * 0.72;
+    final midH = h * 0.72;
+    final midX = x + (w - midW) * 0.35;
+    final midY = y + (h - midH) * 0.45;
+    final midPath = _createCloudPath(midX, midY, midW, midH);
+    canvas.drawPath(midPath, middlePaint);
+
+    // Layer 3: Inti Awan (Pusat Awan Mega Mendung)
+    final inW = w * 0.44;
+    final inH = h * 0.44;
+    final inX = x + (w - inW) * 0.38;
+    final inY = y + (h - inH) * 0.50;
+    final inPath = _createCloudPath(inX, inY, inW, inH);
+    canvas.drawPath(inPath, innerPaint);
+
+    // Isen-isen batik cecek (titisan hujan / aksen tradisional)
+    canvas.drawCircle(Offset(x + w * 0.92, y + h * 0.48), 1.2, dotPaint);
+    canvas.drawCircle(Offset(x + w * 0.46, y + h * 0.22), 1.0, dotPaint);
+  }
+
+  Path _createCloudPath(double x, double y, double w, double h) {
+    final p = Path();
+    // Titik awal dari pangkal kiri
+    p.moveTo(x + w * 0.05, y + h * 0.65);
+
+    // Lengkungan dasar mengalir ke kanan bawah
+    p.cubicTo(
+      x + w * 0.28, y + h * 0.88,
+      x + w * 0.60, y + h * 0.82,
+      x + w * 0.94, y + h * 0.52, // Ujung lancip khas Mega Mendung
+    );
+
+    // Lekukan tirus balik di ujung horizontal
+    p.quadraticBezierTo(
+      x + w * 0.99, y + h * 0.42,
+      x + w * 0.82, y + h * 0.38,
+    );
+
+    // Punggung kubah awan tengah
+    p.cubicTo(
+      x + w * 0.68, y + h * 0.12,
+      x + w * 0.42, y + h * 0.08,
+      x + w * 0.30, y + h * 0.28,
+    );
+
+    // Kubah awan pangkal kiri
+    p.cubicTo(
+      x + w * 0.18, y + h * 0.16,
+      x + w * 0.02, y + h * 0.32,
+      x + w * 0.05, y + h * 0.65,
+    );
+
+    p.close();
+    return p;
+  }
+
+  @override
+  bool shouldRepaint(covariant ModernMegaMendungPainter oldDelegate) =>
+      oldDelegate.color != color ||
+      oldDelegate.scale != scale ||
+      oldDelegate.fillMode != fillMode;
+}
+
+/// Hero Banner Mega Mendung Elegan Berestetika Tinggi (Human-Crafted).
+/// Desain modern, bersih, bebas dari tabrakan layout, dengan ornamen Cirebon.
+class MegaMendungHeroBanner extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final String? badgeText;
+  final Widget? trailing;
+  final Color? accentColor;
+  final double height;
+
+  const MegaMendungHeroBanner({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    this.badgeText,
+    this.trailing,
+    this.accentColor,
+    this.height = 100,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final accent = accentColor ?? NusantaraColors.gold;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isDark
+              ? [
+                  const Color(0xFF0F172A),
+                  const Color(0xFF1E293B),
+                ]
+              : [
+                  const Color(0xFF0F172A),
+                  const Color(0xFF1E3A8A),
+                ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: accent.withAlpha(120),
+          width: 1.1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(isDark ? 50 : 20),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          // Background Motif Mega Mendung
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.14,
+              child: CustomPaint(
+                painter: ModernMegaMendungPainter(
+                  color: accent,
+                  scale: 110,
+                ),
+              ),
+            ),
+          ),
+
+          // Aksen Garis Emas Puncak
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 2.5,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    accent.withAlpha(50),
+                    accent,
+                    NusantaraColors.goldLight,
+                    accent.withAlpha(50),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // Konten Banner
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                // Icon Avatar Ornamen
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(20),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: accent.withAlpha(150),
+                      width: 1.2,
+                    ),
+                  ),
+                  child: Center(
+                    child: Icon(icon, color: accent, size: 26),
+                  ),
+                ),
+                const SizedBox(width: 14),
+
+                // Judul & Keterangan
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (badgeText != null && badgeText!.isNotEmpty) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          margin: const EdgeInsets.only(bottom: 4),
+                          decoration: BoxDecoration(
+                            color: accent.withAlpha(45),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: accent.withAlpha(140), width: 0.8),
+                          ),
+                          child: Text(
+                            badgeText!.toUpperCase(),
+                            style: const TextStyle(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w800,
+                              color: NusantaraColors.goldLight,
+                              letterSpacing: 0.6,
+                            ),
+                          ),
+                        ),
+                      ],
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          letterSpacing: 0.2,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFFCBD5E1),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+
+                if (trailing != null) ...[
+                  const SizedBox(width: 8),
+                  trailing!,
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Kartu Mega Mendung Modern dengan Struktur Rapi & Spacing Human-Centric
+class MegaMendungCard extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry? padding;
+  final EdgeInsetsGeometry? margin;
+  final VoidCallback? onTap;
+  final Color? borderColor;
+  final Color? backgroundColor;
+  final bool showPattern;
+
+  const MegaMendungCard({
+    super.key,
+    required this.child,
+    this.padding,
+    this.margin,
+    this.onTap,
+    this.borderColor,
+    this.backgroundColor,
+    this.showPattern = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final bg = backgroundColor ?? (isDark ? const Color(0xFF131B2A) : Colors.white);
+    final border = borderColor ?? (isDark ? const Color(0xFF223048) : const Color(0xFFE2E8F0));
+
+    Widget content = Container(
+      margin: margin,
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: border, width: 1.1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(isDark ? 30 : 6),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          if (showPattern)
+            Positioned(
+              right: -30,
+              top: -15,
+              width: 180,
+              height: 120,
+              child: Opacity(
+                opacity: isDark ? 0.05 : 0.04,
+                child: CustomPaint(
+                  painter: ModernMegaMendungPainter(
+                    color: NusantaraColors.gold,
+                    scale: 75,
+                  ),
+                ),
+              ),
+            ),
+          // Aksen Emas Lembut di Kiri
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: 3.5,
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [NusantaraColors.gold, NusantaraColors.batikNavy],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: padding ?? const EdgeInsets.all(16),
+            child: child,
+          ),
+        ],
+      ),
+    );
+
+    if (onTap != null) {
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: content,
+      );
+    }
+    return content;
+  }
+}
+

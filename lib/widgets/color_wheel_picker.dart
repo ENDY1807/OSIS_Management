@@ -124,13 +124,20 @@ class _ColorWheelPickerState extends State<ColorWheelPicker> {
           ),
         ),
         const SizedBox(height: 10),
-        Text(
-          '💡 Putar atau geser roda warna untuk memilih corak',
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
-            color: isDark ? Colors.white60 : Colors.black54,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.touch_app_rounded, size: 14, color: isDark ? Colors.white60 : Colors.black54),
+            const SizedBox(width: 6),
+            Text(
+              'Putar atau geser roda warna untuk memilih corak',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: isDark ? Colors.white60 : Colors.black54,
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 16),
 
