@@ -512,12 +512,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 ),
               ),
             ),
-            child: CustomPaint(
-              painter: ModernMegaMendungPainter(
-                color: NusantaraColors.gold.withAlpha(isDark ? 30 : 45),
-                scale: 75.0,
-              ),
-            ),
           ),
           title: Row(
             children: [

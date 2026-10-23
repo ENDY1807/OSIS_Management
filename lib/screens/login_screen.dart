@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../services/app_settings_service.dart';
 import '../services/localization_service.dart';
-import '../widgets/nusantara_decorations.dart';
 import '../main.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -97,14 +96,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           ),
           child: Stack(
             children: [
-              Positioned.fill(
-                child: CustomPaint(
-                  painter: ModernMegaMendungPainter(
-                    color: isDark ? NusantaraColors.gold.withAlpha(20) : Colors.white.withAlpha(30),
-                    scale: 90.0,
-                  ),
-                ),
-              ),
               Center(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(24),
@@ -355,17 +346,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                     : [primary, primary.withAlpha(200)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-              ),
-            ),
-          ),
-          Positioned.fill(
-            child: Opacity(
-              opacity: isDark ? 0.04 : 0.07,
-              child: CustomPaint(
-                painter: ModernMegaMendungPainter(
-                  color: isDark ? NusantaraColors.gold : Colors.white,
-                  scale: 85.0,
-                ),
               ),
             ),
           ),
