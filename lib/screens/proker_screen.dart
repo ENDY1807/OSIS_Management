@@ -35,13 +35,6 @@ class _ProkerScreenState extends State<ProkerScreen>
     return AuthService.isSuperStaff(_currentUser);
   }
 
-  /// Cek apakah pengguna berhak mengesahkan proker (Kepala Sekolah, Pembina, Admin, Ketua OSIS, Pengurus Inti)
-  bool get _canApproveProker =>
-      !_isReadOnly &&
-      (AuthService.hasExecutiveAccess(_currentUser) ||
-          AuthService.isPembinaOrKesiswaan(_currentUser) ||
-          AuthService.isSuperStaff(_currentUser));
-
   bool get _canCreateProker => !_isReadOnly;
 
   /// Normalisasi status agar selalu selaras antara database, form, dan tab
@@ -548,116 +541,6 @@ class _ProkerScreenState extends State<ProkerScreen>
     );
   }
 
-  /// Dialog Pengesahan / Disposisi Resmi oleh Kepala Sekolah
-  Future<void> _showApprovalDialog(Proker p) async {
-    final catatanCtrl = TextEditingController(text: p.catatanKepsek);
-    final bool newDisahkanState = !p.disahkanKepsek;
-
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setD) {
-          final isDark = Theme.of(ctx).brightness == Brightness.dark;
-          return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: Row(
-              children: [
-                Icon(
-                  newDisahkanState ? Icons.verified_rounded : Icons.highlight_off_rounded,
-                  color: newDisahkanState ? const Color(0xFF10B981) : Colors.orange,
-                  size: 26,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    newDisahkanState ? 'Pengesahan Kepala Sekolah' : 'Batalkan Pengesahan Proker',
-                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
-            ),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1B2433) : const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(p.nama, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                        const SizedBox(height: 4),
-                        Text('Divisi: ${AuthService.getDisplayName(p.sekbid)} • PJ: ${p.penanggungJawab}',
-                            style: TextStyle(fontSize: 12, color: isDark ? Colors.white60 : Colors.black54)),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    newDisahkanState
-                        ? 'Sebagai Kepala Sekolah, Anda akan memberikan status Pengesahan Resmi pada program kerja ini.'
-                        : 'Apakah Anda yakin ingin membatalkan status pengesahan resmi proker ini?',
-                    style: TextStyle(fontSize: 12.5, color: isDark ? Colors.white70 : Colors.black87),
-                  ),
-                  const SizedBox(height: 14),
-                  if (newDisahkanState)
-                    TextField(
-                      controller: catatanCtrl,
-                      maxLines: 2,
-                      decoration: InputDecoration(
-                        labelText: 'Catatan / Arahan Disposisi Kepala Sekolah',
-                        hintText: 'Contoh: Disetujui, laksanakan sesuai jadwal.',
-                        prefixIcon: const Icon(Icons.rate_review_outlined, color: kAccent),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: Text(LocalizationService.tr('btn_cancel')),
-              ),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: newDisahkanState ? const Color(0xFF10B981) : Colors.redAccent,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-                icon: Icon(newDisahkanState ? Icons.check_circle_rounded : Icons.close_rounded, size: 16),
-                label: Text(newDisahkanState ? 'Sahkan Resmi' : 'Batalkan Status'),
-                onPressed: () => Navigator.pop(ctx, true),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-
-    if (result == true) {
-      await DataService.setApprovalProkerKepsek(
-        p.id,
-        disahkan: newDisahkanState,
-        catatan: newDisahkanState ? catatanCtrl.text.trim() : '',
-      );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(newDisahkanState
-              ? 'Proker "${p.nama}" berhasil disahkan secara resmi oleh Kepala Sekolah!'
-              : 'Status pengesahan proker "${p.nama}" telah dicabut.'),
-          backgroundColor: newDisahkanState ? const Color(0xFF10B981) : Colors.orange,
-        ));
-      }
-      _load();
-    }
-  }
-
   Widget _buildProkerCard(Proker p) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -835,29 +718,6 @@ class _ProkerScreenState extends State<ProkerScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                if (_canApproveProker) ...[
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: p.disahkanKepsek ? const Color(0xFF10B981) : const Color(0xFFD97706),
-                      side: BorderSide(
-                        color: p.disahkanKepsek ? const Color(0xFF10B981) : const Color(0xFFD97706),
-                        width: 1.2,
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                    icon: Icon(
-                      p.disahkanKepsek ? Icons.verified_rounded : Icons.gavel_rounded,
-                      size: 16,
-                    ),
-                    label: Text(
-                      p.disahkanKepsek ? 'Disahkan (Ubah)' : 'Sahkan Proker',
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                    ),
-                    onPressed: () => _showApprovalDialog(p),
-                  ),
-                  const SizedBox(width: 6),
-                ],
                 if (_canEditProker(p)) ...[
                   TextButton.icon(
                     style: TextButton.styleFrom(
