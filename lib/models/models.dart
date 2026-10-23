@@ -579,6 +579,9 @@ class KasOsisSession {
 
   int get jumlahSudahBayar => items.where((i) => i.sudahBayar).length;
   int get jumlahBelumBayar => items.where((i) => !i.sudahBayar).length;
+  int get totalTarget => items.length * nominalWajib;
+  int get totalLunas => jumlahSudahBayar;
+  double get persentaseBayar => items.isEmpty ? 0.0 : (jumlahSudahBayar / items.length) * 100.0;
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -711,6 +714,7 @@ class AbsensiOsisSession {
   int get totalIzin  => items.where((i) => i.status == 'Izin').length;
   int get totalSakit => items.where((i) => i.status == 'Sakit').length;
   int get totalAlpa  => items.where((i) => i.status == 'Alpa').length;
+  double get persentaseHadir => items.isEmpty ? 0.0 : (totalHadir / items.length) * 100.0;
 
   Map<String, dynamic> toJson() => {
     'id': id,

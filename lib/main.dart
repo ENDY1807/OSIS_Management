@@ -300,8 +300,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         color: isDark ? const Color(0xFF0F172A) : Colors.white,
                         border: Border(
                           bottom: BorderSide(
-                            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
-                            width: 1,
+                            color: NusantaraColors.gold.withAlpha(isDark ? 80 : 120),
+                            width: 1.5,
                           ),
                         ),
                       ),
@@ -393,14 +393,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ),
               border: Border(
                 bottom: BorderSide(
-                  color: isDark ? const Color(0xFF263348) : Colors.transparent,
-                  width: 1,
+                  color: NusantaraColors.gold.withAlpha(160),
+                  width: 2,
                 ),
               ),
             ),
             child: CustomPaint(
               painter: ModernKawungPainter(
-                color: isDark ? Colors.white.withAlpha(8) : Colors.white.withAlpha(22),
+                color: isDark ? Colors.white.withAlpha(10) : Colors.white.withAlpha(25),
                 scale: 30.0,
               ),
             ),

@@ -1,11 +1,12 @@
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/models.dart';
 import '../services/data_service.dart';
 import '../services/auth_service.dart';
-import '../services/notification_service.dart';
 import '../widgets/nusantara_decorations.dart';
 
 class KasOsisScreen extends StatefulWidget {
@@ -43,8 +44,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
       NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
   final _dateFormat = DateFormat('EEEE, d MMMM yyyy', 'id_ID');
 
-  bool get _canEdit =>
-      !AuthService.isReadOnly(widget.username);
+  bool get _canEdit => !AuthService.isReadOnly(widget.username);
 
   bool get _isBendahara =>
       widget.username == 'BENDAHARA' ||
@@ -127,6 +127,240 @@ class _KasOsisScreenState extends State<KasOsisScreen>
     }
   }
 
+  // ── FITUR IMPOR EXCEL KHUSUS OSIS ──────────────────────────────────────────
+
+  Future<void> _pickAndImportExcel() async {
+    try {
+      final result = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['xlsx', 'xls'],
+      );
+      if (result == null || result.files.isEmpty) return;
+      final file = result.files.single;
+      final rawBytes = await file.readAsBytes();
+
+      if (rawBytes.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('File Excel kosong atau tidak terbaca.'), backgroundColor: Colors.red),
+          );
+        }
+        return;
+      }
+
+      if (!mounted) return;
+      _showImportOptionsSheet(rawBytes, file.name);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Terjadi kesalahan impor Excel: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  void _showImportOptionsSheet(Uint8List bytes, String fileName) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primary = theme.colorScheme.primary;
+
+    final namaKegiatanCtrl = TextEditingController(
+      text: 'Presensi Rapat OSIS ${DateFormat('d MMM yyyy', 'id_ID').format(DateTime.now())}',
+    );
+    final lokasiCtrl = TextEditingController(text: 'Ruang OSIS');
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF111827) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            boxShadow: const [
+              BoxShadow(color: Colors.black26, blurRadius: 20, offset: Offset(0, -4)),
+            ],
+          ),
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 48,
+                  height: 4.5,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withAlpha(100),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: NusantaraColors.gold.withAlpha(40),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: NusantaraColors.gold.withAlpha(120)),
+                    ),
+                    child: const Icon(Icons.table_view_rounded, color: NusantaraColors.gold, size: 24),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Impor File Excel OSIS',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          fileName,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? Colors.white60 : Colors.black54,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Nama Kegiatan / Rapat Sesi Absensi:',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: namaKegiatanCtrl,
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        hintText: 'Contoh: Rapat Pleno OSIS',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    const Text('Lokasi Kegiatan:',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: lokasiCtrl,
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        hintText: 'Contoh: Ruang OSIS / Aula',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Tombol Pilihan 1: Buat Sesi Absensi & Update Anggota
+              ElevatedButton.icon(
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  setState(() => _loading = true);
+                  final session = await DataService.importAbsensiOsisFromExcel(
+                    bytes,
+                    namaKegiatan: namaKegiatanCtrl.text.trim().isNotEmpty
+                        ? namaKegiatanCtrl.text.trim()
+                        : 'Sesi Absensi OSIS',
+                    lokasi: lokasiCtrl.text.trim().isNotEmpty ? lokasiCtrl.text.trim() : 'Ruang OSIS',
+                  );
+                  await _loadData();
+                  if (session != null) {
+                    setState(() {
+                      _selectedAbsensiSession = session;
+                      _tabCtrl.animateTo(1); // Langsung pindah ke tab Absensi
+                    });
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Berhasil membuat sesi absensi dengan ${session.items.length} anggota OSIS dari Excel!',
+                          ),
+                          backgroundColor: const Color(0xFF059669),
+                        ),
+                      );
+                    }
+                  } else {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Tidak ada data anggota yang terbaca di file Excel ini.'),
+                          backgroundColor: Colors.orange,
+                        ),
+                      );
+                    }
+                  }
+                },
+                icon: const Icon(Icons.playlist_add_check_rounded, color: Colors.white),
+                label: const Text('Buat Sesi Absensi Baru dari Excel Ini',
+                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primary,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              // Tombol Pilihan 2: Perbarui Daftar Anggota OSIS Saja
+              OutlinedButton.icon(
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  setState(() => _loading = true);
+                  final imported = await DataService.importAnggotaOsisFromExcel(bytes);
+                  await _loadData();
+                  setState(() {
+                    _tabCtrl.animateTo(3); // Pindah ke tab Anggota OSIS
+                  });
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Berhasil mengimpor ${imported.length} anggota OSIS ke sistem!'),
+                        backgroundColor: const Color(0xFF059669),
+                      ),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.people_outline_rounded),
+                label: const Text('Perbarui Daftar Anggota OSIS Saja'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   // ── Actions Kas OSIS ────────────────────────────────────────────────────────
 
   void _centangSemuaKas(bool sudahBayar) {
@@ -182,151 +416,140 @@ class _KasOsisScreenState extends State<KasOsisScreen>
     }
   }
 
+  void _toggleBayarItem(KasOsisItem item) {
+    if (!_canEdit) return;
+    setState(() {
+      item.sudahBayar = !item.sudahBayar;
+      if (item.sudahBayar) {
+        item.nominalBayar = _selectedKasSession?.nominalWajib ?? 5000;
+        item.tanggalBayar = DateTime.now();
+      } else {
+        item.nominalBayar = 0;
+        item.tanggalBayar = null;
+      }
+    });
+    _simpanKasSession(showToast: false);
+  }
+
   void _tambahSesiKasBaru() {
     final judulCtrl = TextEditingController(
-        text: 'Uang Kas OSIS - Minggu ke-${(_kasSessions.length + 1)}');
+      text: 'Iuran Kas Bulan ${DateFormat('MMMM yyyy', 'id_ID').format(DateTime.now())}',
+    );
     final nominalCtrl = TextEditingController(text: '5000');
-    final ketCtrl = TextEditingController();
-    DateTime pickedDate = DateTime.now();
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setM) => Container(
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF141D2E) : Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            border: isDark ? const Border(top: BorderSide(color: Color(0xFF243452), width: 1)) : null,
-          ),
-          padding: EdgeInsets.only(
-            left: 20, right: 20, top: 20,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  width: 40, height: 4,
-                  decoration: BoxDecoration(color: Colors.grey.withAlpha(100), borderRadius: BorderRadius.circular(2)),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Buat Sesi Uang Kas Baru',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Bendahara dapat menentukan nominal dan mencentang anggota yang membayar.',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: judulCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Judul Sesi Kas *',
-                  prefixIcon: Icon(Icons.bookmark_border_rounded),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: nominalCtrl,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Nominal Wajib per Anggota (Rp) *',
-                  prefixIcon: Icon(Icons.monetization_on_outlined),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: ketCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Keterangan Tambahan (Opsional)',
-                  prefixIcon: Icon(Icons.notes_rounded),
-                ),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton.icon(
-                onPressed: () async {
-                  if (judulCtrl.text.trim().isEmpty) return;
-                  final nominal = int.tryParse(nominalCtrl.text.trim()) ?? 5000;
-                  final anggota = await DataService.getAnggotaOsis();
-
-                  final newSession = KasOsisSession(
-                    id: DateTime.now().millisecondsSinceEpoch.toString(),
-                    tanggal: pickedDate,
-                    judul: judulCtrl.text.trim(),
-                    nominalWajib: nominal,
-                    keterangan: ketCtrl.text.trim(),
-                    petugas: widget.username,
-                    items: anggota
-                        .map((a) => KasOsisItem(
-                              anggotaId: a.id,
-                              nama: a.nama,
-                              jabatan: a.jabatan,
-                              kelas: a.kelas,
-                              sudahBayar: false,
-                              nominalBayar: nominal,
-                            ))
-                        .toList(),
-                  );
-
-                  await DataService.saveKasOsisSession(newSession);
-                  await NotificationService.notifyUpdate(
-                    title: 'Sesi Kas OSIS Baru',
-                    message: 'Sesi kas "${newSession.judul}" dibuka oleh Bendahara (${widget.username})',
-                    category: 'system',
-                    actor: widget.username,
-                  );
-
-                  if (ctx.mounted) Navigator.pop(ctx);
-                  _loadData();
-                },
-                icon: const Icon(Icons.add_task_rounded, size: 20),
-                label: const Text('Buat Sesi Kas'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  backgroundColor: NusantaraColors.gold,
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ],
-          ),
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.add_card_rounded, color: NusantaraColors.gold),
+            SizedBox(width: 10),
+            Text('Buat Sesi Kas OSIS Baru', style: TextStyle(fontSize: 16)),
+          ],
         ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Judul / Periode Kas:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: judulCtrl,
+              decoration: const InputDecoration(
+                isDense: true,
+                border: OutlineInputBorder(),
+                hintText: 'Contoh: Kas OSIS Oktober 2026',
+              ),
+            ),
+            const SizedBox(height: 14),
+            const Text('Nominal Iuran Wajib per Anggota (Rp):',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: nominalCtrl,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                isDense: true,
+                border: OutlineInputBorder(),
+                prefixText: 'Rp ',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+          ElevatedButton(
+            onPressed: () async {
+              final judul = judulCtrl.text.trim();
+              final nominal = int.tryParse(nominalCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 5000;
+              if (judul.isEmpty) return;
+
+              Navigator.pop(ctx);
+              final newId = 'kas-${DateTime.now().millisecondsSinceEpoch}';
+              final items = _anggotaList.map((a) {
+                return KasOsisItem(
+                  anggotaId: a.id,
+                  nama: a.nama,
+                  kelas: a.kelas,
+                  jabatan: a.jabatan,
+                  nominalBayar: 0,
+                  sudahBayar: false,
+                );
+              }).toList();
+
+              final newSession = KasOsisSession(
+                id: newId,
+                judul: judul,
+                tanggal: DateTime.now(),
+                nominalWajib: nominal,
+                items: items,
+                updatedAt: DateTime.now(),
+              );
+
+              await DataService.saveKasOsisSession(newSession);
+              await _loadData();
+              setState(() => _selectedKasSession = newSession);
+            },
+            child: const Text('Buat Sesi'),
+          ),
+        ],
       ),
     );
   }
 
-  void _shareRekapKas() {
+  void _shareRekapKasWhatsApp() {
     if (_selectedKasSession == null) return;
     final s = _selectedKasSession!;
-    final sb = StringBuffer();
-    sb.writeln('📋 REKAP UANG KAS OSIS - BAKTI NUSANTARA 666');
-    sb.writeln('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    sb.writeln('Judul: ${s.judul}');
-    sb.writeln('Tanggal: ${_dateFormat.format(s.tanggal)}');
-    sb.writeln('Nominal per Anggota: ${_currencyFormat.format(s.nominalWajib)}');
-    sb.writeln('Total Terkumpul: ${_currencyFormat.format(s.totalTerkumpul)}');
-    sb.writeln('Sudah Bayar: ${s.jumlahSudahBayar} orang');
-    sb.writeln('Belum Bayar: ${s.jumlahBelumBayar} orang');
-    sb.writeln('Petugas: ${s.petugas}');
-    sb.writeln('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    sb.writeln('DAFTAR PEMBAYARAN:');
-    for (int i = 0; i < s.items.length; i++) {
-      final item = s.items[i];
-      final status = item.sudahBayar ? '✅ Lunas' : '❌ Belum';
-      sb.writeln('${i + 1}. ${item.nama} (${item.jabatan}) - $status');
-    }
-    sb.writeln('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    sb.writeln('Dicatat via OSIS Management System');
+    final lunas = s.items.where((i) => i.sudahBayar).toList();
+    final belum = s.items.where((i) => !i.sudahBayar).toList();
 
-    Share.share(sb.toString(), subject: 'Rekap Kas OSIS - ${s.judul}');
+    final buffer = StringBuffer();
+    buffer.writeln('📢 *REKAP KAS OSIS - ${s.judul.toUpperCase()}*');
+    buffer.writeln('📅 Tanggal: ${_dateFormat.format(s.tanggal)}');
+    buffer.writeln('💰 Iuran Wajib: ${_currencyFormat.format(s.nominalWajib)} / anggota');
+    buffer.writeln('💵 Terkumpul: *${_currencyFormat.format(s.totalTerkumpul)}* dari target ${_currencyFormat.format(s.totalTarget)} (${s.persentaseBayar.toStringAsFixed(1)}%)\n');
+
+    buffer.writeln('✅ *SUDAH LUNAS (${lunas.length}/${s.items.length}):*');
+    if (lunas.isEmpty) {
+      buffer.writeln('_(Belum ada yang bayar)_');
+    } else {
+      for (int i = 0; i < lunas.length; i++) {
+        buffer.writeln('${i + 1}. ${lunas[i].nama} (${lunas[i].kelas}) - LUNAS');
+      }
+    }
+
+    buffer.writeln('\n⏳ *BELUM MEMBAYAR (${belum.length}):*');
+    if (belum.isEmpty) {
+      buffer.writeln('_(Alhamdulillah semua anggota lunas 🎉)_');
+    } else {
+      for (int i = 0; i < belum.length; i++) {
+        buffer.writeln('${i + 1}. ${belum[i].nama} (${belum[i].kelas})');
+      }
+    }
+
+    buffer.writeln('\n_Pesan otomatis Sistem Kas OSIS Bakti Nusantara 666_');
+
+    SharePlus.instance.share(ShareParams(text: buffer.toString(), subject: 'Rekap Kas OSIS: ${s.judul}'));
   }
 
   // ── Actions Absensi OSIS ───────────────────────────────────────────────────
@@ -356,7 +579,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Absensi "${_selectedAbsensiSession!.namaKegiatan}" berhasil disimpan.',
+                    'Presensi "${_selectedAbsensiSession!.namaKegiatan}" berhasil disimpan.',
                     style: const TextStyle(fontWeight: FontWeight.w500),
                   ),
                 ),
@@ -371,418 +594,350 @@ class _KasOsisScreenState extends State<KasOsisScreen>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal menyimpan absensi: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Gagal menyimpan presensi: $e'), backgroundColor: Colors.red),
         );
       }
     }
   }
 
   void _tambahSesiAbsensiBaru() {
-    final namaCtrl = TextEditingController(text: 'Rapat Pleno & Evaluasi Mingguan');
-    final lokasiCtrl = TextEditingController(text: 'Ruang Sekretariat OSIS');
-    final ketCtrl = TextEditingController();
-    DateTime pickedDate = DateTime.now();
+    final kegiatanCtrl = TextEditingController(
+      text: 'Rapat Evaluasi OSIS ${DateFormat('d MMMM yyyy', 'id_ID').format(DateTime.now())}',
+    );
+    final lokasiCtrl = TextEditingController(text: 'Ruang OSIS');
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setM) => Container(
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF141D2E) : Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            border: isDark ? const Border(top: BorderSide(color: Color(0xFF243452), width: 1)) : null,
-          ),
-          padding: EdgeInsets.only(
-            left: 20, right: 20, top: 20,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  width: 40, height: 4,
-                  decoration: BoxDecoration(color: Colors.grey.withAlpha(100), borderRadius: BorderRadius.circular(2)),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Pasang Absensi Kegiatan OSIS',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Catat presensi pengurus OSIS untuk rapat, apel, atau kegiatan lainnya.',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: namaCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Nama Kegiatan / Rapat *',
-                  prefixIcon: Icon(Icons.event_note_rounded),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: lokasiCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Lokasi Pelaksanaan',
-                  prefixIcon: Icon(Icons.place_outlined),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: ketCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Keterangan Agenda',
-                  prefixIcon: Icon(Icons.notes_rounded),
-                ),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton.icon(
-                onPressed: () async {
-                  if (namaCtrl.text.trim().isEmpty) return;
-                  final anggota = await DataService.getAnggotaOsis();
-
-                  final newSession = AbsensiOsisSession(
-                    id: DateTime.now().millisecondsSinceEpoch.toString(),
-                    tanggal: pickedDate,
-                    namaKegiatan: namaCtrl.text.trim(),
-                    lokasi: lokasiCtrl.text.trim(),
-                    keterangan: ketCtrl.text.trim(),
-                    petugas: widget.username,
-                    items: anggota
-                        .map((a) => AbsensiOsisItem(
-                              anggotaId: a.id,
-                              nama: a.nama,
-                              jabatan: a.jabatan,
-                              kelas: a.kelas,
-                              status: 'Hadir',
-                            ))
-                        .toList(),
-                  );
-
-                  await DataService.saveAbsensiOsisSession(newSession);
-                  await NotificationService.notifyUpdate(
-                    title: 'Presensi OSIS Dibuka',
-                    message: 'Presensi kegiatan "${newSession.namaKegiatan}" dibuka oleh ${widget.username}',
-                    category: 'system',
-                    actor: widget.username,
-                  );
-
-                  if (ctx.mounted) Navigator.pop(ctx);
-                  _loadData();
-                },
-                icon: const Icon(Icons.how_to_reg_rounded, size: 20),
-                label: const Text('Buat Sesi Absensi'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  backgroundColor: const Color(0xFF0D9488),
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ],
-          ),
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.how_to_reg_rounded, color: NusantaraColors.pandanGreen),
+            SizedBox(width: 10),
+            Text('Buat Sesi Absensi OSIS', style: TextStyle(fontSize: 16)),
+          ],
         ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Nama Kegiatan / Rapat:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: kegiatanCtrl,
+              decoration: const InputDecoration(
+                isDense: true,
+                border: OutlineInputBorder(),
+                hintText: 'Contoh: Rapat Mingguan Pengurus OSIS',
+              ),
+            ),
+            const SizedBox(height: 14),
+            const Text('Lokasi Kegiatan:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: lokasiCtrl,
+              decoration: const InputDecoration(
+                isDense: true,
+                border: OutlineInputBorder(),
+                hintText: 'Contoh: Ruang OSIS / Perpustakaan',
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Akan memuat ${_anggotaList.length} anggota OSIS resmi.',
+              style: const TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+          ElevatedButton(
+            onPressed: () async {
+              final kegiatan = kegiatanCtrl.text.trim();
+              if (kegiatan.isEmpty) return;
+
+              Navigator.pop(ctx);
+              final newId = 'abs-${DateTime.now().millisecondsSinceEpoch}';
+              final items = _anggotaList.map((a) {
+                return AbsensiOsisItem(
+                  anggotaId: a.id,
+                  nama: a.nama,
+                  kelas: a.kelas,
+                  jabatan: a.jabatan,
+                  status: 'Hadir',
+                );
+              }).toList();
+
+              final newSession = AbsensiOsisSession(
+                id: newId,
+                namaKegiatan: kegiatan,
+                tanggal: DateTime.now(),
+                lokasi: lokasiCtrl.text.trim().isNotEmpty ? lokasiCtrl.text.trim() : 'Ruang OSIS',
+                items: items,
+                updatedAt: DateTime.now(),
+              );
+
+              await DataService.saveAbsensiOsisSession(newSession);
+              await _loadData();
+              setState(() => _selectedAbsensiSession = newSession);
+            },
+            child: const Text('Mulai Absensi'),
+          ),
+        ],
       ),
     );
   }
 
-  // ── Actions Buku Kas Transaksi ─────────────────────────────────────────────
+  void _shareRekapAbsensiWhatsApp() {
+    if (_selectedAbsensiSession == null) return;
+    final s = _selectedAbsensiSession!;
+    final buffer = StringBuffer();
+    buffer.writeln('📋 *PRESENSI KEGIATAN OSIS*');
+    buffer.writeln('📌 Kegiatan: *${s.namaKegiatan}*');
+    buffer.writeln('📅 Tanggal: ${_dateFormat.format(s.tanggal)}');
+    buffer.writeln('📍 Lokasi: ${s.lokasi}');
+    buffer.writeln('📊 Kehadiran: *${s.persentaseHadir.toStringAsFixed(1)}%* (Hadir: ${s.totalHadir}, Izin: ${s.totalIzin}, Sakit: ${s.totalSakit}, Alpa: ${s.totalAlpa})\n');
 
-  void _tambahTransaksiKas() {
-    final judulCtrl = TextEditingController();
+    buffer.writeln('👥 *RINCIAN ANGGOTA:*');
+    for (int i = 0; i < s.items.length; i++) {
+      final it = s.items[i];
+      final icon = it.status == 'Hadir'
+          ? '✅'
+          : it.status == 'Izin'
+              ? '🔵'
+              : it.status == 'Sakit'
+                  ? '🟡'
+                  : '❌';
+      buffer.writeln('${i + 1}. $icon ${it.nama} (${it.kelas} - ${it.jabatan}): *${it.status.toUpperCase()}*');
+    }
+
+    buffer.writeln('\n_Dicatat melalui Jurnal OSIS Digital SMK Bakti Nusantara 666_');
+    SharePlus.instance.share(ShareParams(text: buffer.toString(), subject: 'Presensi OSIS: ${s.namaKegiatan}'));
+  }
+
+  // ── Actions Buku Kas & Transaksi ───────────────────────────────────────────
+
+  void _tambahTransaksiBaru() {
+    final jenisCtrl = ValueNotifier<String>('MASUK');
     final nominalCtrl = TextEditingController();
-    final pjCtrl = TextEditingController(text: widget.username);
     final ketCtrl = TextEditingController();
-    String jenis = 'keluar'; // 'masuk' atau 'keluar'
-    String kategori = 'Konsumsi Rapat';
+    final kategoriCtrl = TextEditingController(text: 'Iuran');
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setM) => Container(
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF141D2E) : Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            border: isDark ? const Border(top: BorderSide(color: Color(0xFF243452), width: 1)) : null,
-          ),
-          padding: EdgeInsets.only(
-            left: 20, right: 20, top: 20,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  width: 40, height: 4,
-                  decoration: BoxDecoration(color: Colors.grey.withAlpha(100), borderRadius: BorderRadius.circular(2)),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Catat Transaksi Kas Umum',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: ChoiceChip(
-                      label: const Center(child: Text('Pengeluaran (-)')),
-                      selected: jenis == 'keluar',
-                      selectedColor: Colors.red.withAlpha(isDark ? 50 : 35),
-                      labelStyle: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: jenis == 'keluar' ? Colors.redAccent : Colors.grey,
-                      ),
-                      onSelected: (v) => setM(() => jenis = 'keluar'),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ChoiceChip(
-                      label: const Center(child: Text('Pemasukan (+)')),
-                      selected: jenis == 'masuk',
-                      selectedColor: Colors.green.withAlpha(isDark ? 50 : 35),
-                      labelStyle: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: jenis == 'masuk' ? Colors.green : Colors.grey,
-                      ),
-                      onSelected: (v) => setM(() => jenis = 'masuk'),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: judulCtrl,
-                decoration: InputDecoration(
-                  labelText: jenis == 'keluar' ? 'Keperluan Pengeluaran *' : 'Sumber Pemasukan *',
-                  hintText: jenis == 'keluar' ? 'Contoh: Beli konsumsi rapat pleno' : 'Contoh: Iuran kegiatan LDKS',
-                  prefixIcon: Icon(jenis == 'keluar' ? Icons.receipt_long_outlined : Icons.input_rounded),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: nominalCtrl,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Nominal (Rp) *',
-                  prefixIcon: Icon(Icons.monetization_on_outlined),
-                ),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: kategori,
-                decoration: const InputDecoration(
-                  labelText: 'Kategori',
-                  prefixIcon: Icon(Icons.category_outlined),
-                ),
-                items: const [
-                  DropdownMenuItem(value: 'Konsumsi Rapat', child: Text('Konsumsi Rapat')),
-                  DropdownMenuItem(value: 'ATK & Fotokopi', child: Text('ATK & Fotokopi')),
-                  DropdownMenuItem(value: 'Banner & Publikasi', child: Text('Banner & Publikasi')),
-                  DropdownMenuItem(value: 'Transportasi & Logistik', child: Text('Transportasi & Logistik')),
-                  DropdownMenuItem(value: 'Dana Proker Sekbid', child: Text('Dana Proker Sekbid')),
-                  DropdownMenuItem(value: 'Sumbangan & Donasi', child: Text('Sumbangan & Donasi')),
-                  DropdownMenuItem(value: 'Lainnya', child: Text('Lainnya')),
-                ],
-                onChanged: (v) => setM(() => kategori = v ?? 'Lainnya'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: pjCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Penanggung Jawab',
-                  prefixIcon: Icon(Icons.person_outline),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: ketCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Catatan / Nomor Nota',
-                  prefixIcon: Icon(Icons.description_outlined),
-                ),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () async {
-                  if (judulCtrl.text.trim().isEmpty) return;
-                  final nominal = int.tryParse(nominalCtrl.text.trim()) ?? 0;
-                  if (nominal <= 0) return;
-
-                  final t = KasOsisTransaksi(
-                    id: DateTime.now().millisecondsSinceEpoch.toString(),
-                    tanggal: DateTime.now(),
-                    jenis: jenis,
-                    judul: judulCtrl.text.trim(),
-                    nominal: nominal,
-                    kategori: kategori,
-                    penanggungJawab: pjCtrl.text.trim(),
-                    keterangan: ketCtrl.text.trim(),
-                  );
-
-                  await DataService.addKasTransaksi(t);
-                  if (ctx.mounted) Navigator.pop(ctx);
-                  _loadData();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: jenis == 'keluar' ? Colors.red.shade700 : Colors.green.shade700,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                child: Text('Simpan ${jenis == 'keluar' ? 'Pengeluaran' : 'Pemasukan'}'),
-              ),
-            ],
-          ),
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.swap_horiz_rounded, color: NusantaraColors.terracotta),
+            SizedBox(width: 10),
+            Text('Catat Mutasi Kas', style: TextStyle(fontSize: 16)),
+          ],
         ),
+        content: ValueListenableBuilder<String>(
+          valueListenable: jenisCtrl,
+          builder: (context, jenis, _) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: ChoiceChip(
+                        label: const Center(child: Text('Kas Masuk')),
+                        selected: jenis == 'MASUK',
+                        selectedColor: const Color(0xFF10B981).withAlpha(50),
+                        labelStyle: TextStyle(
+                          color: jenis == 'MASUK' ? const Color(0xFF059669) : null,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        onSelected: (val) {
+                          if (val) jenisCtrl.value = 'MASUK';
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ChoiceChip(
+                        label: const Center(child: Text('Kas Keluar')),
+                        selected: jenis == 'KELUAR',
+                        selectedColor: const Color(0xFFEF4444).withAlpha(50),
+                        labelStyle: TextStyle(
+                          color: jenis == 'KELUAR' ? const Color(0xFFDC2626) : null,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        onSelected: (val) {
+                          if (val) jenisCtrl.value = 'KELUAR';
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                const Text('Nominal (Rp):', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: nominalCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    border: OutlineInputBorder(),
+                    prefixText: 'Rp ',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text('Keterangan / Keperluan:',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: ketCtrl,
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    border: OutlineInputBorder(),
+                    hintText: 'Contoh: Pembelian konsumsi rapat',
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+          ElevatedButton(
+            onPressed: () async {
+              final nom = int.tryParse(nominalCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+              final ket = ketCtrl.text.trim();
+              if (nom <= 0 || ket.isEmpty) return;
+
+              Navigator.pop(ctx);
+              final trx = KasOsisTransaksi(
+                id: 'trx-${DateTime.now().millisecondsSinceEpoch}',
+                tanggal: DateTime.now(),
+                jenis: jenisCtrl.value,
+                judul: ket,
+                nominal: nom,
+                keterangan: ket,
+                kategori: kategoriCtrl.text.trim(),
+                penanggungJawab: widget.username,
+              );
+
+              await DataService.addKasTransaksi(trx);
+              await _loadData();
+            },
+            child: const Text('Simpan'),
+          ),
+        ],
       ),
     );
   }
 
   // ── Actions Anggota OSIS ───────────────────────────────────────────────────
 
-  void _showAnggotaForm([AnggotaOsis? existing]) {
-    final namaCtrl = TextEditingController(text: existing?.nama);
-    final jabatanCtrl = TextEditingController(text: existing?.jabatan ?? 'Anggota');
-    final kelasCtrl = TextEditingController(text: existing?.kelas);
-    final nisCtrl = TextEditingController(text: existing?.nis);
-    final hpCtrl = TextEditingController(text: existing?.noHp);
+  void _tambahAnggotaManual() {
+    final namaCtrl = TextEditingController();
+    final kelasCtrl = TextEditingController(text: 'XI RPL 1');
+    final nisCtrl = TextEditingController();
+    final jabatanCtrl = TextEditingController(text: 'Anggota OSIS');
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF141D2E) : Colors.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          border: isDark ? const Border(top: BorderSide(color: Color(0xFF243452), width: 1)) : null,
-        ),
-        padding: EdgeInsets.only(
-          left: 20, right: 20, top: 20,
-          bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
           children: [
-            Center(
-              child: Container(
-                width: 40, height: 4,
-                decoration: BoxDecoration(color: Colors.grey.withAlpha(100), borderRadius: BorderRadius.circular(2)),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              existing == null ? 'Tambah Anggota OSIS' : 'Edit Anggota OSIS',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: namaCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Nama Lengkap *',
-                prefixIcon: Icon(Icons.person_rounded),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: jabatanCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Jabatan di OSIS *',
-                hintText: 'Contoh: Bendahara 2, Anggota Sekbid 1, dll',
-                prefixIcon: Icon(Icons.badge_rounded),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: kelasCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Kelas',
-                      prefixIcon: Icon(Icons.class_rounded),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    controller: nisCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'NIS',
-                      prefixIcon: Icon(Icons.pin_rounded),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: hpCtrl,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                labelText: 'Nomor WhatsApp / HP',
-                prefixIcon: Icon(Icons.phone_rounded),
-              ),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () async {
-                if (namaCtrl.text.trim().isEmpty) return;
-                if (existing != null) {
-                  existing.nama = namaCtrl.text.trim();
-                  existing.jabatan = jabatanCtrl.text.trim();
-                  existing.kelas = kelasCtrl.text.trim();
-                  existing.nis = nisCtrl.text.trim();
-                  existing.noHp = hpCtrl.text.trim();
-                  await DataService.updateAnggotaOsis(existing);
-                } else {
-                  final a = AnggotaOsis(
-                    id: DateTime.now().millisecondsSinceEpoch.toString(),
-                    nama: namaCtrl.text.trim(),
-                    jabatan: jabatanCtrl.text.trim(),
-                    kelas: kelasCtrl.text.trim(),
-                    nis: nisCtrl.text.trim(),
-                    noHp: hpCtrl.text.trim(),
-                  );
-                  await DataService.addAnggotaOsis(a);
-                }
-                if (ctx.mounted) Navigator.pop(ctx);
-                _loadData();
-              },
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Simpan Data Anggota'),
-            ),
+            Icon(Icons.person_add_rounded, color: NusantaraColors.batikNavy),
+            SizedBox(width: 10),
+            Text('Tambah Anggota OSIS', style: TextStyle(fontSize: 16)),
           ],
         ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Nama Lengkap Siswa:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 6),
+              TextField(
+                controller: namaCtrl,
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(
+                  isDense: true,
+                  border: OutlineInputBorder(),
+                  hintText: 'Nama lengkap siswa',
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Kelas:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: kelasCtrl,
+                          decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('NIS:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: nisCtrl,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              const Text('Jabatan / Sekbid:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 6),
+              TextField(
+                controller: jabatanCtrl,
+                decoration: const InputDecoration(
+                  isDense: true,
+                  border: OutlineInputBorder(),
+                  hintText: 'Contoh: Sekbid Kewirausahaan / Anggota',
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+          ElevatedButton(
+            onPressed: () async {
+              final nama = namaCtrl.text.trim();
+              if (nama.isEmpty) return;
+
+              Navigator.pop(ctx);
+              final newAnggota = AnggotaOsis(
+                id: 'ang-${DateTime.now().millisecondsSinceEpoch}',
+                nama: nama,
+                kelas: kelasCtrl.text.trim(),
+                nis: nisCtrl.text.trim(),
+                jabatan: jabatanCtrl.text.trim(),
+              );
+
+              await DataService.addAnggotaOsis(newAnggota);
+              await _loadData();
+            },
+            child: const Text('Simpan'),
+          ),
+        ],
       ),
     );
   }
 
-  // ── BUILD UI ───────────────────────────────────────────────────────────────
+  // ── BUILD UTAMA SCREEN ─────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -791,76 +946,88 @@ class _KasOsisScreenState extends State<KasOsisScreen>
     final primary = theme.colorScheme.primary;
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: const Text('Kas & Absensi OSIS'),
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Segarkan Data',
-            onPressed: () => _loadData(),
+      backgroundColor: isDark ? const Color(0xFF090D16) : const Color(0xFFF8FAFC),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(56),
+        child: Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF0F172A) : Colors.white,
+            border: Border(
+              bottom: BorderSide(
+                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+                width: 1,
+              ),
+            ),
           ),
-          IconButton(
-            icon: const Icon(Icons.share_rounded),
-            tooltip: 'Bagikan Rekap',
-            onPressed: _shareRekapKas,
+          child: SafeArea(
+            bottom: false,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Opacity(
+                    opacity: isDark ? 0.04 : 0.06,
+                    child: CustomPaint(
+                      painter: ModernKawungPainter(color: primary, scale: 28),
+                    ),
+                  ),
+                ),
+                TabBar(
+                  controller: _tabCtrl,
+                  isScrollable: true,
+                  indicatorColor: NusantaraColors.gold,
+                  indicatorWeight: 3,
+                  labelColor: isDark ? Colors.white : const Color(0xFF0F172A),
+                  unselectedLabelColor: isDark ? Colors.white54 : Colors.black54,
+                  labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  tabs: const [
+                    Tab(
+                      icon: Icon(Icons.check_box_outlined, size: 18),
+                      text: 'Ceklis Kas Bendahara',
+                    ),
+                    Tab(
+                      icon: Icon(Icons.how_to_reg_rounded, size: 18),
+                      text: 'Absensi OSIS',
+                    ),
+                    Tab(
+                      icon: Icon(Icons.account_balance_wallet_rounded, size: 18),
+                      text: 'Buku Kas & Saldo',
+                    ),
+                    Tab(
+                      icon: Icon(Icons.groups_rounded, size: 18),
+                      text: 'Anggota OSIS',
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ],
-        bottom: TabBar(
-          controller: _tabCtrl,
-          isScrollable: true,
-          tabAlignment: TabAlignment.start,
-          indicatorColor: NusantaraColors.gold,
-          indicatorWeight: 3,
-          labelColor: isDark ? NusantaraColors.goldLight : Colors.white,
-          unselectedLabelColor: Colors.white70,
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-          tabs: const [
-            Tab(
-              icon: Icon(Icons.fact_check_rounded, size: 18),
-              text: 'Ceklis Kas OSIS',
-            ),
-            Tab(
-              icon: Icon(Icons.how_to_reg_rounded, size: 18),
-              text: 'Absensi OSIS',
-            ),
-            Tab(
-              icon: Icon(Icons.account_balance_wallet_rounded, size: 18),
-              text: 'Buku Kas & Saldo',
-            ),
-            Tab(
-              icon: Icon(Icons.people_alt_rounded, size: 18),
-              text: 'Anggota OSIS',
-            ),
-          ],
         ),
       ),
       body: _loading
-          ? Center(child: CircularProgressIndicator(color: primary))
+          ? const Center(child: CircularProgressIndicator())
           : TabBarView(
               controller: _tabCtrl,
               children: [
-                _buildTabCeklisKas(theme, isDark, primary),
+                _buildTabKasChecklist(theme, isDark, primary),
                 _buildTabAbsensi(theme, isDark, primary),
                 _buildTabBukuKas(theme, isDark, primary),
-                _buildTabAnggotaOsis(theme, isDark, primary),
+                _buildTabAnggota(theme, isDark, primary),
               ],
             ),
     );
   }
 
-  // ── TAB 1: CEKLIS KAS OSIS (BENDAHARA) ──────────────────────────────────────
+  // ── TAB 1: CEKLIS KAS BENDAHARA (DENGAN TOMBOL ABSENSI) ─────────────────────
 
-  Widget _buildTabCeklisKas(ThemeData theme, bool isDark, Color primary) {
+  Widget _buildTabKasChecklist(ThemeData theme, bool isDark, Color primary) {
     if (_selectedKasSession == null) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.wallet_outlined, size: 64, color: Colors.grey),
+            const Icon(Icons.account_balance_wallet_outlined, size: 64, color: Colors.grey),
             const SizedBox(height: 16),
-            const Text('Belum ada sesi uang kas OSIS'),
+            const Text('Belum ada sesi kas aktif.'),
             const SizedBox(height: 12),
             ElevatedButton.icon(
               onPressed: _tambahSesiKasBaru,
@@ -874,163 +1041,148 @@ class _KasOsisScreenState extends State<KasOsisScreen>
 
     final session = _selectedKasSession!;
     final items = session.items;
-    final totalWajib = session.nominalWajib * items.length;
-    final progress = items.isNotEmpty ? (session.jumlahSudahBayar / items.length) : 0.0;
 
     final filteredItems = items.where((i) {
       if (_searchQuery.isEmpty) return true;
       final q = _searchQuery.toLowerCase();
       return i.nama.toLowerCase().contains(q) ||
-          i.jabatan.toLowerCase().contains(q) ||
-          i.kelas.toLowerCase().contains(q);
+          i.kelas.toLowerCase().contains(q) ||
+          i.jabatan.toLowerCase().contains(q);
     }).toList();
 
     return Column(
       children: [
-        // Nusantara Header Banner
+        // Header Banner Tradisional Elegan
         NusantaraHeaderBanner(
           title: session.judul,
-          subtitle: '${_dateFormat.format(session.tanggal)} • Petugas: ${session.petugas}',
+          subtitle: '${_currencyFormat.format(session.nominalWajib)} / anggota • ${_dateFormat.format(session.tanggal)}',
           icon: Icons.account_balance_wallet_rounded,
-          badgeText: 'Perbendaharaan OSIS',
-          trailing: _isBendahara
-              ? IconButton.filledTonal(
+          badgeText: 'Kas Pengurus OSIS',
+          trailing: Wrap(
+            spacing: 6,
+            children: [
+              IconButton.filledTonal(
+                icon: const Icon(Icons.upload_file_rounded, size: 20, color: NusantaraColors.gold),
+                tooltip: 'Impor dari Excel',
+                onPressed: _pickAndImportExcel,
+              ),
+              IconButton.filledTonal(
+                icon: const Icon(Icons.share_rounded, size: 20),
+                tooltip: 'Bagikan Rekap ke WA',
+                onPressed: _shareRekapKasWhatsApp,
+              ),
+              if (_canEdit)
+                IconButton.filledTonal(
                   icon: const Icon(Icons.add_rounded, size: 20),
-                  tooltip: 'Buat Sesi Kas Baru',
+                  tooltip: 'Buat Sesi Baru',
                   onPressed: _tambahSesiKasBaru,
-                )
-              : null,
+                ),
+            ],
+          ),
         ),
 
-        // Sesi Selector & Quick Actions Card
+        // Quick Switcher: Tombol Langsung Pasang Absensi OSIS
         Container(
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF141D2E) : Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0),
-            ),
+          child: Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    _tabCtrl.animateTo(1); // Pindah ke Tab Absensi
+                  },
+                  icon: const Icon(Icons.how_to_reg_rounded, size: 18),
+                  label: const Text(
+                    '📋 Buka / Pasang Absensi OSIS',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: NusantaraColors.batikNavy,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton.icon(
+                onPressed: _pickAndImportExcel,
+                icon: const Icon(Icons.table_view_rounded, size: 18, color: NusantaraColors.gold),
+                label: const Text('Excel', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ],
           ),
+        ),
+
+        // Ringkasan Keuangan Sesi Kas
+        BatikCard(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          padding: const EdgeInsets.all(14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Dropdown Sesi Kas
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: session.id,
-                        isExpanded: true,
-                        icon: const Icon(Icons.arrow_drop_down_circle_outlined, size: 20),
-                        items: _kasSessions.map((s) {
-                          return DropdownMenuItem<String>(
-                            value: s.id,
-                            child: Text(
-                              '${s.judul} (${_currencyFormat.format(s.nominalWajib)})',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          );
-                        }).toList(),
-                        onChanged: (id) {
-                          if (id != null) {
-                            setState(() {
-                              _selectedKasSession = _kasSessions.firstWhere((s) => s.id == id);
-                            });
-                          }
-                        },
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Total Uang Terkumpul',
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.grey)),
+                      const SizedBox(height: 2),
+                      Text(
+                        _currencyFormat.format(session.totalTerkumpul),
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF10B981),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
-              ),
-              const Divider(height: 16),
-
-              // Statistik Ringkasan Kas
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildMetricTile(
-                      label: 'Terkumpul',
-                      value: _currencyFormat.format(session.totalTerkumpul),
-                      color: NusantaraColors.gold,
-                      subtext: 'dari ${_currencyFormat.format(totalWajib)}',
-                      isDark: isDark,
-                    ),
-                  ),
-                  Container(width: 1, height: 40, color: Colors.grey.withAlpha(50)),
-                  Expanded(
-                    child: _buildMetricTile(
-                      label: 'Lunas',
-                      value: '${session.jumlahSudahBayar}/${items.length}',
-                      color: const Color(0xFF10B981),
-                      subtext: '${session.jumlahBelumBayar} belum bayar',
-                      isDark: isDark,
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      const Text('Target Keseluruhan',
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.grey)),
+                      const SizedBox(height: 2),
+                      Text(
+                        _currencyFormat.format(session.totalTarget),
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white70 : Colors.black87,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
               const SizedBox(height: 10),
-
-              // Progress Bar
               ClipRRect(
                 borderRadius: BorderRadius.circular(6),
                 child: LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 7,
-                  backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                  valueColor: const AlwaysStoppedAnimation<Color>(NusantaraColors.gold),
+                  value: (session.persentaseBayar / 100).clamp(0.0, 1.0),
+                  minHeight: 8,
+                  backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+                  color: const Color(0xFF10B981),
                 ),
               ),
-              const SizedBox(height: 14),
-
-              // ACTION BUTTONS (Centang Semua, Batal, & PASANG ABSENSI OSIS)
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                alignment: WrapAlignment.spaceBetween,
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  if (_canEdit) ...[
-                    OutlinedButton.icon(
-                      onPressed: () => _centangSemuaKas(true),
-                      icon: const Icon(Icons.done_all_rounded, size: 16, color: Color(0xFF10B981)),
-                      label: const Text('Centang Semua (Lunas)', style: TextStyle(fontSize: 12)),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        side: const BorderSide(color: Color(0xFF10B981), width: 1),
-                      ),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: () => _centangSemuaKas(false),
-                      icon: const Icon(Icons.clear_all_rounded, size: 16, color: Colors.grey),
-                      label: const Text('Batal Semua', style: TextStyle(fontSize: 12)),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      ),
-                    ),
-                  ],
-
-                  // TOMBOL FITUR UNGGULAN: "Pasang Absensi OSIS"
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      _tabCtrl.animateTo(1); // Pindah ke tab Absensi OSIS
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Beralih ke mode Absensi Anggota OSIS'),
-                          duration: Duration(seconds: 1),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.how_to_reg_rounded, size: 16),
-                    label: const Text('Pasang Absensi OSIS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0D9488),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    ),
+                  Text(
+                    '${session.totalLunas} dari ${session.items.length} anggota sudah bayar',
+                    style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w500),
+                  ),
+                  Text(
+                    '${session.persentaseBayar.toStringAsFixed(0)}% Lunas',
+                    style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
                   ),
                 ],
               ),
@@ -1038,176 +1190,150 @@ class _KasOsisScreenState extends State<KasOsisScreen>
           ),
         ),
 
-        // Search Bar Anggota
+        // Action Toolbar (Centang Semua, Batal Semua, Search)
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          child: TextField(
-            controller: _searchCtrl,
-            onChanged: (v) => setState(() => _searchQuery = v),
-            decoration: InputDecoration(
-              hintText: 'Cari nama atau jabatan pengurus...',
-              prefixIcon: const Icon(Icons.search, size: 18),
-              suffixIcon: _searchQuery.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear, size: 16),
-                      onPressed: () {
-                        _searchCtrl.clear();
-                        setState(() => _searchQuery = '');
-                      },
-                    )
-                  : null,
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(vertical: 8),
-            ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 38,
+                  child: TextField(
+                    controller: _searchCtrl,
+                    onChanged: (val) => setState(() => _searchQuery = val),
+                    decoration: InputDecoration(
+                      hintText: 'Cari nama anggota OSIS...',
+                      hintStyle: const TextStyle(fontSize: 12),
+                      prefixIcon: const Icon(Icons.search, size: 18),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 16),
+                              onPressed: () {
+                                _searchCtrl.clear();
+                                setState(() => _searchQuery = '');
+                              },
+                            )
+                          : null,
+                      filled: true,
+                      fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                      contentPadding: EdgeInsets.zero,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              if (_canEdit) ...[
+                const SizedBox(width: 8),
+                TextButton.icon(
+                  onPressed: () => _centangSemuaKas(true),
+                  icon: const Icon(Icons.done_all, size: 16, color: Color(0xFF10B981)),
+                  label: const Text('Lunas Semua', style: TextStyle(fontSize: 11.5)),
+                  style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)),
+                ),
+                TextButton(
+                  onPressed: () => _centangSemuaKas(false),
+                  child: const Text('Batal Semua', style: TextStyle(fontSize: 11.5, color: Colors.grey)),
+                ),
+              ],
+            ],
           ),
         ),
 
-        // List Ceklis Anggota
+        // Daftar Anggota dengan Ceklis Kas
         Expanded(
-          child: filteredItems.isEmpty
-              ? const Center(child: Text('Tidak ada anggota yang cocok dengan pencarian'))
-              : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 80),
-                  itemCount: filteredItems.length,
-                  itemBuilder: (ctx, i) {
-                    final item = filteredItems[i];
-                    return _buildKasAnggotaCard(item, session, isDark, primary);
-                  },
-                ),
+          child: ListView.builder(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+            itemCount: filteredItems.length,
+            itemBuilder: (ctx, idx) {
+              final item = filteredItems[idx];
+              return _buildKasMemberCard(item, isDark, primary);
+            },
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildKasAnggotaCard(
-    KasOsisItem item,
-    KasOsisSession session,
-    bool isDark,
-    Color primary,
-  ) {
+  Widget _buildKasMemberCard(KasOsisItem item, bool isDark, Color primary) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF141D2E) : Colors.white,
+        color: isDark ? const Color(0xFF131B2A) : Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: item.sudahBayar
-              ? (isDark ? const Color(0xFF065F46) : const Color(0xFFA7F3D0))
-              : (isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0)),
-          width: item.sudahBayar ? 1.4 : 1.0,
+              ? const Color(0xFF10B981).withAlpha(120)
+              : (isDark ? const Color(0xFF223048) : const Color(0xFFE2E8F0)),
+          width: item.sudahBayar ? 1.5 : 1,
         ),
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-        leading: Stack(
-          alignment: Alignment.bottomRight,
-          children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: isDark
-                  ? (item.sudahBayar ? const Color(0xFF064E3B) : const Color(0xFF1E293B))
-                  : (item.sudahBayar ? const Color(0xFFD1FAE5) : const Color(0xFFF1F5F9)),
-              child: Text(
-                item.nama.isNotEmpty ? item.nama[0].toUpperCase() : '?',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: item.sudahBayar ? const Color(0xFF059669) : Colors.grey,
-                ),
-              ),
-            ),
-            if (item.sudahBayar)
-              const CircleAvatar(
-                radius: 7,
-                backgroundColor: Colors.white,
-                child: CircleAvatar(
-                  radius: 6,
-                  backgroundColor: Color(0xFF10B981),
-                  child: Icon(Icons.check, size: 9, color: Colors.white),
-                ),
-              ),
-          ],
+        leading: CircleAvatar(
+          radius: 18,
+          backgroundColor: item.sudahBayar
+              ? const Color(0xFF10B981).withAlpha(40)
+              : Colors.grey.withAlpha(30),
+          child: Icon(
+            item.sudahBayar ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
+            color: item.sudahBayar ? const Color(0xFF10B981) : Colors.grey,
+            size: 20,
+          ),
         ),
         title: Text(
           item.nama,
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 14,
-            decoration: item.sudahBayar ? null : null,
+            color: isDark ? Colors.white : Colors.black87,
           ),
         ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        subtitle: Wrap(
+          spacing: 6,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            const SizedBox(height: 2),
-            Row(
-              children: [
-                NusantaraBadge(
-                  label: item.jabatan,
-                  color: NusantaraColors.gold,
-                ),
-                if (item.kelas.isNotEmpty) ...[
-                  const SizedBox(width: 6),
-                  Text(
-                    item.kelas,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: isDark ? Colors.white60 : Colors.black54,
-                    ),
-                  ),
-                ],
-              ],
+            Text(item.kelas, style: const TextStyle(fontSize: 11.5, color: Colors.grey)),
+            const Text('•', style: TextStyle(color: Colors.grey)),
+            Text(
+              item.jabatan,
+              style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: NusantaraColors.gold),
             ),
-            if (item.sudahBayar && item.tanggalBayar != null) ...[
-              const SizedBox(height: 2),
-              Text(
-                'Lunas • ${_currencyFormat.format(item.nominalBayar > 0 ? item.nominalBayar : session.nominalWajib)}',
-                style: const TextStyle(fontSize: 10.5, color: Color(0xFF10B981), fontWeight: FontWeight.w600),
-              ),
-            ],
           ],
         ),
-        trailing: _canEdit
-            ? Transform.scale(
-                scale: 1.15,
-                child: Checkbox(
-                  value: item.sudahBayar,
-                  activeColor: const Color(0xFF059669),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                  onChanged: (val) {
-                    setState(() {
-                      item.sudahBayar = val ?? false;
-                      if (item.sudahBayar) {
-                        item.nominalBayar = session.nominalWajib;
-                        item.tanggalBayar = DateTime.now();
-                      } else {
-                        item.nominalBayar = 0;
-                        item.tanggalBayar = null;
-                      }
-                    });
-                    _simpanKasSession(showToast: false);
-                  },
-                ),
-              )
-            : Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: item.sudahBayar ? Colors.green.withAlpha(30) : Colors.red.withAlpha(30),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  item.sudahBayar ? 'LUNAS' : 'BELUM',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: item.sudahBayar ? Colors.green : Colors.red,
-                  ),
-                ),
+        trailing: InkWell(
+          onTap: () => _toggleBayarItem(item),
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: item.sudahBayar
+                  ? const Color(0xFF10B981).withAlpha(40)
+                  : Colors.red.withAlpha(25),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: item.sudahBayar
+                    ? const Color(0xFF10B981).withAlpha(140)
+                    : Colors.red.withAlpha(100),
               ),
+            ),
+            child: Text(
+              item.sudahBayar ? 'Lunas' : 'Belum Bayar',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: item.sudahBayar ? const Color(0xFF10B981) : Colors.red,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
 
-  // ── TAB 2: ABSENSI OSIS (PRESENSI KEGIATAN) ────────────────────────────────
+  // ── TAB 2: ABSENSI OSIS (PER NAMA SISWA ANGGOTA OSIS) ──────────────────────
 
   Widget _buildTabAbsensi(ThemeData theme, bool isDark, Color primary) {
     if (_selectedAbsensiSession == null) {
@@ -1217,12 +1343,22 @@ class _KasOsisScreenState extends State<KasOsisScreen>
           children: [
             const Icon(Icons.how_to_reg_outlined, size: 64, color: Colors.grey),
             const SizedBox(height: 16),
-            const Text('Belum ada sesi absensi kegiatan OSIS'),
+            const Text('Belum ada sesi presensi rapat OSIS.'),
             const SizedBox(height: 12),
-            ElevatedButton.icon(
-              onPressed: _tambahSesiAbsensiBaru,
-              icon: const Icon(Icons.add),
-              label: const Text('Buat Sesi Absensi Pertama'),
+            Wrap(
+              spacing: 8,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _tambahSesiAbsensiBaru,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Buat Sesi Manual'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _pickAndImportExcel,
+                  icon: const Icon(Icons.table_view_rounded, color: NusantaraColors.gold),
+                  label: const Text('Impor dari Excel'),
+                ),
+              ],
             ),
           ],
         ),
@@ -1236,40 +1372,85 @@ class _KasOsisScreenState extends State<KasOsisScreen>
       if (_searchQuery.isEmpty) return true;
       final q = _searchQuery.toLowerCase();
       return i.nama.toLowerCase().contains(q) ||
+          i.kelas.toLowerCase().contains(q) ||
           i.jabatan.toLowerCase().contains(q);
     }).toList();
 
     return Column(
       children: [
+        // Header Banner Presensi Rapat
         NusantaraHeaderBanner(
           title: session.namaKegiatan,
           subtitle: '${_dateFormat.format(session.tanggal)} • Lokasi: ${session.lokasi}',
           icon: Icons.how_to_reg_rounded,
-          badgeText: 'Presensi Rapat OSIS',
-          trailing: _canEdit
-              ? IconButton.filledTonal(
+          badgeText: 'Presensi Anggota OSIS',
+          trailing: Wrap(
+            spacing: 6,
+            children: [
+              IconButton.filledTonal(
+                icon: const Icon(Icons.upload_file_rounded, size: 20, color: NusantaraColors.gold),
+                tooltip: 'Impor dari Excel',
+                onPressed: _pickAndImportExcel,
+              ),
+              IconButton.filledTonal(
+                icon: const Icon(Icons.share_rounded, size: 20),
+                tooltip: 'Bagikan Rekap ke WA',
+                onPressed: _shareRekapAbsensiWhatsApp,
+              ),
+              if (_canEdit)
+                IconButton.filledTonal(
                   icon: const Icon(Icons.add_rounded, size: 20),
                   tooltip: 'Buat Sesi Absensi Baru',
                   onPressed: _tambahSesiAbsensiBaru,
-                )
-              : null,
+                ),
+            ],
+          ),
         ),
 
-        // Sesi Selector & Kehadiran Bar
+        // Quick Controls Bar (Pindah ke Kas & Impor Excel)
         Container(
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF141D2E) : Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0),
-            ),
+          child: Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    _tabCtrl.animateTo(0); // Kembali ke Tab Kas
+                  },
+                  icon: const Icon(Icons.account_balance_wallet_rounded, size: 18),
+                  label: const Text(
+                    '💰 Beralih ke Ceklis Kas OSIS',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: NusantaraColors.gold,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton.icon(
+                onPressed: _pickAndImportExcel,
+                icon: const Icon(Icons.file_upload_outlined, size: 18, color: NusantaraColors.batikNavy),
+                label: const Text('Impor Excel', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ],
           ),
+        ),
+
+        // Sesi Dropdown & Ringkasan Chip Kehadiran
+        BatikCard(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          padding: const EdgeInsets.all(14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Selector Sesi
               DropdownButtonHideUnderline(
                 child: DropdownButton<String>(
                   value: session.id,
@@ -1295,60 +1476,82 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                 ),
               ),
               const Divider(height: 16),
-
-              // Baris Ringkasan H, I, S, A
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildAbsenChip(label: 'Hadir', count: session.totalHadir, color: const Color(0xFF10B981)),
-                  _buildAbsenChip(label: 'Izin', count: session.totalIzin, color: const Color(0xFF3B82F6)),
-                  _buildAbsenChip(label: 'Sakit', count: session.totalSakit, color: const Color(0xFFF59E0B)),
-                  _buildAbsenChip(label: 'Alpa', count: session.totalAlpa, color: const Color(0xFFEF4444)),
+                  _buildAbsenMetric('Hadir', session.totalHadir, const Color(0xFF10B981)),
+                  _buildAbsenMetric('Izin', session.totalIzin, const Color(0xFF3B82F6)),
+                  _buildAbsenMetric('Sakit', session.totalSakit, const Color(0xFFF59E0B)),
+                  _buildAbsenMetric('Alpa', session.totalAlpa, const Color(0xFFEF4444)),
                 ],
               ),
-              const SizedBox(height: 14),
-
-              // Action Buttons
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                alignment: WrapAlignment.spaceBetween,
-                children: [
-                  if (_canEdit)
-                    OutlinedButton.icon(
+              if (_canEdit) ...[
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton.icon(
                       onPressed: _semuaHadirAbsensi,
                       icon: const Icon(Icons.done_all_rounded, size: 16, color: Color(0xFF10B981)),
-                      label: const Text('Semua Hadir', style: TextStyle(fontSize: 12)),
-                      style: OutlinedButton.styleFrom(
+                      label: const Text('Semua Hadir', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      onPressed: () => _simpanAbsensiSession(),
+                      icon: const Icon(Icons.save_rounded, size: 16),
+                      label: const Text('Simpan Presensi', style: TextStyle(fontSize: 12)),
+                      style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       ),
                     ),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      _tabCtrl.animateTo(0); // Kembali ke Tab Kas
-                    },
-                    icon: const Icon(Icons.account_balance_wallet_rounded, size: 16),
-                    label: const Text('Beralih ke Kas OSIS', style: TextStyle(fontSize: 12)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: NusantaraColors.gold,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
 
-        // List Anggota dengan Pilihan H/I/S/A
+        // Pencarian Nama Siswa
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: SizedBox(
+            height: 38,
+            child: TextField(
+              controller: _searchCtrl,
+              onChanged: (val) => setState(() => _searchQuery = val),
+              decoration: InputDecoration(
+                hintText: 'Cari nama siswa anggota OSIS...',
+                hintStyle: const TextStyle(fontSize: 12),
+                prefixIcon: const Icon(Icons.search, size: 18),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 16),
+                        onPressed: () {
+                          _searchCtrl.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                      )
+                    : null,
+                filled: true,
+                fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                contentPadding: EdgeInsets.zero,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        // Daftar Siswa Anggota OSIS untuk Presensi
         Expanded(
           child: ListView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 6, 16, 80),
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
             itemCount: filteredItems.length,
-            itemBuilder: (ctx, i) {
-              final item = filteredItems[i];
-              return _buildAbsenAnggotaCard(item, session, isDark);
+            itemBuilder: (ctx, idx) {
+              final item = filteredItems[idx];
+              return _buildAbsenStudentCard(item, session, isDark);
             },
           ),
         ),
@@ -1356,31 +1559,31 @@ class _KasOsisScreenState extends State<KasOsisScreen>
     );
   }
 
-  Widget _buildAbsenChip({required String label, required int count, required Color color}) {
+  Widget _buildAbsenMetric(String label, int count, Color color) {
     return Column(
       children: [
         Container(
-          width: 38,
-          height: 38,
+          width: 36,
+          height: 36,
           decoration: BoxDecoration(
-            color: color.withAlpha(35),
+            color: color.withAlpha(30),
             shape: BoxShape.circle,
             border: Border.all(color: color.withAlpha(120), width: 1.5),
           ),
           child: Center(
             child: Text(
               '$count',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: color),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: color),
             ),
           ),
         ),
         const SizedBox(height: 4),
-        Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+        Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
       ],
     );
   }
 
-  Widget _buildAbsenAnggotaCard(
+  Widget _buildAbsenStudentCard(
     AbsensiOsisItem item,
     AbsensiOsisSession session,
     bool isDark,
@@ -1393,14 +1596,17 @@ class _KasOsisScreenState extends State<KasOsisScreen>
       'Alpa': const Color(0xFFEF4444),
     };
 
+    final activeColor = colors[item.status] ?? Colors.grey;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF141D2E) : Colors.white,
+        color: isDark ? const Color(0xFF131B2A) : Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0),
+          color: activeColor.withAlpha(100),
+          width: 1.2,
         ),
       ),
       child: Column(
@@ -1409,24 +1615,35 @@ class _KasOsisScreenState extends State<KasOsisScreen>
           Row(
             children: [
               CircleAvatar(
-                radius: 16,
-                backgroundColor: (colors[item.status] ?? Colors.grey).withAlpha(40),
+                radius: 17,
+                backgroundColor: activeColor.withAlpha(35),
                 child: Text(
                   item.status[0],
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: colors[item.status] ?? Colors.grey,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.bold, color: activeColor, fontSize: 13),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(item.nama, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                    Text('${item.jabatan} • ${item.kelas}',
-                        style: TextStyle(fontSize: 11.5, color: isDark ? Colors.white60 : Colors.black54)),
+                    // NAMA SISWA SEBAGAI JUDUL UTAMA
+                    Text(
+                      item.nama,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    const SizedBox(height: 2),
+                    Wrap(
+                      spacing: 6,
+                      children: [
+                        Text(item.kelas, style: const TextStyle(fontSize: 11.5, color: Colors.grey)),
+                        const Text('•', style: TextStyle(color: Colors.grey)),
+                        Text(
+                          item.jabatan,
+                          style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: NusantaraColors.gold),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -1434,39 +1651,42 @@ class _KasOsisScreenState extends State<KasOsisScreen>
           ),
           const SizedBox(height: 10),
 
-          // Pilihan Status H, I, S, A
+          // Tombol Interaktif Presensi (H, I, S, A)
           Row(
             children: statuses.map((st) {
-              final isSel = item.status == st;
-              final col = colors[st] ?? Colors.grey;
+              final isSelected = item.status == st;
+              final col = colors[st]!;
+
               return Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 3),
                   child: InkWell(
-                    onTap: _canEdit
-                        ? () {
-                            setState(() => item.status = st);
+                    onTap: !_canEdit
+                        ? null
+                        : () {
+                            setState(() {
+                              item.status = st;
+                            });
                             _simpanAbsensiSession(showToast: false);
-                          }
-                        : null,
+                          },
                     borderRadius: BorderRadius.circular(8),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      padding: const EdgeInsets.symmetric(vertical: 7),
                       decoration: BoxDecoration(
-                        color: isSel ? col : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
+                        color: isSelected ? col : col.withAlpha(isDark ? 25 : 15),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: isSel ? col : Colors.grey.withAlpha(60),
-                          width: isSel ? 1.5 : 0.8,
+                          color: isSelected ? col : col.withAlpha(60),
+                          width: 1,
                         ),
                       ),
                       child: Center(
                         child: Text(
                           st,
                           style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
-                            color: isSel ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.bold,
+                            color: isSelected ? Colors.white : col,
                           ),
                         ),
                       ),
@@ -1481,289 +1701,300 @@ class _KasOsisScreenState extends State<KasOsisScreen>
     );
   }
 
-  // ── TAB 3: BUKU KAS UMUM & SALDO ───────────────────────────────────────────
+  // ── TAB 3: BUKU KAS & SALDO KESELURUHAN ─────────────────────────────────────
 
   Widget _buildTabBukuKas(ThemeData theme, bool isDark, Color primary) {
-    int totalKasSesiMasuk = _kasSessions.fold(0, (sum, s) => sum + s.totalTerkumpul);
-    int totalTrxMasuk = _transaksiList
-        .where((t) => t.jenis == 'masuk')
-        .fold(0, (sum, t) => sum + t.nominal);
-    int totalTrxKeluar = _transaksiList
-        .where((t) => t.jenis == 'keluar')
-        .fold(0, (sum, t) => sum + t.nominal);
+    int totalMasuk = 0;
+    int totalKeluar = 0;
 
-    int totalSemuaMasuk = totalKasSesiMasuk + totalTrxMasuk;
-    int saldoBersih = totalSemuaMasuk - totalTrxKeluar;
+    for (final s in _kasSessions) {
+      totalMasuk += s.totalTerkumpul;
+    }
+    for (final t in _transaksiList) {
+      if (t.jenis == 'MASUK') {
+        totalMasuk += t.nominal;
+      } else {
+        totalKeluar += t.nominal;
+      }
+    }
+    final saldoSaatIni = totalMasuk - totalKeluar;
 
-    return Column(
-      children: [
-        NusantaraHeaderBanner(
-          title: 'Buku Kas & Keuangan OSIS',
-          subtitle: 'Laporan arus kas, saldo kas harian, dan mutasi keuangan',
-          icon: Icons.account_balance_rounded,
-          badgeText: 'Perbendaharaan OSIS',
-          trailing: _isBendahara
-              ? ElevatedButton.icon(
-                  onPressed: _tambahTransaksiKas,
-                  icon: const Icon(Icons.add, size: 16),
-                  label: const Text('Catat', style: TextStyle(fontSize: 12)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: NusantaraColors.gold,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  ),
-                )
-              : null,
-        ),
-
-        // Card Saldo Nusantara
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: isDark
-                  ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
-                  : [NusantaraColors.batikNavy, const Color(0xFF1E3A8A)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withAlpha(isDark ? 60 : 30),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'SALDO KAS OSIS SAAT INI',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white70,
-                      letterSpacing: 1.0,
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Banner Saldo Kas Utama
+          BatikCard(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.account_balance_rounded, size: 20, color: NusantaraColors.gold),
+                    SizedBox(width: 8),
+                    Text(
+                      'SALDO KAS OSIS SAAT INI',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 0.5),
                     ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withAlpha(25),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text('SMK Baknus 666',
-                        style: TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _currencyFormat.format(saldoBersih),
-                style: const TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                  letterSpacing: 0.5,
+                  ],
                 ),
-              ),
-              const Divider(color: Colors.white24, height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Total Kas Masuk (+)',
-                            style: TextStyle(fontSize: 11, color: Colors.greenAccent)),
-                        const SizedBox(height: 2),
-                        Text(_currencyFormat.format(totalSemuaMasuk),
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
-                      ],
-                    ),
+                const SizedBox(height: 8),
+                Text(
+                  _currencyFormat.format(saldoSaatIni),
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                    color: saldoSaatIni >= 0 ? const Color(0xFF10B981) : Colors.red,
                   ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Total Pengeluaran (-)',
-                            style: TextStyle(fontSize: 11, color: Colors.orangeAccent)),
-                        const SizedBox(height: 2),
-                        Text(_currencyFormat.format(totalTrxKeluar),
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-
-        const Padding(
-          padding: EdgeInsets.fromLTRB(18, 12, 18, 4),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Riwayat Mutasi Transaksi Kas',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ),
-
-        // List Transaksi Mutasi
-        Expanded(
-          child: _transaksiList.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.receipt_long_outlined, size: 48, color: Colors.grey),
-                      const SizedBox(height: 10),
-                      const Text('Belum ada transaksi operasional kas dicatat'),
-                      if (_isBendahara) ...[
-                        const SizedBox(height: 8),
-                        TextButton.icon(
-                          onPressed: _tambahTransaksiKas,
-                          icon: const Icon(Icons.add),
-                          label: const Text('Catat Pengeluaran / Pemasukan'),
-                        ),
-                      ],
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 80),
-                  itemCount: _transaksiList.length,
-                  itemBuilder: (ctx, i) {
-                    final t = _transaksiList[i];
-                    final isKeluar = t.jenis == 'keluar';
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF141D2E) : Colors.white,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0),
-                        ),
-                      ),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: isKeluar
-                              ? Colors.red.withAlpha(isDark ? 40 : 25)
-                              : Colors.green.withAlpha(isDark ? 40 : 25),
-                          child: Icon(
-                            isKeluar ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
-                            color: isKeluar ? Colors.redAccent : Colors.green,
+                ),
+                const Divider(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Total Kas Masuk', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                          const SizedBox(height: 2),
+                          Text(
+                            _currencyFormat.format(totalMasuk),
+                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
                           ),
-                        ),
-                        title: Text(t.judul, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
-                        subtitle: Text(
-                          '${t.kategori} • ${DateFormat('d MMM yyyy, HH:mm').format(t.tanggal)}${t.penanggungJawab.isNotEmpty ? ' • Oleh: ${t.penanggungJawab}' : ''}',
-                          style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.black54),
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              '${isKeluar ? '-' : '+'} ${_currencyFormat.format(t.nominal)}',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13.5,
-                                color: isKeluar ? Colors.redAccent : Colors.green,
-                              ),
-                            ),
-                            if (_isBendahara)
-                              IconButton(
-                                icon: const Icon(Icons.delete_outline, size: 18, color: Colors.grey),
-                                onPressed: () async {
-                                  await DataService.deleteKasTransaksi(t.id);
-                                  _loadData();
-                                },
-                              ),
-                          ],
-                        ),
+                        ],
                       ),
-                    );
-                  },
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Total Kas Keluar', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                          const SizedBox(height: 2),
+                          Text(
+                            _currencyFormat.format(totalKeluar),
+                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.red),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-        ),
-      ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // Action Catat Mutasi
+          if (_isBendahara)
+            ElevatedButton.icon(
+              onPressed: _tambahTransaksiBaru,
+              icon: const Icon(Icons.add_circle_outline_rounded),
+              label: const Text('Catat Pengeluaran / Pemasukan Kas'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: NusantaraColors.batikNavy,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          const SizedBox(height: 18),
+
+          // Riwayat Transaksi Manual
+          const Text('Riwayat Mutasi Transaksi:',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          if (_transaksiList.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(20),
+              child: Center(child: Text('Belum ada catatan mutasi kas.', style: TextStyle(color: Colors.grey))),
+            )
+          else
+            ..._transaksiList.map((t) {
+              final isMasuk = t.jenis == 'MASUK';
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF131B2A) : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: isDark ? const Color(0xFF223048) : const Color(0xFFE2E8F0)),
+                ),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                  leading: CircleAvatar(
+                    radius: 16,
+                    backgroundColor: isMasuk
+                        ? const Color(0xFF10B981).withAlpha(30)
+                        : Colors.red.withAlpha(30),
+                    child: Icon(
+                      isMasuk ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
+                      color: isMasuk ? const Color(0xFF10B981) : Colors.red,
+                      size: 18,
+                    ),
+                  ),
+                  title: Text(t.keterangan, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
+                  subtitle: Text(
+                    '${_dateFormat.format(t.tanggal)} • PJ: ${t.penanggungJawab}',
+                    style: const TextStyle(fontSize: 11, color: Colors.grey),
+                  ),
+                  trailing: Text(
+                    '${isMasuk ? '+' : '-'} ${_currencyFormat.format(t.nominal)}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13.5,
+                      color: isMasuk ? const Color(0xFF10B981) : Colors.red,
+                    ),
+                  ),
+                ),
+              );
+            }),
+        ],
+      ),
     );
   }
 
-  // ── TAB 4: KELOLA ANGGOTA OSIS ─────────────────────────────────────────────
+  // ── TAB 4: ANGGOTA OSIS (DENGAN NAMA SISWA RESMI & IMPORT EXCEL) ───────────
 
-  Widget _buildTabAnggotaOsis(ThemeData theme, bool isDark, Color primary) {
+  Widget _buildTabAnggota(ThemeData theme, bool isDark, Color primary) {
     return Column(
       children: [
         NusantaraHeaderBanner(
-          title: 'Daftar Pengurus & Anggota OSIS',
-          subtitle: '${_anggotaList.length} pengurus terdaftar untuk kas & absensi',
+          title: 'Daftar Anggota & Pengurus OSIS',
+          subtitle: 'Total ${_anggotaList.length} siswa resmi terdaftar dalam kepengurusan OSIS',
           icon: Icons.groups_rounded,
-          badgeText: 'Struktur Organisasi',
-          trailing: _isBendahara
-              ? ElevatedButton.icon(
-                  onPressed: () => _showAnggotaForm(),
-                  icon: const Icon(Icons.person_add_rounded, size: 16),
-                  label: const Text('Tambah', style: TextStyle(fontSize: 12)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  ),
-                )
-              : null,
+          badgeText: 'SMK Bakti Nusantara 666',
+          trailing: Wrap(
+            spacing: 6,
+            children: [
+              IconButton.filledTonal(
+                icon: const Icon(Icons.upload_file_rounded, size: 20, color: NusantaraColors.gold),
+                tooltip: 'Impor dari Excel',
+                onPressed: _pickAndImportExcel,
+              ),
+              if (_canEdit)
+                IconButton.filledTonal(
+                  icon: const Icon(Icons.person_add_rounded, size: 20),
+                  tooltip: 'Tambah Anggota Manual',
+                  onPressed: _tambahAnggotaManual,
+                ),
+            ],
+          ),
+        ),
+
+        // Quick Import Excel Button
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: ElevatedButton.icon(
+            onPressed: _pickAndImportExcel,
+            icon: const Icon(Icons.table_view_rounded, size: 18),
+            label: const Text(
+              '📥 Impor File Excel Daftar Anggota OSIS',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: NusantaraColors.gold,
+              foregroundColor: Colors.white,
+              minimumSize: const Size.fromHeight(42),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ),
+
+        // Search Bar
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: SizedBox(
+            height: 38,
+            child: TextField(
+              controller: _searchCtrl,
+              onChanged: (val) => setState(() => _searchQuery = val),
+              decoration: InputDecoration(
+                hintText: 'Cari nama atau jabatan anggota OSIS...',
+                hintStyle: const TextStyle(fontSize: 12),
+                prefixIcon: const Icon(Icons.search, size: 18),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 16),
+                        onPressed: () {
+                          _searchCtrl.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                      )
+                    : null,
+                filled: true,
+                fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                contentPadding: EdgeInsets.zero,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                ),
+              ),
+            ),
+          ),
         ),
 
         Expanded(
           child: ListView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 80),
-            itemCount: _anggotaList.length,
-            itemBuilder: (ctx, i) {
-              final a = _anggotaList[i];
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+            itemCount: _anggotaList.where((a) {
+              if (_searchQuery.isEmpty) return true;
+              final q = _searchQuery.toLowerCase();
+              return a.nama.toLowerCase().contains(q) ||
+                  a.kelas.toLowerCase().contains(q) ||
+                  a.jabatan.toLowerCase().contains(q);
+            }).length,
+            itemBuilder: (ctx, idx) {
+              final filtered = _anggotaList.where((a) {
+                if (_searchQuery.isEmpty) return true;
+                final q = _searchQuery.toLowerCase();
+                return a.nama.toLowerCase().contains(q) ||
+                    a.kelas.toLowerCase().contains(q) ||
+                    a.jabatan.toLowerCase().contains(q);
+              }).toList();
+
+              final item = filtered[idx];
               return Container(
                 margin: const EdgeInsets.only(bottom: 8),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF141D2E) : Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0),
-                  ),
+                  color: isDark ? const Color(0xFF131B2A) : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: isDark ? const Color(0xFF223048) : const Color(0xFFE2E8F0)),
                 ),
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                    backgroundColor: NusantaraColors.batikNavy.withAlpha(35),
                     child: Text(
-                      a.nama.isNotEmpty ? a.nama[0].toUpperCase() : '?',
-                      style: TextStyle(fontWeight: FontWeight.bold, color: primary),
+                      item.nama.isNotEmpty ? item.nama[0] : 'O',
+                      style: const TextStyle(fontWeight: FontWeight.bold, color: NusantaraColors.batikNavy),
                     ),
                   ),
-                  title: Text(a.nama, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  subtitle: Text('${a.jabatan}${a.kelas.isNotEmpty ? ' • ${a.kelas}' : ''}',
-                      style: TextStyle(fontSize: 12, color: isDark ? Colors.white60 : Colors.black54)),
-                  trailing: _isBendahara
-                      ? Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit_outlined, size: 18),
-                              onPressed: () => _showAnggotaForm(a),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
-                              onPressed: () async {
-                                await DataService.deleteAnggotaOsis(a.id);
-                                _loadData();
-                              },
-                            ),
-                          ],
+                  title: Text(item.nama, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
+                  subtitle: Text('${item.kelas} • ${item.jabatan}', style: const TextStyle(fontSize: 11.5, color: Colors.grey)),
+                  trailing: _canEdit
+                      ? IconButton(
+                          icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                          tooltip: 'Hapus Anggota',
+                          onPressed: () async {
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (c) => AlertDialog(
+                                title: const Text('Hapus Anggota OSIS?'),
+                                content: Text('Hapus ${item.nama} dari daftar anggota OSIS?'),
+                                actions: [
+                                  TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Batal')),
+                                  ElevatedButton(
+                                    onPressed: () => Navigator.pop(c, true),
+                                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                                    child: const Text('Hapus'),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (confirm == true) {
+                              await DataService.deleteAnggotaOsis(item.id);
+                              await _loadData();
+                            }
+                          },
                         )
                       : null,
                 ),
@@ -1771,32 +2002,6 @@ class _KasOsisScreenState extends State<KasOsisScreen>
             },
           ),
         ),
-      ],
-    );
-  }
-
-  Widget _buildMetricTile({
-    required String label,
-    required String value,
-    required Color color,
-    required String subtext,
-    required bool isDark,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-        const SizedBox(height: 2),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w900,
-            color: color,
-          ),
-        ),
-        const SizedBox(height: 1),
-        Text(subtext, style: TextStyle(fontSize: 10, color: isDark ? Colors.white54 : Colors.black45)),
       ],
     );
   }

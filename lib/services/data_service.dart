@@ -2086,22 +2086,22 @@ class DataService {
 
   static List<AnggotaOsis> _defaultAnggotaOsis() {
     return [
-      AnggotaOsis(id: 'ang-1', nama: 'Ketua OSIS', jabatan: 'Ketua OSIS', kelas: 'XII RPL 1', nis: '242518070001'),
-      AnggotaOsis(id: 'ang-2', nama: 'Wakil Ketua OSIS', jabatan: 'Wakil Ketua OSIS', kelas: 'XI RPL 1', nis: '2526019070001'),
-      AnggotaOsis(id: 'ang-3', nama: 'Sekretaris 1', jabatan: 'Sekretaris 1', kelas: 'XI AKT', nis: '2526011119001'),
-      AnggotaOsis(id: 'ang-4', nama: 'Sekretaris 2', jabatan: 'Sekretaris 2', kelas: 'X PPLG 1', nis: '2627020070001'),
-      AnggotaOsis(id: 'ang-5', nama: 'Bendahara 1', jabatan: 'Bendahara 1', kelas: 'XI AKT', nis: '2526011119002'),
-      AnggotaOsis(id: 'ang-6', nama: 'Bendahara 2', jabatan: 'Bendahara 2', kelas: 'X AKT 1', nis: '2627012119001'),
-      AnggotaOsis(id: 'ang-7', nama: 'Sekbid 1 (Keimanan & Ketakwaan)', jabatan: 'Sekbid 1', kelas: 'XI DKV', nis: '2526016084001'),
-      AnggotaOsis(id: 'ang-8', nama: 'Sekbid 2 (Budi Pekerti & Karakter)', jabatan: 'Sekbid 2', kelas: 'XI RPL 2', nis: '2526019070003'),
-      AnggotaOsis(id: 'ang-9', nama: 'Sekbid 3 (Bela Negara & Kepemimpinan)', jabatan: 'Sekbid 3', kelas: 'XI ANIMASI', nis: '2526016073001'),
-      AnggotaOsis(id: 'ang-10', nama: 'Sekbid 4 (Prestasi Akademik & IPTEK)', jabatan: 'Sekbid 4', kelas: 'X PPLG 1', nis: '2627020070003'),
-      AnggotaOsis(id: 'ang-11', nama: 'Sekbid 5 (Demokrasi & Politik)', jabatan: 'Sekbid 5', kelas: 'X DKV 1', nis: '2627017084001'),
-      AnggotaOsis(id: 'ang-12', nama: 'Sekbid 6 (Kewirausahaan)', jabatan: 'Sekbid 6', kelas: 'X AKT 2', nis: '2627012119004'),
-      AnggotaOsis(id: 'ang-13', nama: 'Sekbid 7 (Jasmani & Olahraga)', jabatan: 'Sekbid 7', kelas: 'XI RPL 1', nis: '2526019070006'),
-      AnggotaOsis(id: 'ang-14', nama: 'Sekbid 8 (Sastra & Seni Budaya)', jabatan: 'Sekbid 8', kelas: 'XII DKV', nis: '242515084001'),
-      AnggotaOsis(id: 'ang-15', nama: 'Sekbid 9 (TI & Multimedia)', jabatan: 'Sekbid 9', kelas: 'XII RPL 2', nis: '242518070002'),
-      AnggotaOsis(id: 'ang-16', nama: 'Sekbid 10 (Bahasa & Humas)', jabatan: 'Sekbid 10', kelas: 'XI AKT', nis: '2526011119003'),
+      AnggotaOsis(id: 'ang-1', nama: 'ABBY MUHAMMAD RAFI\'U', jabatan: 'Ketua OSIS', kelas: 'XI RPL 1', nis: '2526019070001'),
+      AnggotaOsis(id: 'ang-2', nama: 'ABDILAH MALIK AL - JABBAR', jabatan: 'Wakil Ketua OSIS', kelas: 'X PPLG 1', nis: '2627020070001'),
+      AnggotaOsis(id: 'ang-3', nama: 'A\'RASYAA SYOFHA NOER AL-FIYACH', jabatan: 'Sekretaris 1', kelas: 'XII AKT', nis: '242510119002'),
+      AnggotaOsis(id: 'ang-4', nama: 'ANITA SITI NURJANAH', jabatan: 'Sekretaris 2', kelas: 'X PPLG 1', nis: '2627020070006'),
+      AnggotaOsis(id: 'ang-5', nama: 'ALFI LAILA KAMIL', jabatan: 'Bendahara 1', kelas: 'XII AKT', nis: '242510119001'),
+      AnggotaOsis(id: 'ang-6', nama: 'ALFIRA NUR REVANDA', jabatan: 'Bendahara 2', kelas: 'XI AKT', nis: '2526011119001'),
+      AnggotaOsis(id: 'ang-7', nama: 'ALFARINI NUR AULIA', jabatan: 'Sekbid Keimanan & Ketaqwaan', kelas: 'XI DKV', nis: '2526016084001'),
+      AnggotaOsis(id: 'ang-8', nama: 'AKBAR FACHREZA WILYAS', jabatan: 'Sekbid Budi Pekerti & Karakter', kelas: 'XI RPL 1', nis: '2526019070002'),
+      AnggotaOsis(id: 'ang-9', nama: 'ANINDYA RANA MALAIKA', jabatan: 'Sekbid Bela Negara & Kepemimpinan', kelas: 'XI ANIMASI', nis: '2526016073001'),
+      AnggotaOsis(id: 'ang-10', nama: 'ADITYA MUSYAFFA', jabatan: 'Sekbid Prestasi Akademik & IPTEK', kelas: 'X PPLG 1', nis: '2627020070003'),
+      AnggotaOsis(id: 'ang-11', nama: 'ALVIRA KAVALERA PONIMAN', jabatan: 'Sekbid Demokrasi & Hak Asasi', kelas: 'X DKV 1', nis: '2627017084003'),
+      AnggotaOsis(id: 'ang-12', nama: 'AMEERA NAYANA HIDAYAT', jabatan: 'Sekbid Kewirausahaan', kelas: 'XI AKT', nis: '2526011119002'),
+      AnggotaOsis(id: 'ang-13', nama: 'ALVINO NOUFAL SANJAYA', jabatan: 'Sekbid Jasmani & Olahraga', kelas: 'XI RPL 1', nis: '2526019070006'),
+      AnggotaOsis(id: 'ang-14', nama: 'AFTAH ARDIANSYAH', jabatan: 'Sekbid Seni & Budaya', kelas: 'XII DKV', nis: '242515084001'),
+      AnggotaOsis(id: 'ang-15', nama: 'ADID YULIANTO', jabatan: 'Sekbid Teknologi Informasi', kelas: 'XII RPL 2', nis: '242518070002'),
+      AnggotaOsis(id: 'ang-16', nama: 'ANGGITA ANGGRAINI KUSNAINDAR', jabatan: 'Sekbid Bahasa & Komunikasi', kelas: 'XI AKT', nis: '2526011119003'),
     ];
   }
 
@@ -2539,25 +2539,30 @@ class DataService {
 
       // Cari header dari baris 0 sampai maksimal baris 8
       final maxSearch = sheet.maxRows < 9 ? sheet.maxRows : 9;
+      int jabatanCol = -1, statusCol = -1;
       for (int h = 0; h < maxSearch; h++) {
         final hRow = sheet.rows[h];
-        int tempNama = -1, tempNis = -1;
+        int tempNama = -1, tempNis = -1, tempJab = -1, tempStat = -1;
         for (int i = 0; i < hRow.length; i++) {
           final val = hRow[i]?.value?.toString().toLowerCase().trim() ?? '';
-          if (val.contains('nama')) tempNama = i;
+          if (val.contains('nama') || val == 'siswa') tempNama = i;
           if (val.contains('nis')) tempNis = i;
+          if (val.contains('jabatan') || val.contains('peran') || val.contains('divisi') || val.contains('sekbid') || val.contains('posisi')) tempJab = i;
+          if (val.contains('status') || val.contains('keterangan') || val.contains('kehadiran') || val.contains('absen')) tempStat = i;
         }
-        if (tempNama != -1 && tempNis != -1) {
+        if (tempNama != -1) {
           headerRow = h;
           namaCol = tempNama;
           nisCol = tempNis;
-          // Jika header ditemukan di baris >= 4, anggap format absen
-          isFormatAbsen = h >= 4;
+          jabatanCol = tempJab;
+          statusCol = tempStat;
+          // Jika header ditemukan di baris >= 4 dan ada NIS, anggap format absen sekolah
+          isFormatAbsen = h >= 4 && tempNis != -1;
           break;
         }
       }
 
-      if (isFormatAbsen) {
+      if (isFormatAbsen && nisCol != -1) {
         // Format Absen: data mulai 2 baris setelah header (skip sub-header)
         final dataStart = headerRow + 2;
         for (int r = dataStart; r < sheet.maxRows; r++) {
@@ -2567,19 +2572,29 @@ class DataService {
                   : null) ??
               '';
           if (nama.isEmpty) continue;
-          // NIS bisa berupa angka → konversi ke string (hapus .0 dari double)
           final nisRaw = row.length > nisCol ? row[nisCol]?.value : null;
           final nis = _cellValueToNis(nisRaw);
-          if (nis.isEmpty) continue;
-          result.add({'nama': nama, 'kelas': kelas, 'nis': nis});
+          final jabVal = (jabatanCol != -1 && row.length > jabatanCol)
+              ? (row[jabatanCol]?.value?.toString().trim() ?? '')
+              : '';
+          final statVal = (statusCol != -1 && row.length > statusCol)
+              ? (row[statusCol]?.value?.toString().trim() ?? '')
+              : '';
+          result.add({
+            'nama': nama,
+            'kelas': kelas,
+            'nis': nis.isNotEmpty ? nis : 'OSIS-${r + 1}',
+            if (jabVal.isNotEmpty) 'jabatan': jabVal,
+            if (statVal.isNotEmpty) 'status': statVal,
+          });
         }
-      } else if (namaCol != -1 && nisCol != -1) {
+      } else if (namaCol != -1) {
         // Format sederhana: cari kolom kelas juga
         int kelasCol = -1;
         final hRow = sheet.rows[headerRow];
         for (int i = 0; i < hRow.length; i++) {
           final val = hRow[i]?.value?.toString().toLowerCase().trim() ?? '';
-          if (val.contains('kelas')) kelasCol = i;
+          if (val.contains('kelas') || val.contains('tingkat')) kelasCol = i;
         }
         for (int r = headerRow + 1; r < sheet.maxRows; r++) {
           final row = sheet.rows[r];
@@ -2588,20 +2603,155 @@ class DataService {
                   : null) ??
               '';
           if (nama.isEmpty) continue;
-          final nisRaw = row.length > nisCol ? row[nisCol]?.value : null;
+          final nisRaw = (nisCol != -1 && row.length > nisCol) ? row[nisCol]?.value : null;
           final nis = _cellValueToNis(nisRaw);
-          final kelasVal = kelasCol != -1
-              ? (row.length > kelasCol
-                      ? row[kelasCol]?.value?.toString().trim()
-                      : null) ??
-                  kelas
+          final kelasVal = (kelasCol != -1 && row.length > kelasCol)
+              ? (row[kelasCol]?.value?.toString().trim() ?? kelas)
               : kelas;
-          if (nis.isEmpty) continue;
-          result.add({'nama': nama, 'kelas': kelasVal, 'nis': nis});
+          final jabVal = (jabatanCol != -1 && row.length > jabatanCol)
+              ? (row[jabatanCol]?.value?.toString().trim() ?? '')
+              : '';
+          final statVal = (statusCol != -1 && row.length > statusCol)
+              ? (row[statusCol]?.value?.toString().trim() ?? '')
+              : '';
+
+          result.add({
+            'nama': nama,
+            'kelas': kelasVal.isNotEmpty ? kelasVal : '-',
+            'nis': nis.isNotEmpty ? nis : 'OSIS-${r + 1}',
+            if (jabVal.isNotEmpty) 'jabatan': jabVal,
+            if (statVal.isNotEmpty) 'status': statVal,
+          });
         }
       }
     }
     return result;
+  }
+
+  // ── Import & Export Excel Khusus OSIS ───────────────────────────────────────
+
+  /// Impor Anggota OSIS langsung dari file Excel (.xlsx / .xls)
+  static Future<List<AnggotaOsis>> importAnggotaOsisFromExcel(List<int> bytes) async {
+    final parsed = _parseExcel(bytes);
+    if (parsed.isEmpty) return [];
+
+    final current = await getAnggotaOsis();
+    final map = {for (var m in current) m.nama.toLowerCase().trim(): m};
+
+    final imported = <AnggotaOsis>[];
+    for (int i = 0; i < parsed.length; i++) {
+      final p = parsed[i];
+      final nama = (p['nama'] ?? '').trim();
+      if (nama.isEmpty) continue;
+
+      final kelas = (p['kelas'] ?? '').trim();
+      final nis = (p['nis'] ?? '').trim();
+      final jabatan = (p['jabatan'] ?? '').trim().isNotEmpty
+          ? p['jabatan']!.trim()
+          : 'Anggota OSIS';
+
+      final key = nama.toLowerCase().trim();
+      final existing = map[key];
+      final item = AnggotaOsis(
+        id: existing?.id ?? 'ang-${DateTime.now().millisecondsSinceEpoch}-$i',
+        nama: nama,
+        kelas: kelas.isNotEmpty ? kelas : (existing?.kelas ?? '-'),
+        nis: nis.isNotEmpty ? nis : (existing?.nis ?? ''),
+        jabatan: jabatan,
+      );
+      map[key] = item;
+      imported.add(item);
+    }
+
+    final updated = map.values.toList();
+    await saveAnggotaOsis(updated);
+    return imported;
+  }
+
+  /// Impor Sesi Absensi OSIS langsung dari file Excel.
+  /// Otomatis membuat sesi baru hanya dengan nama-nama anggota OSIS yang tercantum di Excel.
+  static Future<AbsensiOsisSession?> importAbsensiOsisFromExcel(
+    List<int> bytes, {
+    required String namaKegiatan,
+    DateTime? tanggal,
+    String lokasi = 'Ruang OSIS',
+  }) async {
+    final parsed = _parseExcel(bytes);
+    if (parsed.isEmpty) return null;
+
+    final sessionId = 'abs-${DateTime.now().millisecondsSinceEpoch}';
+    final sessionDate = tanggal ?? DateTime.now();
+
+    final absensiItems = <AbsensiOsisItem>[];
+    for (int i = 0; i < parsed.length; i++) {
+      final p = parsed[i];
+      final nama = (p['nama'] ?? '').trim();
+      if (nama.isEmpty) continue;
+
+      final kelas = (p['kelas'] ?? '').trim();
+      final jabatan = (p['jabatan'] ?? '').trim().isNotEmpty
+          ? p['jabatan']!.trim()
+          : 'Anggota OSIS';
+
+      String status = 'Hadir';
+      final rawStatus = (p['status'] ?? '').trim().toUpperCase();
+      if (rawStatus.startsWith('I') || rawStatus.contains('IZIN')) {
+        status = 'Izin';
+      } else if (rawStatus.startsWith('S') || rawStatus.contains('SAKIT')) {
+        status = 'Sakit';
+      } else if (rawStatus.startsWith('A') || rawStatus.contains('ALPA') || rawStatus.contains('ALPHA')) {
+        status = 'Alpa';
+      }
+
+      final angId = 'ang-${DateTime.now().millisecondsSinceEpoch}-$i';
+      absensiItems.add(AbsensiOsisItem(
+        anggotaId: angId,
+        nama: nama,
+        kelas: kelas.isNotEmpty ? kelas : '-',
+        jabatan: jabatan,
+        status: status,
+      ));
+    }
+
+    if (absensiItems.isEmpty) return null;
+
+    final newSession = AbsensiOsisSession(
+      id: sessionId,
+      namaKegiatan: namaKegiatan,
+      tanggal: sessionDate,
+      lokasi: lokasi,
+      items: absensiItems,
+      updatedAt: DateTime.now(),
+    );
+
+    await saveAbsensiOsisSession(newSession);
+
+    // Otomatis sinkronkan anggota baru ke daftar Anggota OSIS
+    final currentAnggota = await getAnggotaOsis();
+    final nameSet = currentAnggota.map((a) => a.nama.toLowerCase().trim()).toSet();
+    bool addedAny = false;
+
+    for (int i = 0; i < absensiItems.length; i++) {
+      final item = absensiItems[i];
+      if (!nameSet.contains(item.nama.toLowerCase().trim())) {
+        final rawNis = i < parsed.length ? (parsed[i]['nis'] ?? '').trim() : '';
+        currentAnggota.add(AnggotaOsis(
+          id: item.anggotaId,
+          nama: item.nama,
+          kelas: item.kelas,
+          nis: rawNis,
+          jabatan: item.jabatan,
+        ));
+        nameSet.add(item.nama.toLowerCase().trim());
+        addedAny = true;
+      }
+    }
+
+    if (addedAny) {
+      await saveAnggotaOsis(currentAnggota);
+    }
+
+    return newSession;
   }
 
   // ── Legacy BIFF8 (.xls) Parser Helper Implementation ─────────────────────
