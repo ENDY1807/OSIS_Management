@@ -49,16 +49,8 @@ class _KasOsisScreenState extends State<KasOsisScreen>
       NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
   final _dateFormat = DateFormat('EEEE, d MMMM yyyy', 'id_ID');
 
-  bool get _canAccess => AuthService.canAccessKasAndAbsensi(widget.username);
-  bool get _canEdit => _canAccess && !AuthService.isReadOnly(widget.username);
-
-  bool get _isBendahara =>
-      _canAccess &&
-      (widget.username == 'BENDAHARA' ||
-          widget.username == 'ADMIN' ||
-          widget.username == 'KETUA' ||
-          widget.username.startsWith('WAKIL') ||
-          widget.username == 'PEMBINA');
+  bool get _canEdit => AuthService.canEditKasAndAbsensi(widget.username);
+  bool get _isBendahara => _canEdit;
 
   @override
   void initState() {
@@ -424,7 +416,15 @@ class _KasOsisScreenState extends State<KasOsisScreen>
   }
 
   void _toggleBayarItem(KasOsisItem item) {
-    if (!_canEdit) return;
+    if (!_canEdit) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Mode Lihat Saja: Pengeditan kas hanya diizinkan untuk 7 Pengurus Inti & Pimpinan Sekolah.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
     setState(() {
       item.sudahBayar = !item.sudahBayar;
       if (item.sudahBayar) {
@@ -1259,85 +1259,6 @@ class _KasOsisScreenState extends State<KasOsisScreen>
     final isDark = theme.brightness == Brightness.dark;
     final primary = theme.colorScheme.primary;
 
-    if (!_canAccess) {
-      return Scaffold(
-        backgroundColor: isDark ? const Color(0xFF090D16) : const Color(0xFFF8FAFC),
-        body: Center(
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 480),
-            margin: const EdgeInsets.all(24),
-            padding: const EdgeInsets.all(28),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withAlpha(20),
-                  blurRadius: 16,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.amber.withAlpha(30),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.lock_person_rounded,
-                    color: Color(0xFFD97706),
-                    size: 48,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                const Text(
-                  'Akses Khusus 7 Inti & Pimpinan',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Pencatatan Kas & Absensi OSIS hanya dapat diakses oleh 7 Pengurus Inti & Pimpinan Sekolah:\n\n'
-                  '• Ketua OSIS\n'
-                  '• Wakil Ketua 1 & Wakil Ketua 2\n'
-                  '• Sekretaris (1 & 2)\n'
-                  '• Bendahara (1 & 2)\n'
-                  '• Admin & Kesiswaan\n'
-                  '• Pembina OSIS & Kepala Sekolah',
-                  style: TextStyle(
-                    fontSize: 13,
-                    height: 1.5,
-                    color: isDark ? Colors.white70 : const Color(0xFF475569),
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    if (Navigator.canPop(context)) {
-                      Navigator.pop(context);
-                    }
-                  },
-                  icon: const Icon(Icons.arrow_back_rounded, size: 18),
-                  label: const Text('Kembali'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF090D16) : const Color(0xFFF8FAFC),
       appBar: PreferredSize(
@@ -1355,46 +1276,82 @@ class _KasOsisScreenState extends State<KasOsisScreen>
           child: SafeArea(
             bottom: false,
             child: TabBar(
-                  controller: _tabCtrl,
-                  isScrollable: true,
-                  indicatorColor: NusantaraColors.gold,
-                  indicatorWeight: 3,
-                  labelColor: isDark ? Colors.white : const Color(0xFF0F172A),
-                  unselectedLabelColor: isDark ? Colors.white54 : Colors.black54,
-                  labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                  tabs: const [
-                    Tab(
-                      icon: Icon(Icons.check_box_outlined, size: 18),
-                      text: 'Ceklis Kas Bendahara',
-                    ),
-                    Tab(
-                      icon: Icon(Icons.how_to_reg_rounded, size: 18),
-                      text: 'Absensi OSIS',
-                    ),
-                    Tab(
-                      icon: Icon(Icons.account_balance_wallet_rounded, size: 18),
-                      text: 'Buku Kas & Saldo',
-                    ),
-                    Tab(
-                      icon: Icon(Icons.groups_rounded, size: 18),
-                      text: 'Anggota OSIS',
-                    ),
-                  ],
+              controller: _tabCtrl,
+              isScrollable: true,
+              indicatorColor: NusantaraColors.gold,
+              indicatorWeight: 3,
+              labelColor: isDark ? Colors.white : const Color(0xFF0F172A),
+              unselectedLabelColor: isDark ? Colors.white54 : Colors.black54,
+              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              tabs: const [
+                Tab(
+                  icon: Icon(Icons.check_box_outlined, size: 18),
+                  text: 'Ceklis Kas Bendahara',
                 ),
+                Tab(
+                  icon: Icon(Icons.how_to_reg_rounded, size: 18),
+                  text: 'Absensi OSIS',
+                ),
+                Tab(
+                  icon: Icon(Icons.account_balance_wallet_rounded, size: 18),
+                  text: 'Buku Kas & Saldo',
+                ),
+                Tab(
+                  icon: Icon(Icons.groups_rounded, size: 18),
+                  text: 'Anggota OSIS',
+                ),
+              ],
+            ),
           ),
         ),
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
-              controller: _tabCtrl,
-              children: [
-                _buildTabKasChecklist(theme, isDark, primary),
-                _buildTabAbsensi(theme, isDark, primary),
-                _buildTabBukuKas(theme, isDark, primary),
-                _buildTabAnggota(theme, isDark, primary),
-              ],
+      body: Column(
+        children: [
+          if (!_canEdit)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFFEF3C7),
+                border: Border(
+                  bottom: BorderSide(
+                    color: isDark ? const Color(0xFF334155) : const Color(0xFFFDE68A),
+                    width: 1,
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.visibility_outlined, size: 16, color: Color(0xFFD97706)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Mode Lihat Saja: Anda dapat melihat seluruh data kas & absensi. Pengeditan hanya diizinkan untuk 7 Inti & Pimpinan Sekolah.',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? const Color(0xFFFDE68A) : const Color(0xFF92400E),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : TabBarView(
+                    controller: _tabCtrl,
+                    children: [
+                      _buildTabKasChecklist(theme, isDark, primary),
+                      _buildTabAbsensi(theme, isDark, primary),
+                      _buildTabBukuKas(theme, isDark, primary),
+                      _buildTabAnggota(theme, isDark, primary),
+                    ],
+                  ),
+          ),
+        ],
+      ),
     );
   }
 

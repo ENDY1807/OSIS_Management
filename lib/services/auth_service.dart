@@ -390,32 +390,64 @@ class AuthService {
     return isKepalaSekolah(u) || isPembinaOrKesiswaan(u) || superRoles.contains(u) || superRoles.contains(r);
   }
 
-  /// Cek apakah pengguna berhak mengakses pencatatan Kas OSIS & Absensi OSIS:
-  /// Hanya 7 Inti / Pimpinan yang berhak:
-  /// Ketua, Wakil 1, Wakil 2, Sekretaris, Bendahara, Admin, Kesiswaan, Pembina OSIS, dan Kepala Sekolah.
-  static bool canAccessKasAndAbsensi(String username) {
+  /// Cek apakah pengguna berhak mengedit / mencatat Kas OSIS & Absensi OSIS:
+  /// Hanya 7 Inti / Pimpinan yang berhak mengedit:
+  /// - Ketua OSIS
+  /// - Wakil Ketua 1 & Wakil Ketua 2
+  /// - Sekretaris (1 & 2)
+  /// - Bendahara (1 & 2)
+  /// - Admin
+  /// - Kesiswaan
+  /// - Pembina OSIS
+  /// - Kepala Sekolah
+  /// Selain user di atas, menu kas dan absensi hanya bisa dilihat saja (read-only).
+  static bool canEditKasAndAbsensi(String username) {
     if (username.isEmpty) return false;
     final u = normalizeUsername(username);
     final r = getRole(u).toUpperCase();
 
     const allowed = {
       'KETUA',
+      'KETUA_OSIS',
       'WAKIL',
       'WAKIL1',
       'WAKIL2',
+      'WAKIL_1',
+      'WAKIL_2',
+      'WAKILKETUA',
+      'WAKIL_KETUA',
+      'WAKILKETUA1',
+      'WAKILKETUA2',
+      'WAKIL_KETUA_1',
+      'WAKIL_KETUA_2',
       'SEKRETARIS',
+      'SEKRETARIS1',
+      'SEKRETARIS2',
+      'SEKRETARIS_1',
+      'SEKRETARIS_2',
       'BENDAHARA',
+      'BENDAHARA1',
+      'BENDAHARA2',
+      'BENDAHARA_1',
+      'BENDAHARA_2',
       'ADMIN',
       'KESISWAAN',
       'PEMBINA',
+      'PEMBINA_OSIS',
       'KEPSEK',
       'KEPALA_SEKOLAH',
       'PRINCIPAL',
     };
     if (allowed.contains(u) || allowed.contains(r)) return true;
     if (u.startsWith('WAKIL') || r.startsWith('WAKIL')) return true;
+    if (u.startsWith('SEKRETARIS') || r.startsWith('SEKRETARIS')) return true;
+    if (u.startsWith('BENDAHARA') || r.startsWith('BENDAHARA')) return true;
     return false;
   }
+
+  /// Menu kas dan absensi dapat dilihat oleh seluruh pengguna (view only),
+  /// namun pengeditan dibatasi oleh canEditKasAndAbsensi.
+  static bool canAccessKasAndAbsensi(String username) => true;
 
   /// Autentikasi user dengan pengecekan online Supabase + fallback offline cache.
   static Future<bool> authenticate(String username, String password) async {
