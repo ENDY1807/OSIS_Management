@@ -685,89 +685,127 @@ class _KasOsisScreenState extends State<KasOsisScreen>
   }
 
   void _tambahSesiKasBaru() {
-    final judulCtrl = TextEditingController(
-      text: 'Iuran Kas Bulan ${DateFormat('MMMM yyyy', 'id_ID').format(DateTime.now())}',
-    );
+    DateTime selectedDate = DateTime.now();
     final nominalCtrl = TextEditingController(
       text: AppSettingsService.kasDefaultIuranNotifier.value.toString(),
     );
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.add_card_rounded, color: NusantaraColors.gold),
-            SizedBox(width: 10),
-            Text('Buat Sesi Kas OSIS Baru', style: TextStyle(fontSize: 16)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Judul / Periode Kas:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
-            TextField(
-              controller: judulCtrl,
-              decoration: const InputDecoration(
-                isDense: true,
-                border: OutlineInputBorder(),
-                hintText: 'Contoh: Kas OSIS Oktober 2026',
-              ),
-            ),
-            const SizedBox(height: 14),
-            const Text('Nominal Iuran Wajib per Anggota (Rp):',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
-            TextField(
-              controller: nominalCtrl,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                isDense: true,
-                border: OutlineInputBorder(),
-                prefixText: 'Rp ',
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
-          ElevatedButton(
-            onPressed: () async {
-              final judul = judulCtrl.text.trim();
-              final nominal = int.tryParse(nominalCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 5000;
-              if (judul.isEmpty) return;
-
-              Navigator.pop(ctx);
-              final newId = 'kas-${DateTime.now().millisecondsSinceEpoch}';
-              final items = _anggotaList.map((a) {
-                return KasOsisItem(
-                  anggotaId: a.id,
-                  nama: a.nama,
-                  kelas: a.kelas,
-                  jabatan: a.jabatan,
-                  nominalBayar: 0,
-                  sudahBayar: false,
-                );
-              }).toList();
-
-              final newSession = KasOsisSession(
-                id: newId,
-                judul: judul,
-                tanggal: DateTime.now(),
-                nominalWajib: nominal,
-                items: items,
-                updatedAt: DateTime.now(),
-              );
-
-              await DataService.saveKasOsisSession(newSession);
-              await _loadData();
-              setState(() => _selectedKasSession = newSession);
-            },
-            child: const Text('Buat Sesi'),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.calendar_month_rounded, color: NusantaraColors.gold),
+              SizedBox(width: 10),
+              Text('Buat Sesi Kas OSIS Baru', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            ],
           ),
-        ],
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Tanggal / Periode Kas:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 6),
+              InkWell(
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: selectedDate,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime(2035),
+                  );
+                  if (picked != null) {
+                    setDialogState(() {
+                      selectedDate = picked;
+                    });
+                  }
+                },
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF1E293B)
+                        : const Color(0xFFF8FAFC),
+                    border: Border.all(color: Colors.grey.withAlpha(120)),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.event_note_rounded, size: 20, color: NusantaraColors.gold),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(selectedDate),
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              'Periode: Kas Bulan ${DateFormat('MMMM yyyy', 'id_ID').format(selectedDate)}',
+                              style: const TextStyle(fontSize: 11, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.calendar_today_rounded, size: 16, color: NusantaraColors.gold),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              const Text('Nominal Iuran Wajib per Anggota (Rp):',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 6),
+              TextField(
+                controller: nominalCtrl,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  isDense: true,
+                  border: OutlineInputBorder(),
+                  prefixText: 'Rp ',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+            ElevatedButton(
+              onPressed: () async {
+                final nominal = int.tryParse(nominalCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 5000;
+                Navigator.pop(ctx);
+                final newId = 'kas-${DateTime.now().millisecondsSinceEpoch}';
+                final judul = 'Kas Bulan ${DateFormat('MMMM yyyy', 'id_ID').format(selectedDate)}';
+                final items = _anggotaList.map((a) {
+                  return KasOsisItem(
+                    anggotaId: a.id,
+                    nama: a.nama,
+                    kelas: a.kelas,
+                    jabatan: a.jabatan,
+                    nominalBayar: 0,
+                    sudahBayar: false,
+                  );
+                }).toList();
+
+                final newSession = KasOsisSession(
+                  id: newId,
+                  judul: judul,
+                  tanggal: selectedDate,
+                  nominalWajib: nominal,
+                  items: items,
+                  updatedAt: DateTime.now(),
+                );
+
+                await DataService.saveKasOsisSession(newSession);
+                await _loadData();
+                setState(() => _selectedKasSession = newSession);
+              },
+              child: const Text('Buat Sesi'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -856,88 +894,146 @@ class _KasOsisScreenState extends State<KasOsisScreen>
   }
 
   void _tambahSesiAbsensiBaru() {
+    DateTime selectedDate = DateTime.now();
     final kegiatanCtrl = TextEditingController(
-      text: 'Rapat Evaluasi OSIS ${DateFormat('d MMMM yyyy', 'id_ID').format(DateTime.now())}',
+      text: 'Rapat Pleno OSIS ${DateFormat('d MMMM yyyy', 'id_ID').format(DateTime.now())}',
     );
     final lokasiCtrl = TextEditingController(text: 'Ruang OSIS');
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.how_to_reg_rounded, color: NusantaraColors.pandanGreen),
-            SizedBox(width: 10),
-            Text('Buat Sesi Absensi OSIS', style: TextStyle(fontSize: 16)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Nama Kegiatan / Rapat:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
-            TextField(
-              controller: kegiatanCtrl,
-              decoration: const InputDecoration(
-                isDense: true,
-                border: OutlineInputBorder(),
-                hintText: 'Contoh: Rapat Mingguan Pengurus OSIS',
-              ),
-            ),
-            const SizedBox(height: 14),
-            const Text('Lokasi Kegiatan:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
-            TextField(
-              controller: lokasiCtrl,
-              decoration: const InputDecoration(
-                isDense: true,
-                border: OutlineInputBorder(),
-                hintText: 'Contoh: Ruang OSIS / Perpustakaan',
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Akan memuat ${_anggotaList.length} anggota OSIS resmi.',
-              style: const TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
-          ElevatedButton(
-            onPressed: () async {
-              final kegiatan = kegiatanCtrl.text.trim();
-              if (kegiatan.isEmpty) return;
-
-              Navigator.pop(ctx);
-              final newId = 'abs-${DateTime.now().millisecondsSinceEpoch}';
-              final items = _anggotaList.map((a) {
-                return AbsensiOsisItem(
-                  anggotaId: a.id,
-                  nama: a.nama,
-                  kelas: a.kelas,
-                  jabatan: a.jabatan,
-                  status: 'Hadir',
-                );
-              }).toList();
-
-              final newSession = AbsensiOsisSession(
-                id: newId,
-                namaKegiatan: kegiatan,
-                tanggal: DateTime.now(),
-                lokasi: lokasiCtrl.text.trim().isNotEmpty ? lokasiCtrl.text.trim() : 'Ruang OSIS',
-                items: items,
-                updatedAt: DateTime.now(),
-              );
-
-              await DataService.saveAbsensiOsisSession(newSession);
-              await _loadData();
-              setState(() => _selectedAbsensiSession = newSession);
-            },
-            child: const Text('Mulai Absensi'),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.how_to_reg_rounded, color: NusantaraColors.pandanGreen),
+              SizedBox(width: 10),
+              Text('Buat Sesi Absensi OSIS', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            ],
           ),
-        ],
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 1. TANGGAL KEGIATAN
+                const Text('Tanggal Kegiatan:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                InkWell(
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: selectedDate,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2035),
+                    );
+                    if (picked != null) {
+                      setDialogState(() {
+                        selectedDate = picked;
+                      });
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF1E293B)
+                          : const Color(0xFFF8FAFC),
+                      border: Border.all(color: Colors.grey.withAlpha(120)),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.calendar_today_rounded, size: 18, color: NusantaraColors.pandanGreen),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(selectedDate),
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // 2. NAMA KEGIATAN
+                const Text('Nama Kegiatan:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: kegiatanCtrl,
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    border: OutlineInputBorder(),
+                    hintText: 'Contoh: Rapat Mingguan Pengurus OSIS',
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // 3. LOKASI KEGIATAN
+                const Text('Lokasi Kegiatan:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: lokasiCtrl,
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    border: OutlineInputBorder(),
+                    hintText: 'Contoh: Ruang OSIS / Perpustakaan',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Akan memuat ${_anggotaList.length} anggota OSIS resmi.',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+            ElevatedButton(
+              onPressed: () async {
+                final kegiatan = kegiatanCtrl.text.trim();
+                final lokasi = lokasiCtrl.text.trim();
+                if (kegiatan.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Nama kegiatan tidak boleh kosong!'), backgroundColor: Colors.orange),
+                  );
+                  return;
+                }
+
+                Navigator.pop(ctx);
+                final newId = 'abs-${DateTime.now().millisecondsSinceEpoch}';
+                final items = _anggotaList.map((a) {
+                  return AbsensiOsisItem(
+                    anggotaId: a.id,
+                    nama: a.nama,
+                    kelas: a.kelas,
+                    jabatan: a.jabatan,
+                    status: 'Hadir',
+                  );
+                }).toList();
+
+                final newSession = AbsensiOsisSession(
+                  id: newId,
+                  namaKegiatan: kegiatan,
+                  tanggal: selectedDate,
+                  lokasi: lokasi.isNotEmpty ? lokasi : 'Ruang OSIS',
+                  items: items,
+                  updatedAt: DateTime.now(),
+                );
+
+                await DataService.saveAbsensiOsisSession(newSession);
+                await _loadData();
+                setState(() => _selectedAbsensiSession = newSession);
+              },
+              child: const Text('Mulai Absensi'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1495,6 +1591,39 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                           ),
                         ],
                       ],
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Tanggal Sesi Kas
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.calendar_today_rounded, size: 12, color: isDark ? Colors.white70 : Colors.black54),
+                          const SizedBox(width: 5),
+                          Text(
+                            DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(session.tanggal),
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.white70 : const Color(0xFF334155),
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            'Iuran: ${_currencyFormat.format(session.nominalWajib)}/siswa',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: NusantaraColors.gold,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 8),
 
@@ -2058,6 +2187,41 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                           ),
                         ],
                       ],
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Detail Sesi: Tanggal & Lokasi Kegiatan
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.calendar_today_rounded, size: 12, color: isDark ? Colors.white70 : Colors.black54),
+                          const SizedBox(width: 5),
+                          Text(
+                            DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(session.tanggal),
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.white70 : const Color(0xFF334155),
+                            ),
+                          ),
+                          const Spacer(),
+                          Icon(Icons.place_outlined, size: 13, color: isDark ? Colors.white70 : Colors.black54),
+                          const SizedBox(width: 4),
+                          Text(
+                            session.lokasi.isNotEmpty ? session.lokasi : 'Ruang OSIS',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 8),
 
