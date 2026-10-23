@@ -428,42 +428,39 @@ class DataService {
 
   // ── Siswa ────────────────────────────────────────────────────────────────
   static Future<List<Siswa>> getSiswa() async {
-    // 1. Ambil dari cache lokal terlebih dahulu (Cache-First instan)
+    final prefs = await SharedPreferences.getInstance();
+    final bool hasInitialized = prefs.getBool('has_initialized_siswa') ?? false;
+
+    // 1. Jika online, tarik pembaruan dari Supabase
+    if (SyncService.isOnline) {
+      try {
+        final rows = await _db
+            .from('siswa')
+            .select()
+            .order('nama')
+            .timeout(const Duration(seconds: 4));
+        final list = (rows as List)
+            .map((e) => Siswa.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
+        await _saveCache(_keySiswa, list.map((e) => e.toJson()).toList());
+        await prefs.setBool('has_initialized_siswa', true);
+        return list;
+      } catch (e) {
+        debugPrint('Supabase getSiswa fallback ke cache lokal: $e');
+      }
+    }
+
+    // 2. Ambil dari cache lokal
     List<Map<String, dynamic>> cache = await _readCache(_keySiswa);
 
-    // 2. Jika cache masih kosong (misal mode offline pertama kali atau belum sync),
-    // langsung isi dengan 359 dataset siswa SMK Bakti Nusantara 666 agar tidak pernah kosong
-    if (cache.isEmpty) {
+    // 3. Hanya isi dengan dataset awal sekali saat aplikasi pertama kali diinstall jika belum pernah ada inisialisasi
+    if (!hasInitialized && cache.isEmpty) {
       cache = List<Map<String, dynamic>>.from(bundledStudentsSeed);
       await _saveCache(_keySiswa, cache);
+      await prefs.setBool('has_initialized_siswa', true);
     }
 
-    final localList = cache.map(Siswa.fromJson).toList();
-
-    // 3. Jika mode offline, langsung kembalikan data siswa lokal tanpa menunggu network
-    if (!SyncService.isOnline) {
-      return localList;
-    }
-
-    // 4. Jika online, tarik pembaruan dari Supabase secara aman (timeout 3 detik)
-    try {
-      final rows = await _db
-          .from('siswa')
-          .select()
-          .order('nama')
-          .timeout(const Duration(seconds: 3));
-      final list = (rows as List)
-          .map((e) => Siswa.fromJson(Map<String, dynamic>.from(e as Map)))
-          .toList();
-      if (list.isNotEmpty) {
-        await _saveCache(_keySiswa, list.map((e) => e.toJson()).toList());
-        return list;
-      }
-    } catch (e) {
-      debugPrint('Supabase getSiswa fallback ke cache lokal: $e');
-    }
-
-    return localList;
+    return cache.map(Siswa.fromJson).toList();
   }
 
   static Future<void> saveSiswa(List<Siswa> list) async {
@@ -1063,15 +1060,6 @@ class DataService {
       final list = (rows as List)
           .map((e) => CatatanKebaikan.fromJson(Map<String, dynamic>.from(e as Map)))
           .toList();
-      final remoteIds = list.map((e) => e.id).toSet();
-      final localCache = await _readCache(_keyKebaikan);
-      for (final raw in localCache) {
-        if (!remoteIds.contains(raw['id'])) {
-          try {
-            list.add(CatatanKebaikan.fromJson(raw));
-          } catch (_) {}
-        }
-      }
       final cacheData = list.map((k) => k.toJson()).toList();
       await _saveCache(_keyKebaikan, cacheData);
       return list;
@@ -1227,15 +1215,6 @@ class DataService {
                 catatanKepsek: e['catatan_kepsek']?.toString() ?? '',
               ))
           .toList();
-      final remoteIds = list.map((e) => e.id).toSet();
-      final localCache = await _readCache(_keyProker);
-      for (final raw in localCache) {
-        if (!remoteIds.contains(raw['id'])) {
-          try {
-            list.add(Proker.fromJson(raw));
-          } catch (_) {}
-        }
-      }
       final cacheData = list.map((p) => p.toJson()).toList();
       await _saveCache(_keyProker, cacheData);
       return list;
@@ -2107,10 +2086,8 @@ class DataService {
 
   // 1. Anggota OSIS
   static Future<List<AnggotaOsis>> getAnggotaOsis() async {
-    final cache = await _readCache(_keyAnggotaOsis);
-    if (cache.isNotEmpty) {
-      return cache.map(AnggotaOsis.fromJson).toList();
-    }
+    final prefs = await SharedPreferences.getInstance();
+    final bool hasInit = prefs.getBool('has_initialized_anggota_osis') ?? false;
 
     if (SyncService.isOnline) {
       try {
@@ -2122,23 +2099,32 @@ class DataService {
         final list = (rows as List)
             .map((e) => AnggotaOsis.fromJson(Map<String, dynamic>.from(e as Map)))
             .toList();
-        if (list.isNotEmpty) {
-          await _saveCache(_keyAnggotaOsis, list.map((e) => e.toJson()).toList());
-          return list;
-        }
+        await _saveCache(_keyAnggotaOsis, list.map((e) => e.toJson()).toList());
+        await prefs.setBool('has_initialized_anggota_osis', true);
+        return list;
       } catch (_) {}
     }
 
-    final defaults = _defaultAnggotaOsis();
-    await _saveCache(_keyAnggotaOsis, defaults.map((e) => e.toJson()).toList());
-    if (SyncService.isOnline) {
-      try {
-        for (final item in defaults) {
-          await _db.from('anggota_osis').upsert(item.toJson(), onConflict: 'id');
-        }
-      } catch (_) {}
+    final cache = await _readCache(_keyAnggotaOsis);
+    if (cache.isNotEmpty) {
+      return cache.map(AnggotaOsis.fromJson).toList();
     }
-    return defaults;
+
+    if (!hasInit) {
+      final defaults = _defaultAnggotaOsis();
+      await _saveCache(_keyAnggotaOsis, defaults.map((e) => e.toJson()).toList());
+      await prefs.setBool('has_initialized_anggota_osis', true);
+      if (SyncService.isOnline) {
+        try {
+          for (final item in defaults) {
+            await _db.from('anggota_osis').upsert(item.toJson(), onConflict: 'id');
+          }
+        } catch (_) {}
+      }
+      return defaults;
+    }
+
+    return [];
   }
 
   static Future<void> saveAnggotaOsis(List<AnggotaOsis> list) async {
@@ -2184,13 +2170,6 @@ class DataService {
 
   // 2. Sesi Kas OSIS
   static Future<List<KasOsisSession>> getKasOsisSessions() async {
-    final cache = await _readCache(_keyKasOsis);
-    if (cache.isNotEmpty) {
-      final list = cache.map(KasOsisSession.fromJson).toList();
-      list.sort((a, b) => b.tanggal.compareTo(a.tanggal));
-      return list;
-    }
-
     if (SyncService.isOnline) {
       try {
         final rows = await _db
@@ -2201,43 +2180,16 @@ class DataService {
         final list = (rows as List)
             .map((e) => KasOsisSession.fromJson(Map<String, dynamic>.from(e as Map)))
             .toList();
-        if (list.isNotEmpty) {
-          await _saveCache(_keyKasOsis, list.map((e) => e.toJson()).toList());
-          return list;
-        }
+        await _saveCache(_keyKasOsis, list.map((e) => e.toJson()).toList());
+        list.sort((a, b) => b.tanggal.compareTo(a.tanggal));
+        return list;
       } catch (_) {}
     }
 
-    // Buat 1 sesi default jika belum ada sesi kas
-    final anggota = await getAnggotaOsis();
-    final now = DateTime.now();
-    final initialSession = KasOsisSession(
-      id: _uuid.v4(),
-      tanggal: now,
-      judul: 'Uang Kas OSIS - Minggu Ini',
-      nominalWajib: 5000,
-      keterangan: 'Pencatatan uang kas rutin mingguan pengurus OSIS',
-      petugas: 'BENDAHARA',
-      items: anggota
-          .map((a) => KasOsisItem(
-                anggotaId: a.id,
-                nama: a.nama,
-                jabatan: a.jabatan,
-                kelas: a.kelas,
-                sudahBayar: false,
-                nominalBayar: 5000,
-              ))
-          .toList(),
-    );
-
-    final defaultList = [initialSession];
-    await _saveCache(_keyKasOsis, defaultList.map((e) => e.toJson()).toList());
-    if (SyncService.isOnline) {
-      try {
-        await _db.from('kas_osis').upsert(initialSession.toJson(), onConflict: 'id');
-      } catch (_) {}
-    }
-    return defaultList;
+    final cache = await _readCache(_keyKasOsis);
+    final list = cache.map(KasOsisSession.fromJson).toList();
+    list.sort((a, b) => b.tanggal.compareTo(a.tanggal));
+    return list;
   }
 
   static Future<void> saveKasOsisSession(KasOsisSession session) async {
@@ -2379,13 +2331,6 @@ class DataService {
 
   // 4. Sesi Absensi OSIS
   static Future<List<AbsensiOsisSession>> getAbsensiOsisSessions() async {
-    final cache = await _readCache(_keyAbsensiOsis);
-    if (cache.isNotEmpty) {
-      final list = cache.map(AbsensiOsisSession.fromJson).toList();
-      list.sort((a, b) => b.tanggal.compareTo(a.tanggal));
-      return list;
-    }
-
     if (SyncService.isOnline) {
       try {
         final rows = await _db
@@ -2396,41 +2341,16 @@ class DataService {
         final list = (rows as List)
             .map((e) => AbsensiOsisSession.fromJson(Map<String, dynamic>.from(e as Map)))
             .toList();
-        if (list.isNotEmpty) {
-          await _saveCache(_keyAbsensiOsis, list.map((e) => e.toJson()).toList());
-          return list;
-        }
+        await _saveCache(_keyAbsensiOsis, list.map((e) => e.toJson()).toList());
+        list.sort((a, b) => b.tanggal.compareTo(a.tanggal));
+        return list;
       } catch (_) {}
     }
 
-    // Sesi Absensi Default
-    final anggota = await getAnggotaOsis();
-    final initialAbsensi = AbsensiOsisSession(
-      id: _uuid.v4(),
-      tanggal: DateTime.now(),
-      namaKegiatan: 'Rapat Pleno & Evaluasi Mingguan',
-      lokasi: 'Ruang Sekretariat OSIS',
-      petugas: 'SEKRETARIS',
-      keterangan: 'Presensi rapat rutin seluruh pengurus dan anggota OSIS',
-      items: anggota
-          .map((a) => AbsensiOsisItem(
-                anggotaId: a.id,
-                nama: a.nama,
-                jabatan: a.jabatan,
-                kelas: a.kelas,
-                status: 'Hadir',
-              ))
-          .toList(),
-    );
-
-    final defaultList = [initialAbsensi];
-    await _saveCache(_keyAbsensiOsis, defaultList.map((e) => e.toJson()).toList());
-    if (SyncService.isOnline) {
-      try {
-        await _db.from('absensi_osis').upsert(initialAbsensi.toJson(), onConflict: 'id');
-      } catch (_) {}
-    }
-    return defaultList;
+    final cache = await _readCache(_keyAbsensiOsis);
+    final list = cache.map(AbsensiOsisSession.fromJson).toList();
+    list.sort((a, b) => b.tanggal.compareTo(a.tanggal));
+    return list;
   }
 
   static Future<void> saveAbsensiOsisSession(AbsensiOsisSession session) async {

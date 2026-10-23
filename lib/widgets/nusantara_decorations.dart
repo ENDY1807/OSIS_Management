@@ -507,8 +507,224 @@ class NusantaraBadge extends StatelessWidget {
 /// Custom Painter motif Batik Mega Mendung Tradisional Modern khas Cirebon.
 /// Karakteristik awan bergradasi horisontal dengan lengkungan bertingkat,
 /// pilin spiral di pusat inti awan (khas motif Mega Mendung asli pada kain),
-/// dan ujung meruncing lancip halus yang melambangkan ketenangan batin,
-/// kesabaran, serta kepemimpinan yang mengayomi seluruh lapisan.
+/// Custom Painter motif Batik Sekar Jagad & Kawung Klasik Soga.
+/// Diadaptasi langsung dari kain batik tradisional:
+/// 1. Ornamen Kawung & Ceplok 4 daun lonjong bersilang dengan kontur canting malam putih.
+/// 2. Sulur Daun & Bunga Melati Bintang dengan tulang daun bergaris cecek halus.
+/// 3. Isen-isen bintang 8 kelopak dan lingkaran cecek di atas kanvas gelap/hitam.
+class BatikSekarJagadPainter extends CustomPainter {
+  final Color? baseColor;
+  final double scale;
+  final bool isDarkBackground;
+
+  const BatikSekarJagadPainter({
+    this.baseColor,
+    this.scale = 80.0,
+    this.isDarkBackground = true,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Palet Soga Klasik sesuai foto kain batik referensi
+    const Color sogaDark = Color(0xFF78350F);
+    const Color sogaBrown = Color(0xFF9A4B1A);
+    const Color sogaGold = Color(0xFFD97706);
+    const Color waxWhite = Color(0xFFFFFDF5);
+
+    final sogaPaint = Paint()
+      ..color = sogaBrown.withValues(alpha: 0.85)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.3
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    final sogaFill = Paint()
+      ..color = sogaDark.withValues(alpha: 0.35)
+      ..style = PaintingStyle.fill;
+
+    final waxPaint = Paint()
+      ..color = waxWhite.withValues(alpha: 0.90)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0
+      ..strokeCap = StrokeCap.round;
+
+    final waxFill = Paint()
+      ..color = waxWhite.withValues(alpha: 0.85)
+      ..style = PaintingStyle.fill;
+
+    final dotPaint = Paint()
+      ..color = waxWhite.withValues(alpha: 0.75)
+      ..style = PaintingStyle.fill;
+
+    final goldStarPaint = Paint()
+      ..color = sogaGold.withValues(alpha: 0.80)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.1;
+
+    final double step = scale;
+
+    // Gambar pola berulang Sekar Jagad
+    for (double y = -step * 0.5; y < size.height + step; y += step * 1.1) {
+      for (double x = -step * 0.5; x < size.width + step; x += step * 1.1) {
+        // Tipe sektor: Kawung Ceplok, Sulur Daun Bunga, atau Isen-isen Bintang
+        final int type = ((x / step).floor() + (y / step).floor()) % 3;
+        canvas.save();
+        canvas.translate(x, y);
+
+        if (type == 0) {
+          // 1. Ornamen Kawung Ceplok
+          _drawKawungCeplok(canvas, step, sogaFill, sogaPaint, waxPaint, waxFill, dotPaint);
+        } else if (type == 1) {
+          // 2. Sulur Dedaunan & Bunga Melati Bintang
+          _drawSulurBunga(canvas, step, sogaFill, sogaPaint, waxPaint, waxFill, dotPaint);
+        } else {
+          // 3. Isen-isen Bintang & Cecek Lingkaran
+          _drawIsenBintangCecek(canvas, step, goldStarPaint, waxPaint, dotPaint);
+        }
+
+        canvas.restore();
+      }
+    }
+  }
+
+  void _drawKawungCeplok(
+    Canvas canvas,
+    double s,
+    Paint fill,
+    Paint soga,
+    Paint wax,
+    Paint waxF,
+    Paint dot,
+  ) {
+    final center = Offset(s * 0.5, s * 0.5);
+    final rX = s * 0.22;
+    final rY = s * 0.12;
+
+    // 4 Daun Kawung Lonjong bersilang 4 arah
+    for (int i = 0; i < 4; i++) {
+      canvas.save();
+      canvas.translate(center.dx, center.dy);
+      canvas.rotate(i * math.pi / 2);
+
+      final ovalRect = Rect.fromCenter(center: Offset(rX, 0), width: rX * 1.8, height: rY * 1.8);
+      canvas.drawOval(ovalRect, fill);
+      canvas.drawOval(ovalRect, soga);
+      canvas.drawOval(ovalRect.deflate(1.5), wax);
+
+      // Titik cecek di dalam daun kawung
+      canvas.drawCircle(Offset(rX * 0.8, 0), 1.2, dot);
+      canvas.drawCircle(Offset(rX * 1.2, 0), 1.2, dot);
+
+      canvas.restore();
+    }
+
+    // Pusat Ceplok: Silang bintang putih
+    canvas.drawCircle(center, 2.5, waxF);
+    canvas.drawLine(Offset(center.dx - 5, center.dy), Offset(center.dx + 5, center.dy), wax);
+    canvas.drawLine(Offset(center.dx, center.dy - 5), Offset(center.dx, center.dy + 5), wax);
+  }
+
+  void _drawSulurBunga(
+    Canvas canvas,
+    double s,
+    Paint fill,
+    Paint soga,
+    Paint wax,
+    Paint waxF,
+    Paint dot,
+  ) {
+    // Batang sulur melengkung
+    final stemPath = Path();
+    stemPath.moveTo(s * 0.15, s * 0.85);
+    stemPath.quadraticBezierTo(s * 0.45, s * 0.55, s * 0.85, s * 0.25);
+    canvas.drawPath(stemPath, soga);
+
+    // Daun bersusun 3 di kiri-kanan sulur
+    final leafCenters = [
+      (Offset(s * 0.35, s * 0.45), -0.7),
+      (Offset(s * 0.60, s * 0.65), 0.6),
+      (Offset(s * 0.70, s * 0.35), -0.4),
+    ];
+
+    for (final (pos, rot) in leafCenters) {
+      canvas.save();
+      canvas.translate(pos.dx, pos.dy);
+      canvas.rotate(rot);
+
+      final leaf = Path();
+      leaf.moveTo(0, 0);
+      leaf.quadraticBezierTo(s * 0.12, -s * 0.08, s * 0.22, 0);
+      leaf.quadraticBezierTo(s * 0.12, s * 0.08, 0, 0);
+      leaf.close();
+
+      canvas.drawPath(leaf, fill);
+      canvas.drawPath(leaf, soga);
+      canvas.drawPath(leaf, wax);
+
+      // Tulang daun putih dengan garis cecek halus
+      canvas.drawLine(Offset.zero, Offset(s * 0.20, 0), wax);
+      canvas.drawCircle(Offset(s * 0.08, -s * 0.02), 0.8, dot);
+      canvas.drawCircle(Offset(s * 0.14, s * 0.02), 0.8, dot);
+
+      canvas.restore();
+    }
+
+    // Bunga melati bintang 5 di ujung sulur
+    final flowerCenter = Offset(s * 0.82, s * 0.22);
+    for (int p = 0; p < 5; p++) {
+      final angle = p * 2 * math.pi / 5;
+      final px = flowerCenter.dx + s * 0.08 * math.cos(angle);
+      final py = flowerCenter.dy + s * 0.08 * math.sin(angle);
+      canvas.drawLine(flowerCenter, Offset(px, py), soga);
+      canvas.drawCircle(Offset(px, py), 1.6, waxF);
+    }
+    canvas.drawCircle(flowerCenter, 2.0, waxF);
+  }
+
+  void _drawIsenBintangCecek(
+    Canvas canvas,
+    double s,
+    Paint starPaint,
+    Paint waxPaint,
+    Paint dotPaint,
+  ) {
+    // Grid bintang 8-sudut dan lingkaran cecek
+    final positions = [
+      Offset(s * 0.25, s * 0.25),
+      Offset(s * 0.75, s * 0.25),
+      Offset(s * 0.50, s * 0.50),
+      Offset(s * 0.25, s * 0.75),
+      Offset(s * 0.75, s * 0.75),
+    ];
+
+    for (int i = 0; i < positions.length; i++) {
+      final pt = positions[i];
+      if (i % 2 == 0) {
+        // Bintang 8 arah
+        final double r = s * 0.09;
+        canvas.drawLine(Offset(pt.dx - r, pt.dy), Offset(pt.dx + r, pt.dy), starPaint);
+        canvas.drawLine(Offset(pt.dx, pt.dy - r), Offset(pt.dx, pt.dy + r), starPaint);
+        final diag = r * 0.707;
+        canvas.drawLine(Offset(pt.dx - diag, pt.dy - diag), Offset(pt.dx + diag, pt.dy + diag), starPaint);
+        canvas.drawLine(Offset(pt.dx - diag, pt.dy + diag), Offset(pt.dx + diag, pt.dy - diag), starPaint);
+        canvas.drawCircle(pt, 1.4, dotPaint);
+      } else {
+        // Lingkaran cecek konsentris
+        canvas.drawCircle(pt, s * 0.06, waxPaint);
+        canvas.drawCircle(pt, 1.3, dotPaint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant BatikSekarJagadPainter oldDelegate) =>
+      oldDelegate.scale != scale ||
+      oldDelegate.baseColor != baseColor ||
+      oldDelegate.isDarkBackground != isDarkBackground;
+}
+
+/// Custom Painter motif Batik Sekar Jagad & Kawung Soga (delegasi utama sistem).
+/// Menjamin seluruh tampilan aplikasi konsisten dengan motif batik pada foto referensi user.
 class ModernMegaMendungPainter extends CustomPainter {
   final Color color;
   final double scale;
@@ -524,167 +740,13 @@ class ModernMegaMendungPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Palet warna autentik Cirebon sesuai foto referensi user (Pink - Lilac - Indigo)
-    final Color outerCol = usePhotoPalette ? const Color(0xFF4338CA) : color;
-    final Color midCol = usePhotoPalette ? const Color(0xFF818CF8) : color.withValues(alpha: (color.a * 0.7).clamp(0.0, 1.0));
-    final Color innerCol = usePhotoPalette ? const Color(0xFFEC4899) : color.withValues(alpha: (color.a * 0.45).clamp(0.0, 1.0));
-    final Color spiralCol = usePhotoPalette ? const Color(0xFFF472B6) : color;
-    final Color waxCol = usePhotoPalette ? const Color(0xFFFAF5FF) : color.withValues(alpha: (color.a * 0.9).clamp(0.0, 1.0));
-
-    final strokeOuter = Paint()
-      ..color = outerCol
-      ..style = fillMode ? PaintingStyle.fill : PaintingStyle.stroke
-      ..strokeWidth = 1.3
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
-    final strokeMid = Paint()
-      ..color = midCol
-      ..style = fillMode ? PaintingStyle.fill : PaintingStyle.stroke
-      ..strokeWidth = 1.1;
-
-    final strokeInner = Paint()
-      ..color = innerCol
-      ..style = fillMode ? PaintingStyle.fill : PaintingStyle.stroke
-      ..strokeWidth = 1.0;
-
-    final strokeSpiral = Paint()
-      ..color = spiralCol
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2
-      ..strokeCap = StrokeCap.round;
-
-    final waxOutline = Paint()
-      ..color = waxCol
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.7;
-
-    final dotPaint = Paint()
-      ..color = waxCol
-      ..style = PaintingStyle.fill;
-
-    final w = scale;
-    final h = scale * 0.48;
-    final stepX = w * 0.92;
-    final stepY = h * 1.35;
-
-    int row = 0;
-    for (double y = -h * 0.5; y < size.height + h; y += stepY) {
-      final offsetX = (row % 2 == 1) ? stepX * 0.5 : 0.0;
-      for (double x = -w * 0.5 + offsetX; x < size.width + w; x += stepX) {
-        _drawMegaMendungCloudWithSpiral(
-          canvas,
-          x,
-          y,
-          w,
-          h,
-          strokeOuter,
-          strokeMid,
-          strokeInner,
-          strokeSpiral,
-          waxOutline,
-          dotPaint,
-        );
-      }
-      row++;
-    }
-  }
-
-  void _drawMegaMendungCloudWithSpiral(
-    Canvas canvas,
-    double x,
-    double y,
-    double w,
-    double h,
-    Paint outerPaint,
-    Paint middlePaint,
-    Paint innerPaint,
-    Paint spiralPaint,
-    Paint waxPaint,
-    Paint dotPaint,
-  ) {
-    // 1. Layer Luar Awan Mega Mendung
-    final outerPath = _createCloudPath(x, y, w, h);
-    canvas.drawPath(outerPath, outerPaint);
-    canvas.drawPath(outerPath, waxPaint);
-
-    // 2. Layer Tengah (Lavender / Blue-violet)
-    final midW = w * 0.72;
-    final midH = h * 0.72;
-    final midX = x + (w - midW) * 0.35;
-    final midY = y + (h - midH) * 0.45;
-    final midPath = _createCloudPath(midX, midY, midW, midH);
-    canvas.drawPath(midPath, middlePaint);
-
-    // 3. Layer Inti (Pink / Magenta pastel)
-    final inW = w * 0.44;
-    final inH = h * 0.44;
-    final inX = x + (w - inW) * 0.38;
-    final inY = y + (h - inH) * 0.50;
-    final inPath = _createCloudPath(inX, inY, inW, inH);
-    canvas.drawPath(inPath, innerPaint);
-
-    // 4. PILIN SPIRAL PUSAT (Khas Mega Mendung Cirebon asli seperti Gambar 1)
-    final spiralCenter = Offset(inX + inW * 0.42, inY + inH * 0.46);
-    final spiralPath = Path();
-    const double turns = 1.35;
-    const int points = 32;
-    final double maxR = inW * 0.22;
-
-    for (int i = 0; i <= points; i++) {
-      final t = i / points;
-      final angle = t * turns * 2 * math.pi;
-      final r = maxR * (1.0 - t * 0.85);
-      final px = spiralCenter.dx + r * math.cos(angle);
-      final py = spiralCenter.dy + r * math.sin(angle);
-      if (i == 0) {
-        spiralPath.moveTo(px, py);
-      } else {
-        spiralPath.lineTo(px, py);
-      }
-    }
-    canvas.drawPath(spiralPath, spiralPaint);
-
-    // Isen-isen batik cecek (titisan titik putih canting malam)
-    canvas.drawCircle(Offset(x + w * 0.94, y + h * 0.50), 1.2, dotPaint);
-    canvas.drawCircle(Offset(x + w * 0.48, y + h * 0.20), 1.1, dotPaint);
-    canvas.drawCircle(Offset(x + w * 0.22, y + h * 0.75), 1.0, dotPaint);
-  }
-
-  Path _createCloudPath(double x, double y, double w, double h) {
-    final p = Path();
-    // Titik awal dari pangkal kiri
-    p.moveTo(x + w * 0.05, y + h * 0.65);
-
-    // Lengkungan dasar mengalir ke kanan bawah meruncing lancip
-    p.cubicTo(
-      x + w * 0.28, y + h * 0.88,
-      x + w * 0.60, y + h * 0.82,
-      x + w * 0.94, y + h * 0.52, // Ujung lancip khas Mega Mendung
+    // Secara langsung menggambar motif Batik Sekar Jagad & Kawung Soga sesuai foto referensi
+    final painter = BatikSekarJagadPainter(
+      baseColor: color,
+      scale: scale,
+      isDarkBackground: true,
     );
-
-    // Lekukan tirus balik di ujung horizontal
-    p.quadraticBezierTo(
-      x + w * 0.99, y + h * 0.42,
-      x + w * 0.82, y + h * 0.38,
-    );
-
-    // Punggung kubah awan tengah
-    p.cubicTo(
-      x + w * 0.68, y + h * 0.12,
-      x + w * 0.42, y + h * 0.08,
-      x + w * 0.30, y + h * 0.28,
-    );
-
-    // Kubah awan pangkal kiri
-    p.cubicTo(
-      x + w * 0.18, y + h * 0.16,
-      x + w * 0.02, y + h * 0.32,
-      x + w * 0.05, y + h * 0.65,
-    );
-
-    p.close();
-    return p;
+    painter.paint(canvas, size);
   }
 
   @override

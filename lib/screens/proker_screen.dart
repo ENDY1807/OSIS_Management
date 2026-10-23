@@ -35,11 +35,12 @@ class _ProkerScreenState extends State<ProkerScreen>
     return AuthService.isSuperStaff(_currentUser);
   }
 
-  /// Cek apakah pengguna berhak mengesahkan proker (Kepala Sekolah, Pembina, Admin)
+  /// Cek apakah pengguna berhak mengesahkan proker (Kepala Sekolah, Pembina, Admin, Ketua OSIS, Pengurus Inti)
   bool get _canApproveProker =>
       !_isReadOnly &&
       (AuthService.hasExecutiveAccess(_currentUser) ||
-          AuthService.isPembinaOrKesiswaan(_currentUser));
+          AuthService.isPembinaOrKesiswaan(_currentUser) ||
+          AuthService.isSuperStaff(_currentUser));
 
   bool get _canCreateProker => !_isReadOnly;
 
@@ -835,22 +836,27 @@ class _ProkerScreenState extends State<ProkerScreen>
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 if (_canApproveProker) ...[
-                  TextButton.icon(
-                    style: TextButton.styleFrom(
-                      foregroundColor: p.disahkanKepsek ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: p.disahkanKepsek ? const Color(0xFF10B981) : const Color(0xFFD97706),
+                      side: BorderSide(
+                        color: p.disahkanKepsek ? const Color(0xFF10B981) : const Color(0xFFD97706),
+                        width: 1.2,
+                      ),
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                     icon: Icon(
-                      p.disahkanKepsek ? Icons.verified_rounded : Icons.verified_outlined,
+                      p.disahkanKepsek ? Icons.verified_rounded : Icons.gavel_rounded,
                       size: 16,
                     ),
                     label: Text(
                       p.disahkanKepsek ? 'Disahkan (Ubah)' : 'Sahkan Proker',
-                      style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                     ),
                     onPressed: () => _showApprovalDialog(p),
                   ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 6),
                 ],
                 if (_canEditProker(p)) ...[
                   TextButton.icon(
@@ -1115,7 +1121,8 @@ class _ProkerScreenState extends State<ProkerScreen>
                   onRefresh: _load,
                   color: primary,
                   child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                    padding: const EdgeInsets.fromLTRB(0, 12, 0, 88),
                     itemCount: list.length,
                     itemBuilder: (_, i) => _buildProkerCard(list[i]),
                   ),
@@ -1126,11 +1133,14 @@ class _ProkerScreenState extends State<ProkerScreen>
         ],
       ),
       floatingActionButton: _canCreateProker
-          ? FloatingActionButton.extended(
+          ? FloatingActionButton(
               onPressed: () => _showForm(),
-              icon: const Icon(Icons.add),
-              label: Text(LocalizationService.tr('proker_add'),
-                  style: const TextStyle(fontWeight: FontWeight.bold)),
+              backgroundColor: primary,
+              foregroundColor: Colors.white,
+              elevation: 4,
+              shape: const CircleBorder(),
+              tooltip: LocalizationService.tr('proker_add'),
+              child: const Icon(Icons.add_rounded, size: 28),
             )
           : null,
     );

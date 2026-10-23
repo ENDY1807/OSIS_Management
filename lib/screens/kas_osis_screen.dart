@@ -1715,7 +1715,8 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                   child: Text('Tidak ada anggota sesuai filter.', style: TextStyle(color: Colors.grey)),
                 )
               : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                  physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
                   itemCount: filteredItems.length,
                   itemBuilder: (ctx, idx) {
                     final item = filteredItems[idx];
@@ -1776,19 +1777,19 @@ class _KasOsisScreenState extends State<KasOsisScreen>
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            // 1. AREA CEKLIS BESAR & LEGA (Touch target 52x52 dp, ikon 28dp)
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () => _toggleBayarItem(item),
-                borderRadius: BorderRadius.circular(26),
-                child: Container(
-                  width: 50,
-                  height: 50,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _toggleBayarItem(item),
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                // 1. AREA CEKLIS BESAR & LEGA (Touch target 52x52 dp, ikon 28dp)
+                Container(
+                  width: 52,
+                  height: 52,
                   decoration: BoxDecoration(
                     color: isLunas
                         ? const Color(0xFF10B981).withAlpha(isDark ? 45 : 30)
@@ -1807,12 +1808,10 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                     ),
                   ),
                 ),
-              ),
-            ),
-            const SizedBox(width: 12),
+                const SizedBox(width: 12),
 
-            // 2. DATA SISWA & DISPLAY NOMINAL BAYAR
-            Expanded(
+                // 2. DATA SISWA & DISPLAY NOMINAL BAYAR
+                Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1954,7 +1953,9 @@ class _KasOsisScreenState extends State<KasOsisScreen>
           ],
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 
   // ── TAB 2: ABSENSI OSIS (PER NAMA SISWA ANGGOTA OSIS) ──────────────────────
@@ -2273,7 +2274,8 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                   ),
                 )
               : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                  physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
                   itemCount: filteredItems.length,
                   itemBuilder: (ctx, idx) {
                     final item = filteredItems[idx];
@@ -2598,7 +2600,8 @@ class _KasOsisScreenState extends State<KasOsisScreen>
     }).toList();
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+      physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -2937,7 +2940,8 @@ class _KasOsisScreenState extends State<KasOsisScreen>
 
         Expanded(
           child: ListView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
             itemCount: _anggotaList.where((a) {
               if (_searchQuery.isEmpty) return true;
               final q = _searchQuery.toLowerCase();

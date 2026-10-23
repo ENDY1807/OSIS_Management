@@ -322,7 +322,113 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             ),
                           ),
                           const Spacer(),
-                          // Quick Language Switcher
+                          // 1. Sync Status Dot (Online / Offline)
+                          ValueListenableBuilder<SyncStatus>(
+                            valueListenable: SyncService.statusNotifier,
+                            builder: (context, syncStatus, _) {
+                              return ValueListenableBuilder<int>(
+                                valueListenable: SyncService.pendingCountNotifier,
+                                builder: (context, pendingCount, _) {
+                                  final isOnline = syncStatus == SyncStatus.online;
+                                  final isSyncing = syncStatus == SyncStatus.syncing;
+                                  final dotColor = isSyncing
+                                      ? Colors.lightBlueAccent
+                                      : (isOnline ? const Color(0xFF10B981) : const Color(0xFFF59E0B));
+                                  final tooltipMsg = isSyncing
+                                      ? 'Sedang menyinkronkan data...'
+                                      : (isOnline
+                                          ? (pendingCount > 0 ? 'Online • $pendingCount antrean' : 'Online (Terhubung)')
+                                          : (pendingCount > 0 ? 'Offline • $pendingCount data tersimpan' : 'Mode Offline'));
+
+                                  return Padding(
+                                    padding: const EdgeInsets.only(right: 8),
+                                    child: Tooltip(
+                                      message: tooltipMsg,
+                                      child: InkWell(
+                                        onTap: () => SyncStatusDialog.show(context),
+                                        borderRadius: BorderRadius.circular(16),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: dotColor.withAlpha(isDark ? 35 : 25),
+                                            borderRadius: BorderRadius.circular(12),
+                                            border: Border.all(color: dotColor.withAlpha(120), width: 1.1),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Container(
+                                                width: 8,
+                                                height: 8,
+                                                decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
+                                              ),
+                                              const SizedBox(width: 6),
+                                              Text(
+                                                isOnline ? 'Online' : 'Offline',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: isDark ? Colors.white70 : const Color(0xFF334155),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                          const SizedBox(width: 4),
+
+                          // 2. Notification Center Bell
+                          if (_canReceiveNotifications)
+                            ValueListenableBuilder<int>(
+                              valueListenable: NotificationService.unreadCountNotifier,
+                              builder: (context, unread, _) {
+                                return Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    IconButton(
+                                      icon: Icon(
+                                        unread > 0 ? Icons.notifications_active_rounded : Icons.notifications_outlined,
+                                        color: unread > 0 ? Colors.amberAccent : (isDark ? Colors.white70 : const Color(0xFF64748B)),
+                                        size: 21,
+                                      ),
+                                      tooltip: LocalizationService.tr('notifications'),
+                                      onPressed: _showNotificationCenter,
+                                    ),
+                                    if (unread > 0)
+                                      Positioned(
+                                        top: 8,
+                                        right: 8,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(3),
+                                          decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
+                                          constraints: const BoxConstraints(minWidth: 14, minHeight: 14),
+                                          child: Text(
+                                            unread > 9 ? '9+' : '$unread',
+                                            style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                );
+                              },
+                            ),
+
+                          // 3. Manajemen Button
+                          if (_canAccessManajemen)
+                            IconButton(
+                              icon: Icon(Icons.tune_rounded, color: isDark ? Colors.white70 : const Color(0xFF64748B), size: 21),
+                              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ManajemenScreen())),
+                              tooltip: LocalizationService.tr('nav_manajemen'),
+                            ),
+
+                          // 4. Quick Language Switcher
                           InkWell(
                             onTap: () {
                               final cur = LocalizationService.currentLocale.value.languageCode;
@@ -345,8 +451,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          // Quick Theme Toggle
+                          const SizedBox(width: 4),
+
+                          // 5. Quick Theme Toggle
                           IconButton(
                             icon: Icon(
                               isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
@@ -358,6 +465,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               final newMode = isDark ? ThemeMode.light : ThemeMode.dark;
                               AppSettingsService.setThemeMode(newMode);
                             },
+                          ),
+
+                          // 6. Settings & Log Out Toggle
+                          IconButton(
+                            icon: Icon(Icons.settings_outlined, color: isDark ? Colors.white70 : const Color(0xFF64748B), size: 21),
+                            tooltip: LocalizationService.tr('nav_settings'),
+                            onPressed: () => UserSettingsSheet.show(context, username: _username),
                           ),
                         ],
                       ),

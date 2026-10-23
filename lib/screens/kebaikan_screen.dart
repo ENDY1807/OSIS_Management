@@ -28,10 +28,7 @@ class _KebaikanScreenState extends State<KebaikanScreen> {
   StreamSubscription<String>? _dataSub;
 
   bool get _isReadOnly => AuthService.isReadOnly(_currentUser);
-  bool get _canEdit =>
-      !_isReadOnly &&
-      (AuthService.hasExecutiveAccess(_currentUser) ||
-          AuthService.isSuperStaff(_currentUser));
+  bool get _canEdit => !_isReadOnly;
 
   @override
   void initState() {
@@ -1130,7 +1127,8 @@ class _KebaikanScreenState extends State<KebaikanScreen> {
                         onRefresh: _load,
                         color: const Color(0xFF10B981),
                         child: ListView.builder(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                          padding: const EdgeInsets.fromLTRB(0, 8, 0, 88),
                           itemCount: filtered.length,
                           itemBuilder: (_, i) => _buildCard(filtered[i]),
                         ),
@@ -1139,15 +1137,14 @@ class _KebaikanScreenState extends State<KebaikanScreen> {
         ],
       ),
       floatingActionButton: _canEdit
-          ? FloatingActionButton.extended(
+          ? FloatingActionButton(
               onPressed: () => _showForm(),
               backgroundColor: const Color(0xFF10B981),
               foregroundColor: Colors.white,
-              icon: const Icon(Icons.add_rounded),
-              label: Text(
-                LocalizationService.tr('kebaikan_add'),
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
+              elevation: 4,
+              shape: const CircleBorder(),
+              tooltip: LocalizationService.tr('kebaikan_add'),
+              child: const Icon(Icons.add_rounded, size: 28),
             )
           : null,
     );

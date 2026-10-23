@@ -3306,6 +3306,7 @@ class ArsipScreenState extends State<ArsipScreen> {
               ),
             ),
           ),
+          const SliverToBoxAdapter(child: SizedBox(height: 88)),
         ],
       ],
     );
@@ -3354,16 +3355,16 @@ class ArsipScreenState extends State<ArsipScreen> {
           child: const Icon(Icons.create_new_folder_rounded),
         ),
         const SizedBox(height: 10),
-        FloatingActionButton.extended(
+        FloatingActionButton(
           heroTag: 'fab_file',
           onPressed: () => _showFileForm(),
           backgroundColor: primary,
-          icon: Icon(Icons.add_rounded,
+          elevation: 4,
+          shape: const CircleBorder(),
+          tooltip: 'Tambah File',
+          child: Icon(Icons.add_rounded,
+              size: 28,
               color: isDark ? Colors.black : Colors.white),
-          label: Text('Tambah File',
-              style: TextStyle(
-                  color: isDark ? Colors.black : Colors.white,
-                  fontWeight: FontWeight.bold)),
         ),
       ],
     );

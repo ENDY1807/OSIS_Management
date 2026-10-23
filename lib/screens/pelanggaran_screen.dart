@@ -731,7 +731,8 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
                         onRefresh: _load,
                         color: primary,
                         child: ListView.builder(
-                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 88),
                           itemCount: _filtered.map((p) => p.siswaId).toSet().length,
                           itemBuilder: (_, i) {
                             final ids = _filtered.map((p) => p.siswaId).toSet().toList();
@@ -865,12 +866,14 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
     ),
     floatingActionButton: !_canEdit
         ? null
-        : FloatingActionButton.extended(
+        : FloatingActionButton(
             onPressed: _showCeklis,
             backgroundColor: primary,
             foregroundColor: isDark ? Colors.black : Colors.white,
-            icon: const Icon(Icons.add),
-            label: Text(LocalizationService.tr('pelanggaran_add'), style: const TextStyle(fontWeight: FontWeight.bold)),
+            elevation: 4,
+            shape: const CircleBorder(),
+            tooltip: LocalizationService.tr('pelanggaran_add'),
+            child: const Icon(Icons.add_rounded, size: 28),
           ),
   );
 }
