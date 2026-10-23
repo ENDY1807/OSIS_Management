@@ -105,8 +105,8 @@ class SyncService {
 
     await _updatePendingCount();
 
-    // Jalankan pemeriksaan koneksi awal
-    await checkConnection();
+    // Jalankan pemeriksaan koneksi awal secara responsif
+    await checkConnection(isStartup: true);
 
     // Jalankan periodic health check & auto sync setiap 15 detik
     _healthCheckTimer?.cancel();
@@ -205,21 +205,21 @@ class SyncService {
   }
 
   /// Memeriksa apakah koneksi aktif (multi-tier probe dengan debounce)
-  static Future<bool> checkConnection() async {
+  static Future<bool> checkConnection({bool isStartup = false}) async {
     final client = _supabase;
     if (client == null) {
-      _handleFailure();
+      _handleFailure(isStartup);
       return false;
     }
 
     bool isNetAvailable = false;
     try {
-      // 1. Probe Supabase table secara cepat
+      // 1. Probe Supabase table secara cepat (timeout 3 detik agar responsif)
       await client
           .from('app_settings')
           .select('id')
           .limit(1)
-          .timeout(const Duration(seconds: 5));
+          .timeout(const Duration(seconds: 3));
       isNetAvailable = true;
     } catch (e) {
       // 2. Jika Supabase timeout/RLS, cek apakah internet umum aktif
@@ -234,15 +234,15 @@ class SyncService {
       _setStatus(SyncStatus.online);
       return true;
     } else {
-      _handleFailure();
+      _handleFailure(isStartup);
       return false;
     }
   }
 
-  static void _handleFailure() {
+  static void _handleFailure([bool immediate = false]) {
     _consecutiveFailures++;
-    // Hanya beralih ke offline jika gagal 2x berturut-turut untuk mencegah kedipan status akibat jitter WiFi
-    if (_consecutiveFailures >= 2) {
+    // Saat startup atau jika gagal 2x berturut-turut, beralih ke offline
+    if (immediate || _consecutiveFailures >= 2) {
       _setStatus(SyncStatus.offline);
     }
   }

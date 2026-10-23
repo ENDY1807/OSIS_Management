@@ -96,6 +96,9 @@ class AppSettingsService {
 
   // Rich, curated modern presets
   static const List<ThemePreset> presets = [
+    ThemePreset(name: 'Nusantara Batik Navy (Rekomendasi)', color: Color(0xFF1E3A8A), darkColor: Color(0xFF0F172A), description: 'Batik Indigo klasik, berwibawa & teduh khas Nusantara'),
+    ThemePreset(name: 'Songket Emas Nusantara', color: Color(0xFFD97706), darkColor: Color(0xFF78350F), description: 'Aksen tenun songket emas yang mewah, prestisius & hangat'),
+    ThemePreset(name: 'Kayu Jati & Terakota', color: Color(0xFFB45309), darkColor: Color(0xFF451A03), description: 'Kehangatan ornamen ukiran tradisional bumi Nusantara'),
     ThemePreset(name: 'Cyan Electric (Bawaan)', color: Color(0xFF00B4D8), darkColor: Color(0xFF03045E), description: 'Segar, energik, & modern'),
     ThemePreset(name: 'Royal Sapphire', color: Color(0xFF2563EB), darkColor: Color(0xFF1E3A8A), description: 'Elegan, profesional, & berwibawa'),
     ThemePreset(name: 'Deep Indigo', color: Color(0xFF4F46E5), darkColor: Color(0xFF1E1B4B), description: 'Mewah, tenang, & futuristik'),

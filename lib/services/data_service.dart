@@ -11,6 +11,7 @@ import 'auth_service.dart';
 import 'sync_service.dart';
 import 'app_settings_service.dart';
 import 'baknus_drive_service.dart';
+import 'bundled_students.dart';
 
 const _uuid = Uuid();
 
@@ -31,6 +32,10 @@ class DataService {
   static const _keyArsipFolder = 'arsip_folder';
   static const _keyLaporan = 'laporan_kegiatan_v2';
   static const _keySekbid = 'sekbid';
+  static const _keyKasOsis = 'kas_osis_sessions_v2';
+  static const _keyKasTransaksi = 'kas_osis_transaksi_v2';
+  static const _keyAbsensiOsis = 'absensi_osis_sessions_v2';
+  static const _keyAnggotaOsis = 'anggota_osis_v2';
   static final String _localClientId = const Uuid().v4();
 
   static final StreamController<String> _dataChangeController =
@@ -132,6 +137,10 @@ class DataService {
         'accounts',
         'app_settings',
         'sekbid',
+        'kas_osis',
+        'absensi_osis',
+        'kas_transaksi',
+        'anggota_osis',
       ];
       for (final table in monitoredTables) {
         _realtimeChannel?.onPostgresChanges(
@@ -417,99 +426,44 @@ class DataService {
     }
   }
 
-  // Default dataset siswa untuk inisialisasi awal offline jika belum ada data sama sekali
-  static const List<Map<String, dynamic>> _defaultSiswa = [
-    {'id': 's-1', 'nama': 'Ahmad Fauzi', 'kelas': 'X RPL 1', 'nis': '23241001'},
-    {
-      'id': 's-2',
-      'nama': 'Annisa Rahmawati',
-      'kelas': 'X RPL 1',
-      'nis': '23241002'
-    },
-    {
-      'id': 's-3',
-      'nama': 'Bagas Pratama',
-      'kelas': 'X TKJ 1',
-      'nis': '23241003'
-    },
-    {
-      'id': 's-4',
-      'nama': 'Dewi Lestari',
-      'kelas': 'XI RPL 2',
-      'nis': '22231015'
-    },
-    {
-      'id': 's-5',
-      'nama': 'Dimas Saputra',
-      'kelas': 'XI TKJ 2',
-      'nis': '22231020'
-    },
-    {
-      'id': 's-6',
-      'nama': 'Fajar Hidayat',
-      'kelas': 'XII RPL 1',
-      'nis': '21221005'
-    },
-    {
-      'id': 's-7',
-      'nama': 'Gita Nurul',
-      'kelas': 'XII DKV 1',
-      'nis': '21221012'
-    },
-    {
-      'id': 's-8',
-      'nama': 'Rizky Ramadhan',
-      'kelas': 'X DKV 2',
-      'nis': '23241030'
-    },
-    {
-      'id': 's-9',
-      'nama': 'Siti Aisyah',
-      'kelas': 'XI DKV 2',
-      'nis': '22231040'
-    },
-    {
-      'id': 's-10',
-      'nama': 'Zahra Putri',
-      'kelas': 'XII TKJ 1',
-      'nis': '21221055'
-    },
-  ];
-
   // ── Siswa ────────────────────────────────────────────────────────────────
   static Future<List<Siswa>> getSiswa() async {
-    // 1. Jika offline, langsung ambil dari cache lokal instan tanpa menunggu network
-    if (!SyncService.isOnline) {
-      final cache = await _readCache(_keySiswa);
-      if (cache.isNotEmpty) {
-        return cache.map(Siswa.fromJson).toList();
-      }
-      await _saveCache(_keySiswa, _defaultSiswa);
-      return _defaultSiswa.map(Siswa.fromJson).toList();
+    // 1. Ambil dari cache lokal terlebih dahulu (Cache-First instan)
+    List<Map<String, dynamic>> cache = await _readCache(_keySiswa);
+
+    // 2. Jika cache masih kosong (misal mode offline pertama kali atau belum sync),
+    // langsung isi dengan 359 dataset siswa SMK Bakti Nusantara 666 agar tidak pernah kosong
+    if (cache.isEmpty) {
+      cache = List<Map<String, dynamic>>.from(bundledStudentsSeed);
+      await _saveCache(_keySiswa, cache);
     }
 
-    // 2. Jika online, tarik dari Supabase dengan timeout aman
+    final localList = cache.map(Siswa.fromJson).toList();
+
+    // 3. Jika mode offline, langsung kembalikan data siswa lokal tanpa menunggu network
+    if (!SyncService.isOnline) {
+      return localList;
+    }
+
+    // 4. Jika online, tarik pembaruan dari Supabase secara aman (timeout 3 detik)
     try {
       final rows = await _db
           .from('siswa')
           .select()
           .order('nama')
-          .timeout(const Duration(seconds: 4));
+          .timeout(const Duration(seconds: 3));
       final list = (rows as List)
           .map((e) => Siswa.fromJson(Map<String, dynamic>.from(e as Map)))
           .toList();
       if (list.isNotEmpty) {
         await _saveCache(_keySiswa, list.map((e) => e.toJson()).toList());
+        return list;
       }
-      return list;
-    } catch (_) {
-      final cache = await _readCache(_keySiswa);
-      if (cache.isEmpty) {
-        await _saveCache(_keySiswa, _defaultSiswa);
-        return _defaultSiswa.map(Siswa.fromJson).toList();
-      }
-      return cache.map(Siswa.fromJson).toList();
+    } catch (e) {
+      debugPrint('Supabase getSiswa fallback ke cache lokal: $e');
     }
+
+    return localList;
   }
 
   static Future<void> saveSiswa(List<Siswa> list) async {
@@ -2128,6 +2082,414 @@ class DataService {
     return targets.length;
   }
 
+  // ── SISTEM KAS & ABSENSI OSIS ──────────────────────────────────────────────
+
+  static List<AnggotaOsis> _defaultAnggotaOsis() {
+    return [
+      AnggotaOsis(id: 'ang-1', nama: 'Ketua OSIS', jabatan: 'Ketua OSIS', kelas: 'XII RPL 1', nis: '242518070001'),
+      AnggotaOsis(id: 'ang-2', nama: 'Wakil Ketua OSIS', jabatan: 'Wakil Ketua OSIS', kelas: 'XI RPL 1', nis: '2526019070001'),
+      AnggotaOsis(id: 'ang-3', nama: 'Sekretaris 1', jabatan: 'Sekretaris 1', kelas: 'XI AKT', nis: '2526011119001'),
+      AnggotaOsis(id: 'ang-4', nama: 'Sekretaris 2', jabatan: 'Sekretaris 2', kelas: 'X PPLG 1', nis: '2627020070001'),
+      AnggotaOsis(id: 'ang-5', nama: 'Bendahara 1', jabatan: 'Bendahara 1', kelas: 'XI AKT', nis: '2526011119002'),
+      AnggotaOsis(id: 'ang-6', nama: 'Bendahara 2', jabatan: 'Bendahara 2', kelas: 'X AKT 1', nis: '2627012119001'),
+      AnggotaOsis(id: 'ang-7', nama: 'Sekbid 1 (Keimanan & Ketakwaan)', jabatan: 'Sekbid 1', kelas: 'XI DKV', nis: '2526016084001'),
+      AnggotaOsis(id: 'ang-8', nama: 'Sekbid 2 (Budi Pekerti & Karakter)', jabatan: 'Sekbid 2', kelas: 'XI RPL 2', nis: '2526019070003'),
+      AnggotaOsis(id: 'ang-9', nama: 'Sekbid 3 (Bela Negara & Kepemimpinan)', jabatan: 'Sekbid 3', kelas: 'XI ANIMASI', nis: '2526016073001'),
+      AnggotaOsis(id: 'ang-10', nama: 'Sekbid 4 (Prestasi Akademik & IPTEK)', jabatan: 'Sekbid 4', kelas: 'X PPLG 1', nis: '2627020070003'),
+      AnggotaOsis(id: 'ang-11', nama: 'Sekbid 5 (Demokrasi & Politik)', jabatan: 'Sekbid 5', kelas: 'X DKV 1', nis: '2627017084001'),
+      AnggotaOsis(id: 'ang-12', nama: 'Sekbid 6 (Kewirausahaan)', jabatan: 'Sekbid 6', kelas: 'X AKT 2', nis: '2627012119004'),
+      AnggotaOsis(id: 'ang-13', nama: 'Sekbid 7 (Jasmani & Olahraga)', jabatan: 'Sekbid 7', kelas: 'XI RPL 1', nis: '2526019070006'),
+      AnggotaOsis(id: 'ang-14', nama: 'Sekbid 8 (Sastra & Seni Budaya)', jabatan: 'Sekbid 8', kelas: 'XII DKV', nis: '242515084001'),
+      AnggotaOsis(id: 'ang-15', nama: 'Sekbid 9 (TI & Multimedia)', jabatan: 'Sekbid 9', kelas: 'XII RPL 2', nis: '242518070002'),
+      AnggotaOsis(id: 'ang-16', nama: 'Sekbid 10 (Bahasa & Humas)', jabatan: 'Sekbid 10', kelas: 'XI AKT', nis: '2526011119003'),
+    ];
+  }
+
+  // 1. Anggota OSIS
+  static Future<List<AnggotaOsis>> getAnggotaOsis() async {
+    final cache = await _readCache(_keyAnggotaOsis);
+    if (cache.isNotEmpty) {
+      return cache.map(AnggotaOsis.fromJson).toList();
+    }
+
+    if (SyncService.isOnline) {
+      try {
+        final rows = await _db
+            .from('anggota_osis')
+            .select()
+            .order('jabatan')
+            .timeout(const Duration(seconds: 4));
+        final list = (rows as List)
+            .map((e) => AnggotaOsis.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
+        if (list.isNotEmpty) {
+          await _saveCache(_keyAnggotaOsis, list.map((e) => e.toJson()).toList());
+          return list;
+        }
+      } catch (_) {}
+    }
+
+    final defaults = _defaultAnggotaOsis();
+    await _saveCache(_keyAnggotaOsis, defaults.map((e) => e.toJson()).toList());
+    if (SyncService.isOnline) {
+      try {
+        for (final item in defaults) {
+          await _db.from('anggota_osis').upsert(item.toJson(), onConflict: 'id');
+        }
+      } catch (_) {}
+    }
+    return defaults;
+  }
+
+  static Future<void> saveAnggotaOsis(List<AnggotaOsis> list) async {
+    await _saveCache(_keyAnggotaOsis, list.map((e) => e.toJson()).toList());
+    if (SyncService.isOnline) {
+      try {
+        for (final item in list) {
+          await _db.from('anggota_osis').upsert(item.toJson(), onConflict: 'id');
+        }
+      } catch (_) {}
+    }
+    await broadcastDataChange('anggota_osis');
+  }
+
+  static Future<void> addAnggotaOsis(AnggotaOsis a) async {
+    final list = await getAnggotaOsis();
+    list.add(a);
+    await saveAnggotaOsis(list);
+  }
+
+  static Future<void> updateAnggotaOsis(AnggotaOsis a) async {
+    final list = await getAnggotaOsis();
+    final idx = list.indexWhere((item) => item.id == a.id);
+    if (idx != -1) {
+      list[idx] = a;
+    } else {
+      list.add(a);
+    }
+    await saveAnggotaOsis(list);
+  }
+
+  static Future<void> deleteAnggotaOsis(String id) async {
+    final list = await getAnggotaOsis();
+    list.removeWhere((item) => item.id == id);
+    await _saveCache(_keyAnggotaOsis, list.map((e) => e.toJson()).toList());
+    if (SyncService.isOnline) {
+      try {
+        await _db.from('anggota_osis').delete().eq('id', id);
+      } catch (_) {}
+    }
+    await broadcastDataChange('anggota_osis');
+  }
+
+  // 2. Sesi Kas OSIS
+  static Future<List<KasOsisSession>> getKasOsisSessions() async {
+    final cache = await _readCache(_keyKasOsis);
+    if (cache.isNotEmpty) {
+      final list = cache.map(KasOsisSession.fromJson).toList();
+      list.sort((a, b) => b.tanggal.compareTo(a.tanggal));
+      return list;
+    }
+
+    if (SyncService.isOnline) {
+      try {
+        final rows = await _db
+            .from('kas_osis')
+            .select()
+            .order('tanggal', ascending: false)
+            .timeout(const Duration(seconds: 4));
+        final list = (rows as List)
+            .map((e) => KasOsisSession.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
+        if (list.isNotEmpty) {
+          await _saveCache(_keyKasOsis, list.map((e) => e.toJson()).toList());
+          return list;
+        }
+      } catch (_) {}
+    }
+
+    // Buat 1 sesi default jika belum ada sesi kas
+    final anggota = await getAnggotaOsis();
+    final now = DateTime.now();
+    final initialSession = KasOsisSession(
+      id: _uuid.v4(),
+      tanggal: now,
+      judul: 'Uang Kas OSIS - Minggu Ini',
+      nominalWajib: 5000,
+      keterangan: 'Pencatatan uang kas rutin mingguan pengurus OSIS',
+      petugas: 'BENDAHARA',
+      items: anggota
+          .map((a) => KasOsisItem(
+                anggotaId: a.id,
+                nama: a.nama,
+                jabatan: a.jabatan,
+                kelas: a.kelas,
+                sudahBayar: false,
+                nominalBayar: 5000,
+              ))
+          .toList(),
+    );
+
+    final defaultList = [initialSession];
+    await _saveCache(_keyKasOsis, defaultList.map((e) => e.toJson()).toList());
+    if (SyncService.isOnline) {
+      try {
+        await _db.from('kas_osis').upsert(initialSession.toJson(), onConflict: 'id');
+      } catch (_) {}
+    }
+    return defaultList;
+  }
+
+  static Future<void> saveKasOsisSession(KasOsisSession session) async {
+    final list = await getKasOsisSessions();
+    final idx = list.indexWhere((s) => s.id == session.id);
+    if (idx != -1) {
+      list[idx] = session;
+    } else {
+      list.insert(0, session);
+    }
+    await _saveCache(_keyKasOsis, list.map((e) => e.toJson()).toList());
+
+    if (SyncService.isOnline) {
+      try {
+        await _db.from('kas_osis').upsert(session.toJson(), onConflict: 'id');
+      } catch (e) {
+        await SyncService.enqueueAction(
+          actionType: SyncActionType.upsert,
+          table: 'kas_osis',
+          data: session.toJson(),
+          targetId: session.id,
+        );
+      }
+    } else {
+      await SyncService.enqueueAction(
+        actionType: SyncActionType.upsert,
+        table: 'kas_osis',
+        data: session.toJson(),
+        targetId: session.id,
+      );
+    }
+    await broadcastDataChange('kas_osis');
+  }
+
+  static Future<void> deleteKasOsisSession(String id) async {
+    final list = await getKasOsisSessions();
+    list.removeWhere((s) => s.id == id);
+    await _saveCache(_keyKasOsis, list.map((e) => e.toJson()).toList());
+
+    if (SyncService.isOnline) {
+      try {
+        await _db.from('kas_osis').delete().eq('id', id);
+      } catch (e) {
+        await SyncService.enqueueAction(
+          actionType: SyncActionType.delete,
+          table: 'kas_osis',
+          targetId: id,
+        );
+      }
+    } else {
+      await SyncService.enqueueAction(
+        actionType: SyncActionType.delete,
+        table: 'kas_osis',
+        targetId: id,
+      );
+    }
+    await broadcastDataChange('kas_osis');
+  }
+
+  // 3. Buku Transaksi Kas Umum
+  static Future<List<KasOsisTransaksi>> getKasTransaksi() async {
+    final cache = await _readCache(_keyKasTransaksi);
+    if (cache.isNotEmpty) {
+      final list = cache.map(KasOsisTransaksi.fromJson).toList();
+      list.sort((a, b) => b.tanggal.compareTo(a.tanggal));
+      return list;
+    }
+
+    if (SyncService.isOnline) {
+      try {
+        final rows = await _db
+            .from('kas_transaksi')
+            .select()
+            .order('tanggal', ascending: false)
+            .timeout(const Duration(seconds: 4));
+        final list = (rows as List)
+            .map((e) => KasOsisTransaksi.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
+        if (list.isNotEmpty) {
+          await _saveCache(_keyKasTransaksi, list.map((e) => e.toJson()).toList());
+          return list;
+        }
+      } catch (_) {}
+    }
+    return [];
+  }
+
+  static Future<void> addKasTransaksi(KasOsisTransaksi t) async {
+    final list = await getKasTransaksi();
+    list.insert(0, t);
+    await _saveCache(_keyKasTransaksi, list.map((e) => e.toJson()).toList());
+
+    if (SyncService.isOnline) {
+      try {
+        await _db.from('kas_transaksi').upsert(t.toJson(), onConflict: 'id');
+      } catch (e) {
+        await SyncService.enqueueAction(
+          actionType: SyncActionType.upsert,
+          table: 'kas_transaksi',
+          data: t.toJson(),
+          targetId: t.id,
+        );
+      }
+    } else {
+      await SyncService.enqueueAction(
+        actionType: SyncActionType.upsert,
+        table: 'kas_transaksi',
+        data: t.toJson(),
+        targetId: t.id,
+      );
+    }
+    await broadcastDataChange('kas_transaksi');
+  }
+
+  static Future<void> deleteKasTransaksi(String id) async {
+    final list = await getKasTransaksi();
+    list.removeWhere((t) => t.id == id);
+    await _saveCache(_keyKasTransaksi, list.map((e) => e.toJson()).toList());
+
+    if (SyncService.isOnline) {
+      try {
+        await _db.from('kas_transaksi').delete().eq('id', id);
+      } catch (e) {
+        await SyncService.enqueueAction(
+          actionType: SyncActionType.delete,
+          table: 'kas_transaksi',
+          targetId: id,
+        );
+      }
+    } else {
+      await SyncService.enqueueAction(
+        actionType: SyncActionType.delete,
+        table: 'kas_transaksi',
+        targetId: id,
+      );
+    }
+    await broadcastDataChange('kas_transaksi');
+  }
+
+  // 4. Sesi Absensi OSIS
+  static Future<List<AbsensiOsisSession>> getAbsensiOsisSessions() async {
+    final cache = await _readCache(_keyAbsensiOsis);
+    if (cache.isNotEmpty) {
+      final list = cache.map(AbsensiOsisSession.fromJson).toList();
+      list.sort((a, b) => b.tanggal.compareTo(a.tanggal));
+      return list;
+    }
+
+    if (SyncService.isOnline) {
+      try {
+        final rows = await _db
+            .from('absensi_osis')
+            .select()
+            .order('tanggal', ascending: false)
+            .timeout(const Duration(seconds: 4));
+        final list = (rows as List)
+            .map((e) => AbsensiOsisSession.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
+        if (list.isNotEmpty) {
+          await _saveCache(_keyAbsensiOsis, list.map((e) => e.toJson()).toList());
+          return list;
+        }
+      } catch (_) {}
+    }
+
+    // Sesi Absensi Default
+    final anggota = await getAnggotaOsis();
+    final initialAbsensi = AbsensiOsisSession(
+      id: _uuid.v4(),
+      tanggal: DateTime.now(),
+      namaKegiatan: 'Rapat Pleno & Evaluasi Mingguan',
+      lokasi: 'Ruang Sekretariat OSIS',
+      petugas: 'SEKRETARIS',
+      keterangan: 'Presensi rapat rutin seluruh pengurus dan anggota OSIS',
+      items: anggota
+          .map((a) => AbsensiOsisItem(
+                anggotaId: a.id,
+                nama: a.nama,
+                jabatan: a.jabatan,
+                kelas: a.kelas,
+                status: 'Hadir',
+              ))
+          .toList(),
+    );
+
+    final defaultList = [initialAbsensi];
+    await _saveCache(_keyAbsensiOsis, defaultList.map((e) => e.toJson()).toList());
+    if (SyncService.isOnline) {
+      try {
+        await _db.from('absensi_osis').upsert(initialAbsensi.toJson(), onConflict: 'id');
+      } catch (_) {}
+    }
+    return defaultList;
+  }
+
+  static Future<void> saveAbsensiOsisSession(AbsensiOsisSession session) async {
+    final list = await getAbsensiOsisSessions();
+    final idx = list.indexWhere((s) => s.id == session.id);
+    if (idx != -1) {
+      list[idx] = session;
+    } else {
+      list.insert(0, session);
+    }
+    await _saveCache(_keyAbsensiOsis, list.map((e) => e.toJson()).toList());
+
+    if (SyncService.isOnline) {
+      try {
+        await _db.from('absensi_osis').upsert(session.toJson(), onConflict: 'id');
+      } catch (e) {
+        await SyncService.enqueueAction(
+          actionType: SyncActionType.upsert,
+          table: 'absensi_osis',
+          data: session.toJson(),
+          targetId: session.id,
+        );
+      }
+    } else {
+      await SyncService.enqueueAction(
+        actionType: SyncActionType.upsert,
+        table: 'absensi_osis',
+        data: session.toJson(),
+        targetId: session.id,
+      );
+    }
+    await broadcastDataChange('absensi_osis');
+  }
+
+  static Future<void> deleteAbsensiOsisSession(String id) async {
+    final list = await getAbsensiOsisSessions();
+    list.removeWhere((s) => s.id == id);
+    await _saveCache(_keyAbsensiOsis, list.map((e) => e.toJson()).toList());
+
+    if (SyncService.isOnline) {
+      try {
+        await _db.from('absensi_osis').delete().eq('id', id);
+      } catch (e) {
+        await SyncService.enqueueAction(
+          actionType: SyncActionType.delete,
+          table: 'absensi_osis',
+          targetId: id,
+        );
+      }
+    } else {
+      await SyncService.enqueueAction(
+        actionType: SyncActionType.delete,
+        table: 'absensi_osis',
+        targetId: id,
+      );
+    }
+    await broadcastDataChange('absensi_osis');
+  }
+
   // ── Excel Import / Delete ───────────────────────────────────────────────────
 
   /// Parse Excel bytes → list of {nama, kelas, nis}
@@ -2650,6 +3012,10 @@ class DataService {
       await getArsip();
       await getLaporan();
       await getFileRiwayat();
+      await getKasOsisSessions();
+      await getKasTransaksi();
+      await getAbsensiOsisSessions();
+      await getAnggotaOsis();
     } catch (e) {
       debugPrint('sync error: $e');
     }
@@ -2664,6 +3030,10 @@ class DataService {
     await prefs.remove(_keyArsip);
     await prefs.remove(_keyLaporan);
     await prefs.remove(_keyFileRiwayat);
+    await prefs.remove(_keyKasOsis);
+    await prefs.remove(_keyKasTransaksi);
+    await prefs.remove(_keyAbsensiOsis);
+    await prefs.remove(_keyAnggotaOsis);
   }
 
   static Future<bool> checkConnection() async {

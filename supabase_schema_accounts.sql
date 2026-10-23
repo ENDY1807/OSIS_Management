@@ -243,6 +243,59 @@ CREATE TABLE IF NOT EXISTS public.file_riwayat (
 );
 ALTER TABLE public.file_riwayat ADD COLUMN IF NOT EXISTS nis_list JSONB DEFAULT '[]'::jsonb;
 
+-- H. Tabel 'anggota_osis' (Data Pengurus & Anggota OSIS)
+CREATE TABLE IF NOT EXISTS public.anggota_osis (
+    id TEXT PRIMARY KEY,
+    nama TEXT NOT NULL,
+    jabatan TEXT NOT NULL DEFAULT 'Anggota',
+    kelas TEXT DEFAULT '',
+    nis TEXT DEFAULT '',
+    no_hp TEXT DEFAULT '',
+    aktif BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- I. Tabel 'kas_osis' (Sesi Catatan Kas OSIS & Ceklis Pembayaran Anggota)
+CREATE TABLE IF NOT EXISTS public.kas_osis (
+    id TEXT PRIMARY KEY,
+    tanggal TIMESTAMPTZ DEFAULT now(),
+    judul TEXT NOT NULL,
+    nominal_wajib INTEGER DEFAULT 5000,
+    keterangan TEXT DEFAULT '',
+    petugas TEXT DEFAULT 'BENDAHARA',
+    items JSONB DEFAULT '[]'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- J. Tabel 'kas_transaksi' (Buku Kas Masuk & Kas Keluar Umum OSIS)
+CREATE TABLE IF NOT EXISTS public.kas_transaksi (
+    id TEXT PRIMARY KEY,
+    tanggal TIMESTAMPTZ DEFAULT now(),
+    jenis TEXT NOT NULL DEFAULT 'masuk',
+    judul TEXT NOT NULL,
+    nominal INTEGER NOT NULL DEFAULT 0,
+    kategori TEXT DEFAULT 'Lainnya',
+    penanggung_jawab TEXT DEFAULT '',
+    keterangan TEXT DEFAULT '',
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- K. Tabel 'absensi_osis' (Sesi Absensi Kegiatan/Rapat Pengurus OSIS)
+CREATE TABLE IF NOT EXISTS public.absensi_osis (
+    id TEXT PRIMARY KEY,
+    tanggal TIMESTAMPTZ DEFAULT now(),
+    nama_kegiatan TEXT NOT NULL,
+    lokasi TEXT DEFAULT 'Sekretariat OSIS',
+    petugas TEXT DEFAULT '',
+    keterangan TEXT DEFAULT '',
+    items JSONB DEFAULT '[]'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- 5. Aktifkan Row Level Security (RLS) & Replica Identity untuk Semua Tabel
 ALTER TABLE public.accounts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.app_settings ENABLE ROW LEVEL SECURITY;
@@ -254,6 +307,10 @@ ALTER TABLE public.proker ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.laporan_kegiatan ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.arsip ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.file_riwayat ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.anggota_osis ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.kas_osis ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.kas_transaksi ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.absensi_osis ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.accounts REPLICA IDENTITY FULL;
 ALTER TABLE public.app_settings REPLICA IDENTITY FULL;
@@ -266,6 +323,10 @@ ALTER TABLE public.proker REPLICA IDENTITY FULL;
 ALTER TABLE public.laporan_kegiatan REPLICA IDENTITY FULL;
 ALTER TABLE public.arsip REPLICA IDENTITY FULL;
 ALTER TABLE public.file_riwayat REPLICA IDENTITY FULL;
+ALTER TABLE public.anggota_osis REPLICA IDENTITY FULL;
+ALTER TABLE public.kas_osis REPLICA IDENTITY FULL;
+ALTER TABLE public.kas_transaksi REPLICA IDENTITY FULL;
+ALTER TABLE public.absensi_osis REPLICA IDENTITY FULL;
 
 -- 6. Hak Akses (Policy & Grant) untuk anon, authenticated, dan service_role
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
@@ -277,7 +338,8 @@ BEGIN
     FOR tbl IN SELECT unnest(ARRAY[
         'accounts', 'app_settings', 'sekbid', 'siswa',
         'jenis_pelanggaran', 'pelanggaran', 'kebaikan', 'proker',
-        'laporan_kegiatan', 'arsip', 'file_riwayat'
+        'laporan_kegiatan', 'arsip', 'file_riwayat',
+        'anggota_osis', 'kas_osis', 'kas_transaksi', 'absensi_osis'
     ])
     LOOP
         EXECUTE format('DROP POLICY IF EXISTS "Allow all access to %I for all" ON public.%I', tbl, tbl);
@@ -295,7 +357,8 @@ BEGIN
     FOR tbl IN SELECT unnest(ARRAY[
         'accounts', 'app_settings', 'sekbid', 'siswa',
         'jenis_pelanggaran', 'pelanggaran', 'kebaikan', 'proker',
-        'laporan_kegiatan', 'arsip', 'file_riwayat'
+        'laporan_kegiatan', 'arsip', 'file_riwayat',
+        'anggota_osis', 'kas_osis', 'kas_transaksi', 'absensi_osis'
     ])
     LOOP
         IF NOT EXISTS (

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../services/app_settings_service.dart';
 import '../services/localization_service.dart';
+import '../widgets/nusantara_decorations.dart';
 import '../main.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -94,9 +95,19 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               end: Alignment.bottomRight,
             ),
           ),
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: ModernKawungPainter(
+                    color: isDark ? Colors.white.withAlpha(8) : Colors.white.withAlpha(20),
+                    scale: 36.0,
+                  ),
+                ),
+              ),
+              Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
               child: FadeTransition(
                 opacity: _fade,
                 child: SlideTransition(
@@ -318,7 +329,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                           ),
                         ),
                       ],
-                      ),
                     ),
                   ),
                 ),
@@ -326,27 +336,44 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             ),
           ),
         ),
-      );
+      ],
+    ),
+  ),
+);
     }
 
     final h = size.height;
 
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: isDark
-                ? [const Color(0xFF0B0F17), const Color(0xFF131A26)]
-                : [primary, primary.withAlpha(200)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+      body: Stack(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: isDark
+                    ? [const Color(0xFF0B0F17), const Color(0xFF131A26)]
+                    : [primary, primary.withAlpha(200)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            child: SizedBox(
-              height: h - MediaQuery.of(context).padding.top,
-              child: Column(
+          Positioned.fill(
+            child: Opacity(
+              opacity: isDark ? 0.04 : 0.07,
+              child: CustomPaint(
+                painter: ModernKawungPainter(
+                  color: Colors.white,
+                  scale: 46.0,
+                ),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: SingleChildScrollView(
+              child: SizedBox(
+                height: h - MediaQuery.of(context).padding.top,
+                child: Column(
                 children: [
                   // Top controls (Quick Theme & Lang)
                   Padding(
@@ -562,9 +589,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             ),
           ),
         ),
-      ),
-    );
-  }
+      ],
+    ),
+  );
+}
 
   Widget _buildDesktopFeaturePill(IconData icon, String label) {
     return Container(

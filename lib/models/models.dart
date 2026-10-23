@@ -465,3 +465,276 @@ class CatatanKebaikan {
   );
 }
 
+// ── SISTEM KAS & ABSENSI OSIS ──────────────────────────────────────────────
+
+class AnggotaOsis {
+  String id;
+  String nama;
+  String jabatan; // 'Ketua OSIS', 'Wakil Ketua OSIS', 'Sekretaris', 'Bendahara', 'Sekbid 1'...'Sekbid 10', 'Anggota'
+  String kelas;
+  String nis;
+  String noHp;
+  bool aktif;
+
+  AnggotaOsis({
+    required this.id,
+    required this.nama,
+    required this.jabatan,
+    this.kelas = '',
+    this.nis = '',
+    this.noHp = '',
+    this.aktif = true,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'nama': nama,
+    'jabatan': jabatan,
+    'kelas': kelas,
+    'nis': nis,
+    'no_hp': noHp,
+    'aktif': aktif,
+  };
+
+  factory AnggotaOsis.fromJson(Map<String, dynamic> j) => AnggotaOsis(
+    id: j['id']?.toString() ?? '',
+    nama: j['nama']?.toString() ?? '',
+    jabatan: j['jabatan']?.toString() ?? 'Anggota',
+    kelas: j['kelas']?.toString() ?? '',
+    nis: j['nis']?.toString() ?? '',
+    noHp: j['no_hp']?.toString() ?? j['noHp']?.toString() ?? '',
+    aktif: j['aktif'] != false,
+  );
+}
+
+class KasOsisItem {
+  String anggotaId;
+  String nama;
+  String jabatan;
+  String kelas;
+  bool sudahBayar;
+  int nominalBayar;
+  DateTime? tanggalBayar;
+  String catatan;
+
+  KasOsisItem({
+    required this.anggotaId,
+    required this.nama,
+    required this.jabatan,
+    this.kelas = '',
+    this.sudahBayar = false,
+    this.nominalBayar = 0,
+    this.tanggalBayar,
+    this.catatan = '',
+  });
+
+  Map<String, dynamic> toJson() => {
+    'anggota_id': anggotaId,
+    'nama': nama,
+    'jabatan': jabatan,
+    'kelas': kelas,
+    'sudah_bayar': sudahBayar,
+    'nominal_bayar': nominalBayar,
+    'tanggal_bayar': tanggalBayar?.toIso8601String(),
+    'catatan': catatan,
+  };
+
+  factory KasOsisItem.fromJson(Map<String, dynamic> j) => KasOsisItem(
+    anggotaId: j['anggota_id']?.toString() ?? j['anggotaId']?.toString() ?? '',
+    nama: j['nama']?.toString() ?? '',
+    jabatan: j['jabatan']?.toString() ?? '',
+    kelas: j['kelas']?.toString() ?? '',
+    sudahBayar: j['sudah_bayar'] == true || j['sudahBayar'] == true,
+    nominalBayar: (j['nominal_bayar'] ?? j['nominalBayar'] as num?)?.toInt() ?? 0,
+    tanggalBayar: (j['tanggal_bayar'] ?? j['tanggalBayar']) != null
+        ? DateTime.tryParse(j['tanggal_bayar'] ?? j['tanggalBayar'])
+        : null,
+    catatan: j['catatan']?.toString() ?? '',
+  );
+}
+
+class KasOsisSession {
+  String id;
+  DateTime tanggal;
+  String judul;
+  int nominalWajib;
+  String keterangan;
+  String petugas;
+  List<KasOsisItem> items;
+  DateTime updatedAt;
+
+  KasOsisSession({
+    required this.id,
+    required this.tanggal,
+    required this.judul,
+    this.nominalWajib = 5000,
+    this.keterangan = '',
+    this.petugas = 'BENDAHARA',
+    required this.items,
+    DateTime? updatedAt,
+  }) : updatedAt = updatedAt ?? DateTime.now();
+
+  int get totalTerkumpul =>
+      items.where((i) => i.sudahBayar).fold(0, (sum, i) => sum + (i.nominalBayar > 0 ? i.nominalBayar : nominalWajib));
+
+  int get jumlahSudahBayar => items.where((i) => i.sudahBayar).length;
+  int get jumlahBelumBayar => items.where((i) => !i.sudahBayar).length;
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'tanggal': tanggal.toIso8601String(),
+    'judul': judul,
+    'nominal_wajib': nominalWajib,
+    'keterangan': keterangan,
+    'petugas': petugas,
+    'items': items.map((i) => i.toJson()).toList(),
+    'updated_at': updatedAt.toIso8601String(),
+  };
+
+  factory KasOsisSession.fromJson(Map<String, dynamic> j) => KasOsisSession(
+    id: j['id']?.toString() ?? '',
+    tanggal: DateTime.tryParse(j['tanggal']?.toString() ?? '') ?? DateTime.now(),
+    judul: j['judul']?.toString() ?? 'Uang Kas OSIS',
+    nominalWajib: (j['nominal_wajib'] ?? j['nominalWajib'] as num?)?.toInt() ?? 5000,
+    keterangan: j['keterangan']?.toString() ?? '',
+    petugas: j['petugas']?.toString() ?? 'BENDAHARA',
+    items: (j['items'] as List?)
+            ?.map((e) => KasOsisItem.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList() ??
+        [],
+    updatedAt: DateTime.tryParse(j['updated_at']?.toString() ?? '') ?? DateTime.now(),
+  );
+}
+
+class KasOsisTransaksi {
+  String id;
+  DateTime tanggal;
+  String jenis; // 'masuk' atau 'keluar'
+  String judul;
+  int nominal;
+  String kategori; // 'Kas Mingguan', 'Konsumsi Rapat', 'ATK & Fotokopi', 'Kegiatan Proker', 'Lainnya'
+  String penanggungJawab;
+  String keterangan;
+
+  KasOsisTransaksi({
+    required this.id,
+    required this.tanggal,
+    required this.jenis,
+    required this.judul,
+    required this.nominal,
+    this.kategori = 'Lainnya',
+    this.penanggungJawab = '',
+    this.keterangan = '',
+  });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'tanggal': tanggal.toIso8601String(),
+    'jenis': jenis,
+    'judul': judul,
+    'nominal': nominal,
+    'kategori': kategori,
+    'penanggung_jawab': penanggungJawab,
+    'keterangan': keterangan,
+  };
+
+  factory KasOsisTransaksi.fromJson(Map<String, dynamic> j) => KasOsisTransaksi(
+    id: j['id']?.toString() ?? '',
+    tanggal: DateTime.tryParse(j['tanggal']?.toString() ?? '') ?? DateTime.now(),
+    jenis: j['jenis']?.toString() ?? 'masuk',
+    judul: j['judul']?.toString() ?? '',
+    nominal: (j['nominal'] as num?)?.toInt() ?? 0,
+    kategori: j['kategori']?.toString() ?? 'Lainnya',
+    penanggungJawab: j['penanggung_jawab']?.toString() ?? j['penanggungJawab']?.toString() ?? '',
+    keterangan: j['keterangan']?.toString() ?? '',
+  );
+}
+
+class AbsensiOsisItem {
+  String anggotaId;
+  String nama;
+  String jabatan;
+  String kelas;
+  String status; // 'Hadir', 'Izin', 'Sakit', 'Alpa'
+  String keterangan;
+
+  AbsensiOsisItem({
+    required this.anggotaId,
+    required this.nama,
+    required this.jabatan,
+    this.kelas = '',
+    this.status = 'Hadir',
+    this.keterangan = '',
+  });
+
+  Map<String, dynamic> toJson() => {
+    'anggota_id': anggotaId,
+    'nama': nama,
+    'jabatan': jabatan,
+    'kelas': kelas,
+    'status': status,
+    'keterangan': keterangan,
+  };
+
+  factory AbsensiOsisItem.fromJson(Map<String, dynamic> j) => AbsensiOsisItem(
+    anggotaId: j['anggota_id']?.toString() ?? j['anggotaId']?.toString() ?? '',
+    nama: j['nama']?.toString() ?? '',
+    jabatan: j['jabatan']?.toString() ?? '',
+    kelas: j['kelas']?.toString() ?? '',
+    status: j['status']?.toString() ?? 'Hadir',
+    keterangan: j['keterangan']?.toString() ?? '',
+  );
+}
+
+class AbsensiOsisSession {
+  String id;
+  DateTime tanggal;
+  String namaKegiatan;
+  String lokasi;
+  String petugas;
+  String keterangan;
+  List<AbsensiOsisItem> items;
+  DateTime updatedAt;
+
+  AbsensiOsisSession({
+    required this.id,
+    required this.tanggal,
+    required this.namaKegiatan,
+    this.lokasi = 'Sekretariat OSIS',
+    this.petugas = '',
+    this.keterangan = '',
+    required this.items,
+    DateTime? updatedAt,
+  }) : updatedAt = updatedAt ?? DateTime.now();
+
+  int get totalHadir => items.where((i) => i.status == 'Hadir').length;
+  int get totalIzin  => items.where((i) => i.status == 'Izin').length;
+  int get totalSakit => items.where((i) => i.status == 'Sakit').length;
+  int get totalAlpa  => items.where((i) => i.status == 'Alpa').length;
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'tanggal': tanggal.toIso8601String(),
+    'nama_kegiatan': namaKegiatan,
+    'lokasi': lokasi,
+    'petugas': petugas,
+    'keterangan': keterangan,
+    'items': items.map((i) => i.toJson()).toList(),
+    'updated_at': updatedAt.toIso8601String(),
+  };
+
+  factory AbsensiOsisSession.fromJson(Map<String, dynamic> j) => AbsensiOsisSession(
+    id: j['id']?.toString() ?? '',
+    tanggal: DateTime.tryParse(j['tanggal']?.toString() ?? '') ?? DateTime.now(),
+    namaKegiatan: j['nama_kegiatan']?.toString() ?? j['namaKegiatan']?.toString() ?? 'Kegiatan OSIS',
+    lokasi: j['lokasi']?.toString() ?? 'Sekretariat OSIS',
+    petugas: j['petugas']?.toString() ?? '',
+    keterangan: j['keterangan']?.toString() ?? '',
+    items: (j['items'] as List?)
+            ?.map((e) => AbsensiOsisItem.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList() ??
+        [],
+    updatedAt: DateTime.tryParse(j['updated_at']?.toString() ?? '') ?? DateTime.now(),
+  );
+}
+

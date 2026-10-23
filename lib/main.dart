@@ -14,9 +14,11 @@ import 'services/sync_service.dart';
 import 'services/notification_service.dart';
 import 'services/app_settings_service.dart';
 import 'services/localization_service.dart';
+import 'widgets/notification_center_sheet.dart';
 import 'widgets/user_settings_sheet.dart';
 import 'widgets/sync_status_dialog.dart';
-import 'widgets/notification_center_sheet.dart';
+import 'screens/kas_osis_screen.dart';
+import 'widgets/nusantara_decorations.dart';
 import 'screens/login_screen.dart';
 import 'app_theme.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -252,6 +254,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     ProkerScreen(key: ValueKey('proker_${_username}_${LocalizationService.currentLocale.value.languageCode}'), username: _username),
     LaporanScreen(key: ValueKey('laporan_${_username}_${LocalizationService.currentLocale.value.languageCode}'), username: _username),
     ArsipScreen(key: _arsipKey, username: _username),
+    KasOsisScreen(key: ValueKey('kas_${_username}_${LocalizationService.currentLocale.value.languageCode}'), username: _username),
     KarakterSiswaScreen(key: ValueKey('karakter_${_username}_${LocalizationService.currentLocale.value.languageCode}'), username: _username),
     RekapScreen(key: ValueKey('rekap_${LocalizationService.currentLocale.value.languageCode}')),
   ];
@@ -264,11 +267,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final isDesktop = MediaQuery.of(context).size.width >= 800;
 
     final navItems = [
-      (title: LocalizationService.tr('nav_proker'),      icon: Icons.assignment_outlined,    activeIcon: Icons.assignment_rounded),
-      (title: LocalizationService.tr('nav_laporan'),     icon: Icons.article_outlined,       activeIcon: Icons.article_rounded),
-      (title: LocalizationService.tr('nav_arsip'),       icon: Icons.folder_outlined,        activeIcon: Icons.folder_rounded),
-      (title: 'Karakter & Siswa',                         icon: Icons.verified_user_outlined, activeIcon: Icons.verified_user_rounded),
-      (title: LocalizationService.tr('nav_rekap'),       icon: Icons.bar_chart_outlined,     activeIcon: Icons.bar_chart_rounded),
+      (title: LocalizationService.tr('nav_proker'),      icon: Icons.assignment_outlined,        activeIcon: Icons.assignment_rounded),
+      (title: LocalizationService.tr('nav_laporan'),     icon: Icons.article_outlined,           activeIcon: Icons.article_rounded),
+      (title: LocalizationService.tr('nav_arsip'),       icon: Icons.folder_outlined,            activeIcon: Icons.folder_rounded),
+      (title: 'Kas & Absensi',                           icon: Icons.account_balance_wallet_outlined, activeIcon: Icons.account_balance_wallet_rounded),
+      (title: 'Karakter & Siswa',                         icon: Icons.verified_user_outlined,     activeIcon: Icons.verified_user_rounded),
+      (title: LocalizationService.tr('nav_rekap'),       icon: Icons.bar_chart_outlined,         activeIcon: Icons.bar_chart_rounded),
     ];
 
     if (isDesktop) {
@@ -383,7 +387,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               gradient: LinearGradient(
                 colors: isDark
                     ? [const Color(0xFF0B0F17), const Color(0xFF131A26)]
-                    : [primary, primary.withAlpha(210)],
+                    : [primary, primary.withAlpha(215)],
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
               ),
@@ -392,6 +396,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   color: isDark ? const Color(0xFF263348) : Colors.transparent,
                   width: 1,
                 ),
+              ),
+            ),
+            child: CustomPaint(
+              painter: ModernKawungPainter(
+                color: isDark ? Colors.white.withAlpha(8) : Colors.white.withAlpha(22),
+                scale: 30.0,
               ),
             ),
           ),
@@ -566,7 +576,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ),
 
 
-            // 3. Tombol Manajemen (Akses Super Admin ada di pojok kanan atas layar Manajemen)
+            // 3. Tombol Kas & Absensi OSIS (Akses Cepat Bendahara & Pengurus)
+            IconButton(
+              icon: Icon(
+                _idx == 3 ? Icons.account_balance_wallet_rounded : Icons.account_balance_wallet_outlined,
+                color: _idx == 3 ? NusantaraColors.goldLight : Colors.white70,
+                size: 21,
+              ),
+              tooltip: 'Kas & Absensi OSIS',
+              onPressed: () => _onTabSelected(3),
+            ),
+
+            // 4. Tombol Manajemen (Akses Super Admin ada di pojok kanan atas layar Manajemen)
             if (_canAccessManajemen)
               IconButton(
                 icon: const Icon(Icons.tune_rounded, color: Colors.white70, size: 21),
@@ -574,7 +595,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 tooltip: LocalizationService.tr('nav_manajemen'),
               ),
 
-            // 4. Settings Sheet Toggle untuk semua user (berisi Tema, Bahasa, Info Akun & Log Out)
+            // 5. Settings Sheet Toggle untuk semua user (berisi Tema, Bahasa, Info Akun & Log Out)
             IconButton(
               icon: const Icon(Icons.settings_outlined, color: Colors.white70, size: 21),
               tooltip: LocalizationService.tr('nav_settings'),
