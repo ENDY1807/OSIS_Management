@@ -184,6 +184,16 @@ class SyncService {
     }
   }
 
+  /// Hapus aksi tertunda untuk target tertentu jika sudah berhasil disinkronkan langsung
+  static Future<void> removeAction(String table, String targetId) async {
+    final queue = await getQueue();
+    final initialLen = queue.length;
+    queue.removeWhere((item) => item.table == table && item.targetId == targetId);
+    if (queue.length != initialLen) {
+      await _saveQueue(queue);
+    }
+  }
+
   // ── Pemeriksaan Konektivitas & Auto Sync ───────────────────────────────────
 
   /// Memeriksa aksesibilitas internet umum (DNS / HTTP 204)

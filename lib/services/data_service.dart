@@ -218,7 +218,7 @@ class DataService {
     }
   }
 
-  static List<SekbidItem> _defaultSekbidItems() => [
+  static List<SekbidItem> defaultSekbidItems() => [
     SekbidItem(id: 'SEKBID1', name: 'SEKBID 1', deskripsi: 'Keimanan & Ketakwaan', urutan: 1),
     SekbidItem(id: 'SEKBID2', name: 'SEKBID 2', deskripsi: 'Budi Pekerti & Karakter', urutan: 2),
     SekbidItem(id: 'SEKBID3', name: 'SEKBID 3', deskripsi: 'Bela Negara & Kepemimpinan', urutan: 3),
@@ -232,46 +232,27 @@ class DataService {
   ];
 
   static Future<List<SekbidItem>> getSekbidTable() async {
-    // 1. Ambil dari Supabase jika online
-    if (SyncService.isOnline) {
-      try {
-        final rows = await _db
-            .from('sekbid')
-            .select()
-            .order('urutan', ascending: true)
-            .timeout(const Duration(seconds: 4));
-        if (rows.isNotEmpty) {
-          final list = (rows as List)
-              .map((e) => SekbidItem.fromJson(Map<String, dynamic>.from(e as Map)))
-              .toList();
-          await _saveCache(_keySekbid, list.map((e) => e.toJson()).toList());
-          AppSettingsService.sekbidListNotifier.value = list.map((s) => s.id).toList();
-          return list;
-        }
-      } catch (_) {}
-    }
-
-    // 2. Fallback baca dari cache lokal
-    final cache = await _readCache(_keySekbid);
-    if (cache.isNotEmpty) {
+    // 1. Ambil dari Supabase
+    try {
+      final rows = await _db
+          .from('sekbid')
+          .select()
+          .order('urutan', ascending: true)
+          .timeout(const Duration(seconds: 4));
+      final list = (rows as List)
+          .map((e) => SekbidItem.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
+      await _saveCache(_keySekbid, list.map((e) => e.toJson()).toList());
+      AppSettingsService.sekbidListNotifier.value = list.map((s) => s.id).toList();
+      return list;
+    } catch (_) {
+      // 2. Fallback baca dari cache lokal
+      final cache = await _readCache(_keySekbid);
       final list = cache.map((e) => SekbidItem.fromJson(e)).toList();
       list.sort((a, b) => a.urutan.compareTo(b.urutan));
       AppSettingsService.sekbidListNotifier.value = list.map((s) => s.id).toList();
       return list;
     }
-
-    // 3. Jika belum ada, gunakan default seed
-    final defaults = _defaultSekbidItems();
-    await _saveCache(_keySekbid, defaults.map((e) => e.toJson()).toList());
-    AppSettingsService.sekbidListNotifier.value = defaults.map((s) => s.id).toList();
-    if (SyncService.isOnline) {
-      try {
-        for (final s in defaults) {
-          await _db.from('sekbid').upsert(s.toJson());
-        }
-      } catch (_) {}
-    }
-    return defaults;
   }
 
   static Future<void> saveSekbidItem(SekbidItem item) async {
@@ -289,10 +270,17 @@ class DataService {
     AppSettingsService.sekbidListNotifier.value = strList;
     await AppSettingsService.saveAdminConfigs(sekbidList: strList);
 
-    if (SyncService.isOnline) {
-      try {
-        await _db.from('sekbid').upsert(item.toJson());
-      } catch (_) {}
+    try {
+      await _db.from('sekbid').upsert(item.toJson());
+      SyncService.setOnlineManually();
+      unawaited(SyncService.removeAction('sekbid', item.id));
+    } catch (e) {
+      await SyncService.enqueueAction(
+        actionType: SyncActionType.upsert,
+        table: 'sekbid',
+        data: item.toJson(),
+        targetId: item.id,
+      );
     }
     await broadcastDataChange('sekbid');
   }
@@ -306,10 +294,16 @@ class DataService {
     AppSettingsService.sekbidListNotifier.value = strList;
     await AppSettingsService.saveAdminConfigs(sekbidList: strList);
 
-    if (SyncService.isOnline) {
-      try {
-        await _db.from('sekbid').delete().eq('id', id);
-      } catch (_) {}
+    try {
+      await _db.from('sekbid').delete().eq('id', id);
+      SyncService.setOnlineManually();
+      unawaited(SyncService.removeAction('sekbid', id));
+    } catch (e) {
+      await SyncService.enqueueAction(
+        actionType: SyncActionType.delete,
+        table: 'sekbid',
+        targetId: id,
+      );
     }
     await broadcastDataChange('sekbid');
   }
@@ -335,14 +329,13 @@ class DataService {
     }
     await _saveCache(_keySekbid, items.map((s) => s.toJson()).toList());
     await AppSettingsService.saveAdminConfigs(sekbidList: sekbids);
-    if (SyncService.isOnline) {
-      try {
-        for (final item in items) {
-          await _db.from('sekbid').upsert(item.toJson(), onConflict: 'id');
-        }
-        await broadcastDataChange('sekbid');
-      } catch (_) {}
-    }
+    try {
+      for (final item in items) {
+        await _db.from('sekbid').upsert(item.toJson(), onConflict: 'id');
+      }
+      SyncService.setOnlineManually();
+      await broadcastDataChange('sekbid');
+    } catch (_) {}
   }
 
   static Future<void> broadcastDataChange(String table,
@@ -441,12 +434,10 @@ class DataService {
       final list = (rows as List)
           .map((e) => Siswa.fromJson(Map<String, dynamic>.from(e as Map)))
           .toList();
-      if (list.isNotEmpty) {
-        await _saveCache(_keySiswa, list.map((e) => e.toJson()).toList());
-        await prefs.setBool('has_initialized_siswa', true);
-        SyncService.setOnlineManually();
-        return list;
-      }
+      await _saveCache(_keySiswa, list.map((e) => e.toJson()).toList());
+      await prefs.setBool('has_initialized_siswa', true);
+      SyncService.setOnlineManually();
+      return list;
     } catch (e) {
       debugPrint('Supabase getSiswa fallback ke cache lokal: $e');
     }
@@ -470,24 +461,15 @@ class DataService {
 
   static Future<Siswa> addSiswa(String nama, String kelas, String nis) async {
     final s = Siswa(id: _uuid.v4(), nama: nama, kelas: kelas, nis: nis);
-    // 1. Update cache lokal instan
     final cache = await _readCache(_keySiswa);
     cache.add(s.toJson());
     await _saveCache(_keySiswa, cache);
 
-    // 2. Kirim ke Supabase atau antrekan ke SyncService
-    if (SyncService.isOnline) {
-      try {
-        await _db.from('siswa').insert(s.toJson());
-      } catch (e) {
-        await SyncService.enqueueAction(
-          actionType: SyncActionType.insert,
-          table: 'siswa',
-          data: s.toJson(),
-          targetId: s.id,
-        );
-      }
-    } else {
+    try {
+      await _db.from('siswa').insert(s.toJson());
+      SyncService.setOnlineManually();
+      unawaited(SyncService.removeAction('siswa', s.id));
+    } catch (e) {
       await SyncService.enqueueAction(
         actionType: SyncActionType.insert,
         table: 'siswa',
@@ -500,7 +482,6 @@ class DataService {
   }
 
   static Future<void> updateSiswa(Siswa s) async {
-    // 1. Update cache lokal instan
     final cache = await _readCache(_keySiswa);
     final index = cache.indexWhere((item) => item['id'] == s.id);
     if (index != -1) {
@@ -510,19 +491,11 @@ class DataService {
     }
     await _saveCache(_keySiswa, cache);
 
-    // 2. Kirim ke Supabase atau antrekan ke SyncService
-    if (SyncService.isOnline) {
-      try {
-        await _db.from('siswa').upsert(s.toJson());
-      } catch (e) {
-        await SyncService.enqueueAction(
-          actionType: SyncActionType.upsert,
-          table: 'siswa',
-          data: s.toJson(),
-          targetId: s.id,
-        );
-      }
-    } else {
+    try {
+      await _db.from('siswa').upsert(s.toJson());
+      SyncService.setOnlineManually();
+      unawaited(SyncService.removeAction('siswa', s.id));
+    } catch (e) {
       await SyncService.enqueueAction(
         actionType: SyncActionType.upsert,
         table: 'siswa',
@@ -535,7 +508,6 @@ class DataService {
 
   static Future<void> deleteSiswaByNisList(List<String> nisList) async {
     if (nisList.isEmpty) return;
-    // 1. Update cache lokal instan
     final cache = await _readCache(_keySiswa);
     final toDelete = cache
         .where((item) => nisList.contains(item['nis']))
@@ -545,20 +517,13 @@ class DataService {
     cache.removeWhere((item) => nisList.contains(item['nis']));
     await _saveCache(_keySiswa, cache);
 
-    // 2. Kirim ke Supabase atau antrekan ke SyncService
-    if (SyncService.isOnline) {
-      try {
-        await _db.from('siswa').delete().inFilter('nis', nisList);
-      } catch (e) {
-        for (final id in toDelete) {
-          await SyncService.enqueueAction(
-            actionType: SyncActionType.delete,
-            table: 'siswa',
-            targetId: id,
-          );
-        }
+    try {
+      await _db.from('siswa').delete().inFilter('nis', nisList);
+      SyncService.setOnlineManually();
+      for (final id in toDelete) {
+        unawaited(SyncService.removeAction('siswa', id));
       }
-    } else {
+    } catch (e) {
       for (final id in toDelete) {
         await SyncService.enqueueAction(
           actionType: SyncActionType.delete,
@@ -571,23 +536,15 @@ class DataService {
   }
 
   static Future<void> deleteSiswa(String id) async {
-    // 1. Update cache lokal instan
     final cache = await _readCache(_keySiswa);
     cache.removeWhere((item) => item['id'] == id);
     await _saveCache(_keySiswa, cache);
 
-    // 2. Kirim ke Supabase atau antrekan ke SyncService
-    if (SyncService.isOnline) {
-      try {
-        await _db.from('siswa').delete().eq('id', id);
-      } catch (e) {
-        await SyncService.enqueueAction(
-          actionType: SyncActionType.delete,
-          table: 'siswa',
-          targetId: id,
-        );
-      }
-    } else {
+    try {
+      await _db.from('siswa').delete().eq('id', id);
+      SyncService.setOnlineManually();
+      unawaited(SyncService.removeAction('siswa', id));
+    } catch (e) {
       await SyncService.enqueueAction(
         actionType: SyncActionType.delete,
         table: 'siswa',
@@ -617,75 +574,28 @@ class DataService {
     return result;
   }
 
-  static const _keyJenisInitialized = 'jenis_pelanggaran_initialized_v2';
-
   static Future<List<JenisPelanggaran>> getJenis() async {
-    final prefs = await SharedPreferences.getInstance();
-    final bool isInitialized = prefs.getBool(_keyJenisInitialized) ?? false;
-
-    // 1. Jika offline, baca langsung dari cache lokal instan
-    if (!SyncService.isOnline) {
-      final cache = await _readCache(_keyJenis);
-      if (cache.isNotEmpty) {
-        final parsed = cache.map(JenisPelanggaran.fromJson).toList();
-        return _deduplicateJenis(parsed);
-      }
-      if (!isInitialized) {
-        final defaults = _defaultJenis();
-        await _saveCache(_keyJenis, defaults.map((e) => e.toJson()).toList());
-        await prefs.setBool(_keyJenisInitialized, true);
-        return defaults;
-      }
-      return [];
-    }
-
-    // 2. Jika online, ambil dari Supabase
     try {
       final rows = await _db
           .from('jenis_pelanggaran')
           .select()
           .timeout(const Duration(seconds: 4));
-      if (rows.isEmpty) {
-        if (!isInitialized) {
-          final defaults = _defaultJenis();
-          for (final j in defaults) {
-            try {
-              await _db.from('jenis_pelanggaran').upsert(j.toJson());
-            } catch (_) {}
-          }
-          await _saveCache(_keyJenis, defaults.map((e) => e.toJson()).toList());
-          await prefs.setBool(_keyJenisInitialized, true);
-          return defaults;
-        }
-        await _saveCache(_keyJenis, []);
-        return [];
-      }
       final rawList = (rows as List)
           .map((e) =>
               JenisPelanggaran.fromJson(Map<String, dynamic>.from(e as Map)))
           .toList();
       final list = _deduplicateJenis(rawList);
       await _saveCache(_keyJenis, list.map((e) => e.toJson()).toList());
-      if (!isInitialized) {
-        await prefs.setBool(_keyJenisInitialized, true);
-      }
+      SyncService.setOnlineManually();
       return list;
     } catch (_) {
       final cache = await _readCache(_keyJenis);
-      if (cache.isEmpty) {
-        if (!isInitialized) {
-          final defaults = _defaultJenis();
-          await prefs.setBool(_keyJenisInitialized, true);
-          return defaults;
-        }
-        return [];
-      }
       final parsed = cache.map(JenisPelanggaran.fromJson).toList();
       return _deduplicateJenis(parsed);
     }
   }
 
-  static List<JenisPelanggaran> _defaultJenis() => [
+  static List<JenisPelanggaran> defaultJenis() => [
         // Senin saja
         JenisPelanggaran(
             id: 'jp_dasi', nama: 'Tidak pakai Dasi', hariAktif: [1]),
@@ -757,24 +667,15 @@ class DataService {
         JenisPelanggaran(id: _uuid.v4(), nama: nama.trim(), hariAktif: hariAktif);
     final dbData = {'id': j.id, 'nama': j.nama, 'hari_aktif': j.hariAktif};
 
-    // 1. Update cache lokal instan
     final cache = await _readCache(_keyJenis);
     cache.add(j.toJson());
     await _saveCache(_keyJenis, cache);
 
-    // 2. Kirim ke Supabase atau antrekan ke SyncService
-    if (SyncService.isOnline) {
-      try {
-        await _db.from('jenis_pelanggaran').insert(dbData);
-      } catch (e) {
-        await SyncService.enqueueAction(
-          actionType: SyncActionType.insert,
-          table: 'jenis_pelanggaran',
-          data: dbData,
-          targetId: j.id,
-        );
-      }
-    } else {
+    try {
+      await _db.from('jenis_pelanggaran').insert(dbData);
+      SyncService.setOnlineManually();
+      unawaited(SyncService.removeAction('jenis_pelanggaran', j.id));
+    } catch (e) {
       await SyncService.enqueueAction(
         actionType: SyncActionType.insert,
         table: 'jenis_pelanggaran',
@@ -789,7 +690,6 @@ class DataService {
   static Future<void> updateJenis(JenisPelanggaran j) async {
     final dbData = {'id': j.id, 'nama': j.nama, 'hari_aktif': j.hariAktif};
 
-    // 1. Update cache lokal instan
     final cache = await _readCache(_keyJenis);
     final index = cache.indexWhere((item) => item['id'] == j.id);
     if (index != -1) {
@@ -799,19 +699,11 @@ class DataService {
     }
     await _saveCache(_keyJenis, cache);
 
-    // 2. Kirim ke Supabase atau antrekan ke SyncService
-    if (SyncService.isOnline) {
-      try {
-        await _db.from('jenis_pelanggaran').upsert(dbData);
-      } catch (e) {
-        await SyncService.enqueueAction(
-          actionType: SyncActionType.upsert,
-          table: 'jenis_pelanggaran',
-          data: dbData,
-          targetId: j.id,
-        );
-      }
-    } else {
+    try {
+      await _db.from('jenis_pelanggaran').upsert(dbData);
+      SyncService.setOnlineManually();
+      unawaited(SyncService.removeAction('jenis_pelanggaran', j.id));
+    } catch (e) {
       await SyncService.enqueueAction(
         actionType: SyncActionType.upsert,
         table: 'jenis_pelanggaran',
@@ -823,23 +715,15 @@ class DataService {
   }
 
   static Future<void> deleteJenis(String id) async {
-    // 1. Update cache lokal instan
     final cache = await _readCache(_keyJenis);
     cache.removeWhere((item) => item['id'] == id);
     await _saveCache(_keyJenis, cache);
 
-    // 2. Kirim ke Supabase atau antrekan ke SyncService
-    if (SyncService.isOnline) {
-      try {
-        await _db.from('jenis_pelanggaran').delete().eq('id', id);
-      } catch (e) {
-        await SyncService.enqueueAction(
-          actionType: SyncActionType.delete,
-          table: 'jenis_pelanggaran',
-          targetId: id,
-        );
-      }
-    } else {
+    try {
+      await _db.from('jenis_pelanggaran').delete().eq('id', id);
+      SyncService.setOnlineManually();
+      unawaited(SyncService.removeAction('jenis_pelanggaran', id));
+    } catch (e) {
       await SyncService.enqueueAction(
         actionType: SyncActionType.delete,
         table: 'jenis_pelanggaran',
@@ -972,19 +856,11 @@ class DataService {
     cache.insert(0, pelanggaran.toJson());
     await _saveCache(_keyPelanggaran, cache);
 
-    // 2. Kirim ke Supabase atau antrekan ke SyncService
-    if (SyncService.isOnline) {
-      try {
-        await _db.from('pelanggaran').insert(dbData);
-      } catch (e) {
-        await SyncService.enqueueAction(
-          actionType: SyncActionType.insert,
-          table: 'pelanggaran',
-          data: dbData,
-          targetId: pelanggaran.id,
-        );
-      }
-    } else {
+    try {
+      await _db.from('pelanggaran').insert(dbData);
+      SyncService.setOnlineManually();
+      unawaited(SyncService.removeAction('pelanggaran', pelanggaran.id));
+    } catch (e) {
       await SyncService.enqueueAction(
         actionType: SyncActionType.insert,
         table: 'pelanggaran',
@@ -997,23 +873,15 @@ class DataService {
   }
 
   static Future<void> deletePelanggaran(String id) async {
-    // 1. Update cache lokal instan
     final cache = await _readCache(_keyPelanggaran);
     cache.removeWhere((item) => item['id'] == id);
     await _saveCache(_keyPelanggaran, cache);
 
-    // 2. Kirim ke Supabase atau antrekan ke SyncService
-    if (SyncService.isOnline) {
-      try {
-        await _db.from('pelanggaran').delete().eq('id', id);
-      } catch (e) {
-        await SyncService.enqueueAction(
-          actionType: SyncActionType.delete,
-          table: 'pelanggaran',
-          targetId: id,
-        );
-      }
-    } else {
+    try {
+      await _db.from('pelanggaran').delete().eq('id', id);
+      SyncService.setOnlineManually();
+      unawaited(SyncService.removeAction('pelanggaran', id));
+    } catch (e) {
       await SyncService.enqueueAction(
         actionType: SyncActionType.delete,
         table: 'pelanggaran',
@@ -1025,10 +893,6 @@ class DataService {
 
   // ── Kebaikan (Catatan Kebaikan & Prestasi Siswa) ─────────────────────────
   static Future<List<CatatanKebaikan>> getKebaikan() async {
-    if (!SyncService.isOnline) {
-      final cache = await _readCache(_keyKebaikan);
-      return cache.map(CatatanKebaikan.fromJson).toList();
-    }
     try {
       final rows = await _db
           .from('kebaikan')
@@ -1070,18 +934,11 @@ class DataService {
     await _saveCache(_keyKebaikan, cache);
 
     // 2. Kirim ke Supabase atau antrekan ke SyncService
-    if (SyncService.isOnline) {
-      try {
-        await _db.from('kebaikan').insert(dbData);
-      } catch (e) {
-        await SyncService.enqueueAction(
-          actionType: SyncActionType.insert,
-          table: 'kebaikan',
-          data: dbData,
-          targetId: k.id,
-        );
-      }
-    } else {
+    try {
+      await _db.from('kebaikan').insert(dbData);
+      SyncService.setOnlineManually();
+      unawaited(SyncService.removeAction('kebaikan', k.id));
+    } catch (e) {
       await SyncService.enqueueAction(
         actionType: SyncActionType.insert,
         table: 'kebaikan',
@@ -1117,18 +974,11 @@ class DataService {
     }
     await _saveCache(_keyKebaikan, cache);
 
-    if (SyncService.isOnline) {
-      try {
-        await _db.from('kebaikan').upsert(dbData);
-      } catch (e) {
-        await SyncService.enqueueAction(
-          actionType: SyncActionType.upsert,
-          table: 'kebaikan',
-          data: dbData,
-          targetId: k.id,
-        );
-      }
-    } else {
+    try {
+      await _db.from('kebaikan').upsert(dbData);
+      SyncService.setOnlineManually();
+      unawaited(SyncService.removeAction('kebaikan', k.id));
+    } catch (e) {
       await SyncService.enqueueAction(
         actionType: SyncActionType.upsert,
         table: 'kebaikan',
@@ -1144,17 +994,11 @@ class DataService {
     cache.removeWhere((item) => item['id'] == id);
     await _saveCache(_keyKebaikan, cache);
 
-    if (SyncService.isOnline) {
-      try {
-        await _db.from('kebaikan').delete().eq('id', id);
-      } catch (e) {
-        await SyncService.enqueueAction(
-          actionType: SyncActionType.delete,
-          table: 'kebaikan',
-          targetId: id,
-        );
-      }
-    } else {
+    try {
+      await _db.from('kebaikan').delete().eq('id', id);
+      SyncService.setOnlineManually();
+      unawaited(SyncService.removeAction('kebaikan', id));
+    } catch (e) {
       await SyncService.enqueueAction(
         actionType: SyncActionType.delete,
         table: 'kebaikan',
@@ -1224,18 +1068,11 @@ class DataService {
     await _saveCache(_keyProker, cache);
 
     // 2. Kirim ke Supabase atau antrekan ke SyncService
-    if (SyncService.isOnline) {
-      try {
-        await _db.from('proker').insert(dbData);
-      } catch (e) {
-        await SyncService.enqueueAction(
-          actionType: SyncActionType.insert,
-          table: 'proker',
-          data: dbData,
-          targetId: p.id,
-        );
-      }
-    } else {
+    try {
+      await _db.from('proker').insert(dbData);
+      SyncService.setOnlineManually();
+      unawaited(SyncService.removeAction('proker', p.id));
+    } catch (e) {
       await SyncService.enqueueAction(
         actionType: SyncActionType.insert,
         table: 'proker',
@@ -1272,18 +1109,11 @@ class DataService {
     await _saveCache(_keyProker, cache);
 
     // 2. Kirim ke Supabase atau antrekan ke SyncService
-    if (SyncService.isOnline) {
-      try {
-        await _db.from('proker').upsert(dbData);
-      } catch (e) {
-        await SyncService.enqueueAction(
-          actionType: SyncActionType.upsert,
-          table: 'proker',
-          data: dbData,
-          targetId: p.id,
-        );
-      }
-    } else {
+    try {
+      await _db.from('proker').upsert(dbData);
+      SyncService.setOnlineManually();
+      unawaited(SyncService.removeAction('proker', p.id));
+    } catch (e) {
       await SyncService.enqueueAction(
         actionType: SyncActionType.upsert,
         table: 'proker',
@@ -1317,17 +1147,11 @@ class DataService {
     await _saveCache(_keyProker, cache);
 
     // 2. Kirim ke Supabase atau antrekan ke SyncService
-    if (SyncService.isOnline) {
-      try {
-        await _db.from('proker').delete().eq('id', id);
-      } catch (e) {
-        await SyncService.enqueueAction(
-          actionType: SyncActionType.delete,
-          table: 'proker',
-          targetId: id,
-        );
-      }
-    } else {
+    try {
+      await _db.from('proker').delete().eq('id', id);
+      SyncService.setOnlineManually();
+      unawaited(SyncService.removeAction('proker', id));
+    } catch (e) {
       await SyncService.enqueueAction(
         actionType: SyncActionType.delete,
         table: 'proker',
@@ -1390,18 +1214,11 @@ class DataService {
     await _saveCache(_keyArsip, cache);
 
     // 2. Kirim ke Supabase atau antrekan ke SyncService
-    if (SyncService.isOnline) {
-      try {
-        await _db.from('arsip').insert(dbData);
-      } catch (e) {
-        await SyncService.enqueueAction(
-          actionType: SyncActionType.insert,
-          table: 'arsip',
-          data: dbData,
-          targetId: a.id,
-        );
-      }
-    } else {
+    try {
+      await _db.from('arsip').insert(dbData);
+      SyncService.setOnlineManually();
+      unawaited(SyncService.removeAction('arsip', a.id));
+    } catch (e) {
       await SyncService.enqueueAction(
         actionType: SyncActionType.insert,
         table: 'arsip',
@@ -1436,18 +1253,11 @@ class DataService {
     await _saveCache(_keyArsip, cache);
 
     // 2. Kirim ke Supabase atau antrekan ke SyncService
-    if (SyncService.isOnline) {
-      try {
-        await _db.from('arsip').upsert(dbData);
-      } catch (e) {
-        await SyncService.enqueueAction(
-          actionType: SyncActionType.upsert,
-          table: 'arsip',
-          data: dbData,
-          targetId: a.id,
-        );
-      }
-    } else {
+    try {
+      await _db.from('arsip').upsert(dbData);
+      SyncService.setOnlineManually();
+      unawaited(SyncService.removeAction('arsip', a.id));
+    } catch (e) {
       await SyncService.enqueueAction(
         actionType: SyncActionType.upsert,
         table: 'arsip',
@@ -1662,17 +1472,11 @@ class DataService {
     await _saveCache(_keyArsip, cache);
 
     // 3. Kirim ke Supabase atau antrekan ke SyncService
-    if (SyncService.isOnline) {
-      try {
-        await _db.from('arsip').delete().eq('id', id);
-      } catch (e) {
-        await SyncService.enqueueAction(
-          actionType: SyncActionType.delete,
-          table: 'arsip',
-          targetId: id,
-        );
-      }
-    } else {
+    try {
+      await _db.from('arsip').delete().eq('id', id);
+      SyncService.setOnlineManually();
+      unawaited(SyncService.removeAction('arsip', id));
+    } catch (e) {
       await SyncService.enqueueAction(
         actionType: SyncActionType.delete,
         table: 'arsip',
@@ -1782,18 +1586,11 @@ class DataService {
     await _saveCache(_keyLaporan, cache);
 
     // 2. Kirim ke Supabase atau antrekan ke SyncService
-    if (SyncService.isOnline) {
-      try {
-        await _db.from('laporan_kegiatan').insert(dbData);
-      } catch (e) {
-        await SyncService.enqueueAction(
-          actionType: SyncActionType.insert,
-          table: 'laporan_kegiatan',
-          data: dbData,
-          targetId: l.id,
-        );
-      }
-    } else {
+    try {
+      await _db.from('laporan_kegiatan').insert(dbData);
+      SyncService.setOnlineManually();
+      unawaited(SyncService.removeAction('laporan_kegiatan', l.id));
+    } catch (e) {
       await SyncService.enqueueAction(
         actionType: SyncActionType.insert,
         table: 'laporan_kegiatan',
@@ -1832,18 +1629,11 @@ class DataService {
     await _saveCache(_keyLaporan, cache);
 
     // 2. Kirim ke Supabase atau antrekan ke SyncService
-    if (SyncService.isOnline) {
-      try {
-        await _db.from('laporan_kegiatan').upsert(dbData);
-      } catch (e) {
-        await SyncService.enqueueAction(
-          actionType: SyncActionType.upsert,
-          table: 'laporan_kegiatan',
-          data: dbData,
-          targetId: l.id,
-        );
-      }
-    } else {
+    try {
+      await _db.from('laporan_kegiatan').upsert(dbData);
+      SyncService.setOnlineManually();
+      unawaited(SyncService.removeAction('laporan_kegiatan', l.id));
+    } catch (e) {
       await SyncService.enqueueAction(
         actionType: SyncActionType.upsert,
         table: 'laporan_kegiatan',
@@ -1861,17 +1651,11 @@ class DataService {
     await _saveCache(_keyLaporan, cache);
 
     // 2. Kirim ke Supabase atau antrekan ke SyncService
-    if (SyncService.isOnline) {
-      try {
-        await _db.from('laporan_kegiatan').delete().eq('id', id);
-      } catch (e) {
-        await SyncService.enqueueAction(
-          actionType: SyncActionType.delete,
-          table: 'laporan_kegiatan',
-          targetId: id,
-        );
-      }
-    } else {
+    try {
+      await _db.from('laporan_kegiatan').delete().eq('id', id);
+      SyncService.setOnlineManually();
+      unawaited(SyncService.removeAction('laporan_kegiatan', id));
+    } catch (e) {
       await SyncService.enqueueAction(
         actionType: SyncActionType.delete,
         table: 'laporan_kegiatan',
@@ -1934,18 +1718,11 @@ class DataService {
         _keyFileRiwayat, cached.map((e) => jsonEncode(e.toJson())).toList());
 
     // 2. Kirim ke Supabase atau antrekan ke SyncService
-    if (SyncService.isOnline) {
-      try {
-        await _db.from('file_riwayat').upsert(dbData);
-      } catch (_) {
-        await SyncService.enqueueAction(
-          actionType: SyncActionType.upsert,
-          table: 'file_riwayat',
-          data: dbData,
-          targetId: f.id,
-        );
-      }
-    } else {
+    try {
+      await _db.from('file_riwayat').upsert(dbData);
+      SyncService.setOnlineManually();
+      unawaited(SyncService.removeAction('file_riwayat', f.id));
+    } catch (_) {
       await SyncService.enqueueAction(
         actionType: SyncActionType.upsert,
         table: 'file_riwayat',
@@ -1968,17 +1745,11 @@ class DataService {
         _keyFileRiwayat, list.map((e) => jsonEncode(e.toJson())).toList());
 
     // 2. Kirim ke Supabase atau antrekan ke SyncService
-    if (SyncService.isOnline) {
-      try {
-        await _db.from('file_riwayat').delete().eq('id', id);
-      } catch (_) {
-        await SyncService.enqueueAction(
-          actionType: SyncActionType.delete,
-          table: 'file_riwayat',
-          targetId: id,
-        );
-      }
-    } else {
+    try {
+      await _db.from('file_riwayat').delete().eq('id', id);
+      SyncService.setOnlineManually();
+      unawaited(SyncService.removeAction('file_riwayat', id));
+    } catch (_) {
       await SyncService.enqueueAction(
         actionType: SyncActionType.delete,
         table: 'file_riwayat',
@@ -2029,7 +1800,7 @@ class DataService {
 
   // ── SISTEM KAS & ABSENSI OSIS ──────────────────────────────────────────────
 
-  static List<AnggotaOsis> _defaultAnggotaOsis() {
+  static List<AnggotaOsis> defaultAnggotaOsis() {
     return [
       AnggotaOsis(id: 'ang-1', nama: 'ABBY MUHAMMAD RAFI\'U', jabatan: 'Ketua OSIS', kelas: 'XI RPL 1', nis: '2526019070001'),
       AnggotaOsis(id: 'ang-2', nama: 'ABDILAH MALIK AL - JABBAR', jabatan: 'Wakil Ketua OSIS', kelas: 'X PPLG 1', nis: '2627020070001'),
@@ -2052,8 +1823,6 @@ class DataService {
 
   // 1. Anggota OSIS
   static Future<List<AnggotaOsis>> getAnggotaOsis() async {
-    final prefs = await SharedPreferences.getInstance();
-
     try {
       final rows = await _db
           .from('anggota_osis')
@@ -2063,40 +1832,41 @@ class DataService {
       final list = (rows as List)
           .map((e) => AnggotaOsis.fromJson(Map<String, dynamic>.from(e as Map)))
           .toList();
-      if (list.isNotEmpty) {
-        await _saveCache(_keyAnggotaOsis, list.map((e) => e.toJson()).toList());
-        await prefs.setBool('has_initialized_anggota_osis', true);
-        SyncService.setOnlineManually();
-        return list;
-      }
+      await _saveCache(_keyAnggotaOsis, list.map((e) => e.toJson()).toList());
+      SyncService.setOnlineManually();
+      return list;
     } catch (e) {
-      debugPrint('Error fetching anggota_osis from Supabase: $e');
+      debugPrint('Error fetching anggota_osis from Supabase, fallback to cache: $e');
     }
 
     final cache = await _readCache(_keyAnggotaOsis);
-    if (cache.isNotEmpty) {
-      return cache.map(AnggotaOsis.fromJson).toList();
-    }
-
-    final defaults = _defaultAnggotaOsis();
-    await _saveCache(_keyAnggotaOsis, defaults.map((e) => e.toJson()).toList());
-    await prefs.setBool('has_initialized_anggota_osis', true);
-    try {
-      for (final item in defaults) {
-        await _db.from('anggota_osis').upsert(item.toJson(), onConflict: 'id');
-      }
-    } catch (_) {}
-    return defaults;
+    return cache.map(AnggotaOsis.fromJson).toList();
   }
 
   static Future<void> saveAnggotaOsis(List<AnggotaOsis> list) async {
+    final oldList = await _readCache(_keyAnggotaOsis);
+    final oldIds = oldList.map((e) => e['id']?.toString()).whereType<String>().toSet();
+    final newIds = list.map((e) => e.id).toSet();
+    final toDelete = oldIds.difference(newIds);
+
     await _saveCache(_keyAnggotaOsis, list.map((e) => e.toJson()).toList());
-    if (SyncService.isOnline) {
-      try {
-        for (final item in list) {
-          await _db.from('anggota_osis').upsert(item.toJson(), onConflict: 'id');
-        }
-      } catch (_) {}
+    try {
+      for (final delId in toDelete) {
+        await _db.from('anggota_osis').delete().eq('id', delId);
+        unawaited(SyncService.removeAction('anggota_osis', delId));
+      }
+      for (final item in list) {
+        await _db.from('anggota_osis').upsert(item.toJson(), onConflict: 'id');
+        unawaited(SyncService.removeAction('anggota_osis', item.id));
+      }
+      SyncService.setOnlineManually();
+    } catch (e) {
+      for (final delId in toDelete) {
+        await SyncService.enqueueAction(actionType: SyncActionType.delete, table: 'anggota_osis', targetId: delId);
+      }
+      for (final item in list) {
+        await SyncService.enqueueAction(actionType: SyncActionType.upsert, table: 'anggota_osis', data: item.toJson(), targetId: item.id);
+      }
     }
     await broadcastDataChange('anggota_osis');
   }
@@ -2104,7 +1874,20 @@ class DataService {
   static Future<void> addAnggotaOsis(AnggotaOsis a) async {
     final list = await getAnggotaOsis();
     list.add(a);
-    await saveAnggotaOsis(list);
+    await _saveCache(_keyAnggotaOsis, list.map((e) => e.toJson()).toList());
+    try {
+      await _db.from('anggota_osis').upsert(a.toJson(), onConflict: 'id');
+      SyncService.setOnlineManually();
+      unawaited(SyncService.removeAction('anggota_osis', a.id));
+    } catch (e) {
+      await SyncService.enqueueAction(
+        actionType: SyncActionType.upsert,
+        table: 'anggota_osis',
+        data: a.toJson(),
+        targetId: a.id,
+      );
+    }
+    await broadcastDataChange('anggota_osis');
   }
 
   static Future<void> updateAnggotaOsis(AnggotaOsis a) async {
@@ -2115,17 +1898,36 @@ class DataService {
     } else {
       list.add(a);
     }
-    await saveAnggotaOsis(list);
+    await _saveCache(_keyAnggotaOsis, list.map((e) => e.toJson()).toList());
+    try {
+      await _db.from('anggota_osis').upsert(a.toJson(), onConflict: 'id');
+      SyncService.setOnlineManually();
+      unawaited(SyncService.removeAction('anggota_osis', a.id));
+    } catch (e) {
+      await SyncService.enqueueAction(
+        actionType: SyncActionType.upsert,
+        table: 'anggota_osis',
+        data: a.toJson(),
+        targetId: a.id,
+      );
+    }
+    await broadcastDataChange('anggota_osis');
   }
 
   static Future<void> deleteAnggotaOsis(String id) async {
     final list = await getAnggotaOsis();
     list.removeWhere((item) => item.id == id);
     await _saveCache(_keyAnggotaOsis, list.map((e) => e.toJson()).toList());
-    if (SyncService.isOnline) {
-      try {
-        await _db.from('anggota_osis').delete().eq('id', id);
-      } catch (_) {}
+    try {
+      await _db.from('anggota_osis').delete().eq('id', id);
+      SyncService.setOnlineManually();
+      unawaited(SyncService.removeAction('anggota_osis', id));
+    } catch (e) {
+      await SyncService.enqueueAction(
+        actionType: SyncActionType.delete,
+        table: 'anggota_osis',
+        targetId: id,
+      );
     }
     await broadcastDataChange('anggota_osis');
   }
@@ -2165,18 +1967,11 @@ class DataService {
     }
     await _saveCache(_keyKasOsis, list.map((e) => e.toJson()).toList());
 
-    if (SyncService.isOnline) {
-      try {
-        await _db.from('kas_osis').upsert(session.toJson(), onConflict: 'id');
-      } catch (e) {
-        await SyncService.enqueueAction(
-          actionType: SyncActionType.upsert,
-          table: 'kas_osis',
-          data: session.toJson(),
-          targetId: session.id,
-        );
-      }
-    } else {
+    try {
+      await _db.from('kas_osis').upsert(session.toJson(), onConflict: 'id');
+      SyncService.setOnlineManually();
+      unawaited(SyncService.removeAction('kas_osis', session.id));
+    } catch (e) {
       await SyncService.enqueueAction(
         actionType: SyncActionType.upsert,
         table: 'kas_osis',
@@ -2192,17 +1987,11 @@ class DataService {
     list.removeWhere((s) => s.id == id);
     await _saveCache(_keyKasOsis, list.map((e) => e.toJson()).toList());
 
-    if (SyncService.isOnline) {
-      try {
-        await _db.from('kas_osis').delete().eq('id', id);
-      } catch (e) {
-        await SyncService.enqueueAction(
-          actionType: SyncActionType.delete,
-          table: 'kas_osis',
-          targetId: id,
-        );
-      }
-    } else {
+    try {
+      await _db.from('kas_osis').delete().eq('id', id);
+      SyncService.setOnlineManually();
+      unawaited(SyncService.removeAction('kas_osis', id));
+    } catch (e) {
       await SyncService.enqueueAction(
         actionType: SyncActionType.delete,
         table: 'kas_osis',
@@ -2242,18 +2031,11 @@ class DataService {
     list.insert(0, t);
     await _saveCache(_keyKasTransaksi, list.map((e) => e.toJson()).toList());
 
-    if (SyncService.isOnline) {
-      try {
-        await _db.from('kas_transaksi').upsert(t.toJson(), onConflict: 'id');
-      } catch (e) {
-        await SyncService.enqueueAction(
-          actionType: SyncActionType.upsert,
-          table: 'kas_transaksi',
-          data: t.toJson(),
-          targetId: t.id,
-        );
-      }
-    } else {
+    try {
+      await _db.from('kas_transaksi').upsert(t.toJson(), onConflict: 'id');
+      SyncService.setOnlineManually();
+      unawaited(SyncService.removeAction('kas_transaksi', t.id));
+    } catch (e) {
       await SyncService.enqueueAction(
         actionType: SyncActionType.upsert,
         table: 'kas_transaksi',
@@ -2269,17 +2051,11 @@ class DataService {
     list.removeWhere((t) => t.id == id);
     await _saveCache(_keyKasTransaksi, list.map((e) => e.toJson()).toList());
 
-    if (SyncService.isOnline) {
-      try {
-        await _db.from('kas_transaksi').delete().eq('id', id);
-      } catch (e) {
-        await SyncService.enqueueAction(
-          actionType: SyncActionType.delete,
-          table: 'kas_transaksi',
-          targetId: id,
-        );
-      }
-    } else {
+    try {
+      await _db.from('kas_transaksi').delete().eq('id', id);
+      SyncService.setOnlineManually();
+      unawaited(SyncService.removeAction('kas_transaksi', id));
+    } catch (e) {
       await SyncService.enqueueAction(
         actionType: SyncActionType.delete,
         table: 'kas_transaksi',
@@ -2324,18 +2100,11 @@ class DataService {
     }
     await _saveCache(_keyAbsensiOsis, list.map((e) => e.toJson()).toList());
 
-    if (SyncService.isOnline) {
-      try {
-        await _db.from('absensi_osis').upsert(session.toJson(), onConflict: 'id');
-      } catch (e) {
-        await SyncService.enqueueAction(
-          actionType: SyncActionType.upsert,
-          table: 'absensi_osis',
-          data: session.toJson(),
-          targetId: session.id,
-        );
-      }
-    } else {
+    try {
+      await _db.from('absensi_osis').upsert(session.toJson(), onConflict: 'id');
+      SyncService.setOnlineManually();
+      unawaited(SyncService.removeAction('absensi_osis', session.id));
+    } catch (e) {
       await SyncService.enqueueAction(
         actionType: SyncActionType.upsert,
         table: 'absensi_osis',
@@ -2351,17 +2120,11 @@ class DataService {
     list.removeWhere((s) => s.id == id);
     await _saveCache(_keyAbsensiOsis, list.map((e) => e.toJson()).toList());
 
-    if (SyncService.isOnline) {
-      try {
-        await _db.from('absensi_osis').delete().eq('id', id);
-      } catch (e) {
-        await SyncService.enqueueAction(
-          actionType: SyncActionType.delete,
-          table: 'absensi_osis',
-          targetId: id,
-        );
-      }
-    } else {
+    try {
+      await _db.from('absensi_osis').delete().eq('id', id);
+      SyncService.setOnlineManually();
+      unawaited(SyncService.removeAction('absensi_osis', id));
+    } catch (e) {
       await SyncService.enqueueAction(
         actionType: SyncActionType.delete,
         table: 'absensi_osis',
@@ -2948,35 +2711,31 @@ class DataService {
     }
     await _saveCache(_keySiswa, cache);
 
-    // 2. Upsert ke Supabase per batch 50 (jika online) atau enqueue (jika offline)
+    // 2. Upsert ke Supabase per batch 50 (langsung) atau enqueue jika offline
     const batchSize = 50;
-    if (SyncService.isOnline) {
-      try {
-        for (int i = 0; i < toUpsert.length; i += batchSize) {
-          final end = (i + batchSize).clamp(0, toUpsert.length);
-          await _db.from('siswa').upsert(
-                toUpsert.sublist(i, end),
-                onConflict: 'nis',
-                ignoreDuplicates: true,
-              );
-        }
-      } catch (e) {
-        for (final item in toUpsert) {
-          await SyncService.enqueueAction(
-            actionType: SyncActionType.upsert,
-            table: 'siswa',
-            data: item,
-            targetId: item['id']?.toString(),
-          );
+    try {
+      for (int i = 0; i < toUpsert.length; i += batchSize) {
+        final end = (i + batchSize).clamp(0, toUpsert.length);
+        await _db.from('siswa').upsert(
+              toUpsert.sublist(i, end),
+              onConflict: 'nis',
+              ignoreDuplicates: true,
+            );
+      }
+      SyncService.setOnlineManually();
+      for (final item in toUpsert) {
+        final targetId = item['id']?.toString() ?? item['nis']?.toString();
+        if (targetId != null) {
+          unawaited(SyncService.removeAction('siswa', targetId));
         }
       }
-    } else {
+    } catch (e) {
       for (final item in toUpsert) {
         await SyncService.enqueueAction(
           actionType: SyncActionType.upsert,
           table: 'siswa',
           data: item,
-          targetId: item['id']?.toString(),
+          targetId: item['id']?.toString() ?? item['nis']?.toString(),
         );
       }
     }

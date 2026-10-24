@@ -115,6 +115,8 @@ class _KasOsisScreenState extends State<KasOsisScreen>
             final idx = _kasSessions.indexWhere((s) => s.id == _selectedKasSession!.id);
             _selectedKasSession = idx != -1 ? _kasSessions[idx] : _kasSessions.first;
           }
+        } else {
+          _selectedKasSession = null;
         }
 
         if (_absensiSessions.isNotEmpty) {
@@ -124,6 +126,8 @@ class _KasOsisScreenState extends State<KasOsisScreen>
             final idx = _absensiSessions.indexWhere((s) => s.id == _selectedAbsensiSession!.id);
             _selectedAbsensiSession = idx != -1 ? _absensiSessions[idx] : _absensiSessions.first;
           }
+        } else {
+          _selectedAbsensiSession = null;
         }
 
         _loading = false;
@@ -418,6 +422,64 @@ class _KasOsisScreenState extends State<KasOsisScreen>
           SnackBar(content: Text('Gagal menyimpan kas: $e'), backgroundColor: Colors.red),
         );
       }
+    }
+  }
+
+  void _hapusSesiKas() async {
+    if (!_canEdit || _selectedKasSession == null) return;
+    final session = _selectedKasSession!;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Hapus Sesi Kas?'),
+        content: Text('Apakah Anda yakin ingin menghapus sesi "${session.judul}"? Data pembayaran di sesi ini akan dihapus.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Batal')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(c, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      await DataService.deleteKasOsisSession(session.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sesi kas berhasil dihapus.'), backgroundColor: Colors.red),
+        );
+      }
+      await _loadData();
+    }
+  }
+
+  void _hapusSesiAbsensi() async {
+    if (!_canEdit || _selectedAbsensiSession == null) return;
+    final session = _selectedAbsensiSession!;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Hapus Sesi Presensi?'),
+        content: Text('Apakah Anda yakin ingin menghapus sesi presensi "${session.namaKegiatan}"? Data kehadiran di sesi ini akan dihapus.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Batal')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(c, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      await DataService.deleteAbsensiOsisSession(session.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sesi presensi berhasil dihapus.'), backgroundColor: Colors.red),
+        );
+      }
+      await _loadData();
     }
   }
 
@@ -1619,6 +1681,16 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                             padding: EdgeInsets.zero,
                             onPressed: _tambahSesiKasBaru,
                           ),
+                          if (_selectedKasSession != null) ...[
+                            const SizedBox(width: 4),
+                            IconButton.filledTonal(
+                              icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
+                              tooltip: 'Hapus Sesi Kas',
+                              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                              padding: EdgeInsets.zero,
+                              onPressed: _hapusSesiKas,
+                            ),
+                          ],
                         ],
                       ],
                     ),
@@ -2223,6 +2295,16 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                             padding: EdgeInsets.zero,
                             onPressed: _tambahSesiAbsensiBaru,
                           ),
+                          if (_selectedAbsensiSession != null) ...[
+                            const SizedBox(width: 4),
+                            IconButton.filledTonal(
+                              icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
+                              tooltip: 'Hapus Sesi Presensi',
+                              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                              padding: EdgeInsets.zero,
+                              onPressed: _hapusSesiAbsensi,
+                            ),
+                          ],
                         ],
                       ],
                     ),
