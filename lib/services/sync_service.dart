@@ -81,6 +81,11 @@ class SyncService {
   static bool get isOnline => statusNotifier.value == SyncStatus.online;
   static bool get isSyncing => statusNotifier.value == SyncStatus.syncing;
 
+  static void setOnlineManually() {
+    _consecutiveFailures = 0;
+    _setStatus(SyncStatus.online);
+  }
+
   static Timer? _healthCheckTimer;
   static bool _initialized = false;
   static bool _isFlushing = false;

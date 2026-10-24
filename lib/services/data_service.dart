@@ -431,23 +431,24 @@ class DataService {
     final prefs = await SharedPreferences.getInstance();
     final bool hasInitialized = prefs.getBool('has_initialized_siswa') ?? false;
 
-    // 1. Jika online, tarik pembaruan dari Supabase
-    if (SyncService.isOnline) {
-      try {
-        final rows = await _db
-            .from('siswa')
-            .select()
-            .order('nama')
-            .timeout(const Duration(seconds: 4));
-        final list = (rows as List)
-            .map((e) => Siswa.fromJson(Map<String, dynamic>.from(e as Map)))
-            .toList();
+    // 1. Tarik pembaruan dari Supabase
+    try {
+      final rows = await _db
+          .from('siswa')
+          .select()
+          .order('nama')
+          .timeout(const Duration(seconds: 4));
+      final list = (rows as List)
+          .map((e) => Siswa.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
+      if (list.isNotEmpty) {
         await _saveCache(_keySiswa, list.map((e) => e.toJson()).toList());
         await prefs.setBool('has_initialized_siswa', true);
+        SyncService.setOnlineManually();
         return list;
-      } catch (e) {
-        debugPrint('Supabase getSiswa fallback ke cache lokal: $e');
       }
+    } catch (e) {
+      debugPrint('Supabase getSiswa fallback ke cache lokal: $e');
     }
 
     // 2. Ambil dari cache lokal
@@ -852,29 +853,6 @@ class DataService {
   static Future<List<Pelanggaran>> getPelanggaran() async {
     List<Siswa>? siswaCache;
 
-    // 1. Jika offline, langsung ambil dari cache lokal instan
-    if (!SyncService.isOnline) {
-      final cache = await _readCache(_keyPelanggaran);
-      final list = cache.map((e) => Pelanggaran.fromJson(e)).toList();
-      if (list.any((p) => p.namaSiswa == null || p.namaSiswa!.isEmpty)) {
-        siswaCache ??= await getSiswa();
-        for (final p in list) {
-          if (p.namaSiswa == null || p.namaSiswa!.isEmpty) {
-            final s = siswaCache.firstWhere(
-              (item) => item.id == p.siswaId,
-              orElse: () => Siswa(id: '', nama: '', kelas: '', nis: ''),
-            );
-            if (s.nama.isNotEmpty) {
-              p.namaSiswa = s.nama;
-              p.kelasSiswa = s.kelas;
-              p.nisSiswa = s.nis;
-            }
-          }
-        }
-      }
-      return list;
-    }
-
     // 2. Jika online, ambil dari Supabase dengan timeout
     try {
       final rows = await _db
@@ -1188,10 +1166,6 @@ class DataService {
 
   // ── Proker ───────────────────────────────────────────────────────────────
   static Future<List<Proker>> getProker() async {
-    if (!SyncService.isOnline) {
-      final cache = await _readCache(_keyProker);
-      return cache.map(Proker.fromJson).toList();
-    }
     try {
       final rows = await _db
           .from('proker')
@@ -1365,10 +1339,6 @@ class DataService {
 
   // ── Arsip ────────────────────────────────────────────────────────────────
   static Future<List<Arsip>> getArsip() async {
-    if (!SyncService.isOnline) {
-      final cache = await _readCache(_keyArsip);
-      return cache.map(Arsip.fromJson).toList();
-    }
     try {
       final rows = await _db
           .from('arsip')
@@ -1750,10 +1720,6 @@ class DataService {
 
   // ── Laporan Kegiatan ─────────────────────────────────────────────────────
   static Future<List<LaporanKegiatan>> getLaporan() async {
-    if (!SyncService.isOnline) {
-      final cache = await _readCache(_keyLaporan);
-      return cache.map(LaporanKegiatan.fromJson).toList();
-    }
     try {
       final rows = await _db
           .from('laporan_kegiatan')
@@ -2087,22 +2053,24 @@ class DataService {
   // 1. Anggota OSIS
   static Future<List<AnggotaOsis>> getAnggotaOsis() async {
     final prefs = await SharedPreferences.getInstance();
-    final bool hasInit = prefs.getBool('has_initialized_anggota_osis') ?? false;
 
-    if (SyncService.isOnline) {
-      try {
-        final rows = await _db
-            .from('anggota_osis')
-            .select()
-            .order('jabatan')
-            .timeout(const Duration(seconds: 4));
-        final list = (rows as List)
-            .map((e) => AnggotaOsis.fromJson(Map<String, dynamic>.from(e as Map)))
-            .toList();
+    try {
+      final rows = await _db
+          .from('anggota_osis')
+          .select()
+          .order('jabatan')
+          .timeout(const Duration(seconds: 4));
+      final list = (rows as List)
+          .map((e) => AnggotaOsis.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
+      if (list.isNotEmpty) {
         await _saveCache(_keyAnggotaOsis, list.map((e) => e.toJson()).toList());
         await prefs.setBool('has_initialized_anggota_osis', true);
+        SyncService.setOnlineManually();
         return list;
-      } catch (_) {}
+      }
+    } catch (e) {
+      debugPrint('Error fetching anggota_osis from Supabase: $e');
     }
 
     final cache = await _readCache(_keyAnggotaOsis);
@@ -2110,21 +2078,15 @@ class DataService {
       return cache.map(AnggotaOsis.fromJson).toList();
     }
 
-    if (!hasInit) {
-      final defaults = _defaultAnggotaOsis();
-      await _saveCache(_keyAnggotaOsis, defaults.map((e) => e.toJson()).toList());
-      await prefs.setBool('has_initialized_anggota_osis', true);
-      if (SyncService.isOnline) {
-        try {
-          for (final item in defaults) {
-            await _db.from('anggota_osis').upsert(item.toJson(), onConflict: 'id');
-          }
-        } catch (_) {}
+    final defaults = _defaultAnggotaOsis();
+    await _saveCache(_keyAnggotaOsis, defaults.map((e) => e.toJson()).toList());
+    await prefs.setBool('has_initialized_anggota_osis', true);
+    try {
+      for (final item in defaults) {
+        await _db.from('anggota_osis').upsert(item.toJson(), onConflict: 'id');
       }
-      return defaults;
-    }
-
-    return [];
+    } catch (_) {}
+    return defaults;
   }
 
   static Future<void> saveAnggotaOsis(List<AnggotaOsis> list) async {
@@ -2170,20 +2132,21 @@ class DataService {
 
   // 2. Sesi Kas OSIS
   static Future<List<KasOsisSession>> getKasOsisSessions() async {
-    if (SyncService.isOnline) {
-      try {
-        final rows = await _db
-            .from('kas_osis')
-            .select()
-            .order('tanggal', ascending: false)
-            .timeout(const Duration(seconds: 4));
-        final list = (rows as List)
-            .map((e) => KasOsisSession.fromJson(Map<String, dynamic>.from(e as Map)))
-            .toList();
-        await _saveCache(_keyKasOsis, list.map((e) => e.toJson()).toList());
-        list.sort((a, b) => b.tanggal.compareTo(a.tanggal));
-        return list;
-      } catch (_) {}
+    try {
+      final rows = await _db
+          .from('kas_osis')
+          .select()
+          .order('tanggal', ascending: false)
+          .timeout(const Duration(seconds: 4));
+      final list = (rows as List)
+          .map((e) => KasOsisSession.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
+      await _saveCache(_keyKasOsis, list.map((e) => e.toJson()).toList());
+      SyncService.setOnlineManually();
+      list.sort((a, b) => b.tanggal.compareTo(a.tanggal));
+      return list;
+    } catch (e) {
+      debugPrint('Error fetching kas_osis from Supabase, fallback to cache: $e');
     }
 
     final cache = await _readCache(_keyKasOsis);
@@ -2251,30 +2214,27 @@ class DataService {
 
   // 3. Buku Transaksi Kas Umum
   static Future<List<KasOsisTransaksi>> getKasTransaksi() async {
-    final cache = await _readCache(_keyKasTransaksi);
-    if (cache.isNotEmpty) {
-      final list = cache.map(KasOsisTransaksi.fromJson).toList();
+    try {
+      final rows = await _db
+          .from('kas_transaksi')
+          .select()
+          .order('tanggal', ascending: false)
+          .timeout(const Duration(seconds: 4));
+      final list = (rows as List)
+          .map((e) => KasOsisTransaksi.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
+      await _saveCache(_keyKasTransaksi, list.map((e) => e.toJson()).toList());
+      SyncService.setOnlineManually();
       list.sort((a, b) => b.tanggal.compareTo(a.tanggal));
       return list;
+    } catch (e) {
+      debugPrint('Error fetching kas_transaksi from Supabase, fallback to cache: $e');
     }
 
-    if (SyncService.isOnline) {
-      try {
-        final rows = await _db
-            .from('kas_transaksi')
-            .select()
-            .order('tanggal', ascending: false)
-            .timeout(const Duration(seconds: 4));
-        final list = (rows as List)
-            .map((e) => KasOsisTransaksi.fromJson(Map<String, dynamic>.from(e as Map)))
-            .toList();
-        if (list.isNotEmpty) {
-          await _saveCache(_keyKasTransaksi, list.map((e) => e.toJson()).toList());
-          return list;
-        }
-      } catch (_) {}
-    }
-    return [];
+    final cache = await _readCache(_keyKasTransaksi);
+    final list = cache.map(KasOsisTransaksi.fromJson).toList();
+    list.sort((a, b) => b.tanggal.compareTo(a.tanggal));
+    return list;
   }
 
   static Future<void> addKasTransaksi(KasOsisTransaksi t) async {
@@ -2331,20 +2291,21 @@ class DataService {
 
   // 4. Sesi Absensi OSIS
   static Future<List<AbsensiOsisSession>> getAbsensiOsisSessions() async {
-    if (SyncService.isOnline) {
-      try {
-        final rows = await _db
-            .from('absensi_osis')
-            .select()
-            .order('tanggal', ascending: false)
-            .timeout(const Duration(seconds: 4));
-        final list = (rows as List)
-            .map((e) => AbsensiOsisSession.fromJson(Map<String, dynamic>.from(e as Map)))
-            .toList();
-        await _saveCache(_keyAbsensiOsis, list.map((e) => e.toJson()).toList());
-        list.sort((a, b) => b.tanggal.compareTo(a.tanggal));
-        return list;
-      } catch (_) {}
+    try {
+      final rows = await _db
+          .from('absensi_osis')
+          .select()
+          .order('tanggal', ascending: false)
+          .timeout(const Duration(seconds: 4));
+      final list = (rows as List)
+          .map((e) => AbsensiOsisSession.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
+      await _saveCache(_keyAbsensiOsis, list.map((e) => e.toJson()).toList());
+      SyncService.setOnlineManually();
+      list.sort((a, b) => b.tanggal.compareTo(a.tanggal));
+      return list;
+    } catch (e) {
+      debugPrint('Error fetching absensi_osis from Supabase, fallback to cache: $e');
     }
 
     final cache = await _readCache(_keyAbsensiOsis);

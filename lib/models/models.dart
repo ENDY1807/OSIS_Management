@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class FileRiwayat {
   String id;
   String namaFile;
@@ -547,7 +549,7 @@ class KasOsisItem {
     sudahBayar: j['sudah_bayar'] == true || j['sudahBayar'] == true,
     nominalBayar: (j['nominal_bayar'] ?? j['nominalBayar'] as num?)?.toInt() ?? 0,
     tanggalBayar: (j['tanggal_bayar'] ?? j['tanggalBayar']) != null
-        ? DateTime.tryParse(j['tanggal_bayar'] ?? j['tanggalBayar'])
+        ? DateTime.tryParse((j['tanggal_bayar'] ?? j['tanggalBayar']).toString())
         : null,
     catatan: j['catatan']?.toString() ?? '',
   );
@@ -594,19 +596,27 @@ class KasOsisSession {
     'updated_at': updatedAt.toIso8601String(),
   };
 
-  factory KasOsisSession.fromJson(Map<String, dynamic> j) => KasOsisSession(
-    id: j['id']?.toString() ?? '',
-    tanggal: DateTime.tryParse(j['tanggal']?.toString() ?? '') ?? DateTime.now(),
-    judul: j['judul']?.toString() ?? 'Uang Kas OSIS',
-    nominalWajib: (j['nominal_wajib'] ?? j['nominalWajib'] as num?)?.toInt() ?? 5000,
-    keterangan: j['keterangan']?.toString() ?? '',
-    petugas: j['petugas']?.toString() ?? 'BENDAHARA',
-    items: (j['items'] as List?)
-            ?.map((e) => KasOsisItem.fromJson(Map<String, dynamic>.from(e as Map)))
-            .toList() ??
-        [],
-    updatedAt: DateTime.tryParse(j['updated_at']?.toString() ?? '') ?? DateTime.now(),
-  );
+  factory KasOsisSession.fromJson(Map<String, dynamic> j) {
+    dynamic rawItems = j['items'];
+    if (rawItems is String) {
+      try {
+        rawItems = jsonDecode(rawItems);
+      } catch (_) {}
+    }
+    return KasOsisSession(
+      id: j['id']?.toString() ?? '',
+      tanggal: DateTime.tryParse(j['tanggal']?.toString() ?? '') ?? DateTime.now(),
+      judul: j['judul']?.toString() ?? 'Uang Kas OSIS',
+      nominalWajib: (j['nominal_wajib'] ?? j['nominalWajib'] as num?)?.toInt() ?? 5000,
+      keterangan: j['keterangan']?.toString() ?? '',
+      petugas: j['petugas']?.toString() ?? 'BENDAHARA',
+      items: (rawItems as List?)
+              ?.map((e) => KasOsisItem.fromJson(Map<String, dynamic>.from(e as Map)))
+              .toList() ??
+          [],
+      updatedAt: DateTime.tryParse(j['updated_at']?.toString() ?? '') ?? DateTime.now(),
+    );
+  }
 }
 
 class KasOsisTransaksi {
@@ -727,18 +737,26 @@ class AbsensiOsisSession {
     'updated_at': updatedAt.toIso8601String(),
   };
 
-  factory AbsensiOsisSession.fromJson(Map<String, dynamic> j) => AbsensiOsisSession(
-    id: j['id']?.toString() ?? '',
-    tanggal: DateTime.tryParse(j['tanggal']?.toString() ?? '') ?? DateTime.now(),
-    namaKegiatan: j['nama_kegiatan']?.toString() ?? j['namaKegiatan']?.toString() ?? 'Kegiatan OSIS',
-    lokasi: j['lokasi']?.toString() ?? 'Sekretariat OSIS',
-    petugas: j['petugas']?.toString() ?? '',
-    keterangan: j['keterangan']?.toString() ?? '',
-    items: (j['items'] as List?)
-            ?.map((e) => AbsensiOsisItem.fromJson(Map<String, dynamic>.from(e as Map)))
-            .toList() ??
-        [],
-    updatedAt: DateTime.tryParse(j['updated_at']?.toString() ?? '') ?? DateTime.now(),
-  );
+  factory AbsensiOsisSession.fromJson(Map<String, dynamic> j) {
+    dynamic rawItems = j['items'];
+    if (rawItems is String) {
+      try {
+        rawItems = jsonDecode(rawItems);
+      } catch (_) {}
+    }
+    return AbsensiOsisSession(
+      id: j['id']?.toString() ?? '',
+      tanggal: DateTime.tryParse(j['tanggal']?.toString() ?? '') ?? DateTime.now(),
+      namaKegiatan: j['nama_kegiatan']?.toString() ?? j['namaKegiatan']?.toString() ?? 'Kegiatan OSIS',
+      lokasi: j['lokasi']?.toString() ?? 'Sekretariat OSIS',
+      petugas: j['petugas']?.toString() ?? '',
+      keterangan: j['keterangan']?.toString() ?? '',
+      items: (rawItems as List?)
+              ?.map((e) => AbsensiOsisItem.fromJson(Map<String, dynamic>.from(e as Map)))
+              .toList() ??
+          [],
+      updatedAt: DateTime.tryParse(j['updated_at']?.toString() ?? '') ?? DateTime.now(),
+    );
+  }
 }
 

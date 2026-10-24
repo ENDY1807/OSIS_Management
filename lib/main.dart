@@ -41,11 +41,6 @@ void main() async {
     debugPrint('AppSettingsService init error: $e');
   }
   try {
-    await SyncService.init();
-  } catch (e) {
-    debugPrint('SyncService init error: $e');
-  }
-  try {
     await DataService.initializeSupabase();
   } catch (e) {
     debugPrint('Supabase init error: $e');
