@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import '../models/models.dart';
 import '../services/data_service.dart';
 import '../services/auth_service.dart';
+import '../services/sync_service.dart';
 import '../services/notification_service.dart';
 import '../services/localization_service.dart';
 import '../app_theme.dart';
@@ -82,6 +83,13 @@ class _ManajemenScreenState extends State<ManajemenScreen> with SingleTickerProv
     _tab?.dispose();
     _searchCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleRefresh() async {
+    try {
+      await SyncService.checkAndSync();
+    } catch (_) {}
+    await _load();
   }
 
   Future<void> _load() async {
@@ -640,71 +648,104 @@ class _ManajemenScreenState extends State<ManajemenScreen> with SingleTickerProv
             ),
             Divider(height: 1, color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0)),
             Expanded(
-              child: _siswa.isEmpty
-                  ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(Icons.people_outline, size: 64, color: textMuted),
-                      const SizedBox(height: 12),
-                      Text('Belum ada data siswa', style: TextStyle(color: textSub, fontSize: 15)),
-                      const SizedBox(height: 4),
-                      Text('Impor dari Excel atau tap + untuk tambah manual', style: TextStyle(color: textMuted, fontSize: 12)),
-                    ]))
-                  : _filteredSiswa.isEmpty
-                      ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                          Icon(Icons.search_off, size: 48, color: textMuted),
-                          const SizedBox(height: 12),
-                          Text('Tidak ada siswa "$_searchQuery"', style: TextStyle(color: textSub)),
-                        ]))
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                          itemCount: _filteredSiswa.length,
-                          itemBuilder: (_, i) {
-                            final s = _filteredSiswa[i];
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 8),
-                              decoration: BoxDecoration(
-                                color: cardBg,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: cardBorder),
-                                boxShadow: isDark ? null : [BoxShadow(color: kPrimary.withAlpha(60), blurRadius: 4)],
-                              ),
-                              child: ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: isDark ? const Color(0xFF1A263D) : kPrimary,
-                                  child: Text(s.nama.isNotEmpty ? s.nama.substring(0, 1).toUpperCase() : '?',
-                                      style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? primary : kTextDark))),
-                                title: Text(s.nama, style: TextStyle(fontWeight: FontWeight.bold, color: textTitle)),
-                                subtitle: Text('Kelas ${s.kelas} • NIS: ${s.nis}', style: TextStyle(color: textSub, fontSize: 12)),
-                                trailing: _canEditSiswa ? Row(mainAxisSize: MainAxisSize.min, children: [
-                                  IconButton(icon: Icon(Icons.edit_outlined, color: primary, size: 20), onPressed: () => _showSiswaForm(s)),
-                                  IconButton(
-                                    icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
-                                    onPressed: () async {
-                                      await DataService.deleteSiswa(s.id);
-                                      await NotificationService.notifyUpdate(
-                                        title: 'Data Siswa Dihapus',
-                                        message: 'Data siswa "${s.nama}" (${s.kelas}) telah dihapus oleh $_username',
-                                        category: 'manajemen',
-                                        actor: _username,
-                                      );
-                                      _load();
-                                    },
-                                  ),
-                                ]) : null,
-                              ),
-                            );
-                          },
+              child: RefreshIndicator(
+                onRefresh: _handleRefresh,
+                color: primary,
+                child: _siswa.isEmpty
+                    ? LayoutBuilder(
+                        builder: (ctx, constraints) => SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                            child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                              Icon(Icons.people_outline, size: 64, color: textMuted),
+                              const SizedBox(height: 12),
+                              Text('Belum ada data siswa', style: TextStyle(color: textSub, fontSize: 15)),
+                              const SizedBox(height: 4),
+                              Text('Impor dari Excel atau tap + untuk tambah manual', style: TextStyle(color: textMuted, fontSize: 12)),
+                            ])),
+                          ),
                         ),
+                      )
+                    : _filteredSiswa.isEmpty
+                        ? LayoutBuilder(
+                            builder: (ctx, constraints) => SingleChildScrollView(
+                              physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                                child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                                  Icon(Icons.search_off, size: 48, color: textMuted),
+                                  const SizedBox(height: 12),
+                                  Text('Tidak ada siswa "$_searchQuery"', style: TextStyle(color: textSub)),
+                                ])),
+                              ),
+                            ),
+                          )
+                        : ListView.builder(
+                            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                            itemCount: _filteredSiswa.length,
+                            itemBuilder: (_, i) {
+                              final s = _filteredSiswa[i];
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                decoration: BoxDecoration(
+                                  color: cardBg,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: cardBorder),
+                                  boxShadow: isDark ? null : [BoxShadow(color: kPrimary.withAlpha(60), blurRadius: 4)],
+                                ),
+                                child: ListTile(
+                                  leading: CircleAvatar(
+                                    backgroundColor: isDark ? const Color(0xFF1A263D) : kPrimary,
+                                    child: Text(s.nama.isNotEmpty ? s.nama.substring(0, 1).toUpperCase() : '?',
+                                        style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? primary : kTextDark))),
+                                  title: Text(s.nama, style: TextStyle(fontWeight: FontWeight.bold, color: textTitle)),
+                                  subtitle: Text('Kelas ${s.kelas} • NIS: ${s.nis}', style: TextStyle(color: textSub, fontSize: 12)),
+                                  trailing: _canEditSiswa ? Row(mainAxisSize: MainAxisSize.min, children: [
+                                    IconButton(icon: Icon(Icons.edit_outlined, color: primary, size: 20), onPressed: () => _showSiswaForm(s)),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+                                      onPressed: () async {
+                                        await DataService.deleteSiswa(s.id);
+                                        await NotificationService.notifyUpdate(
+                                          title: 'Data Siswa Dihapus',
+                                          message: 'Data siswa "${s.nama}" (${s.kelas}) telah dihapus oleh $_username',
+                                          category: 'manajemen',
+                                          actor: _username,
+                                        );
+                                        _load();
+                                      },
+                                    ),
+                                  ]) : null,
+                                ),
+                              );
+                            },
+                          ),
+              ),
             ),
           ]),
 
           // ── Jenis Pelanggaran ──
           if (_canSeeJenis)
-          _jenis.isEmpty
-              ? Center(child: Text('Belum ada jenis pelanggaran', style: TextStyle(color: textSub)))
-              : ListView.builder(
-                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                  itemCount: _jenis.length,
-                  itemBuilder: (_, i) {
+            RefreshIndicator(
+              onRefresh: _handleRefresh,
+              color: primary,
+              child: _jenis.isEmpty
+                  ? LayoutBuilder(
+                      builder: (ctx, constraints) => SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                          child: Center(child: Text('Belum ada jenis pelanggaran', style: TextStyle(color: textSub))),
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                      itemCount: _jenis.length,
+                      itemBuilder: (_, i) {
                     final j = _jenis[i];
                     const hariLabels = ['', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum'];
                     final hariText = j.hariAktif.isEmpty
@@ -742,6 +783,7 @@ class _ManajemenScreenState extends State<ManajemenScreen> with SingleTickerProv
                     );
                   },
                 ),
+            ),
 
           // ── Status Koneksi ──
           if (_canSeeCloud) const _CloudStatusTab(),

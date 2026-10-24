@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/models.dart';
 import '../services/data_service.dart';
+import '../services/sync_service.dart';
 import '../services/pdf_service.dart';
 import '../services/localization_service.dart';
 import 'package:collection/collection.dart';
@@ -828,12 +829,15 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
               ? Center(child: CircularProgressIndicator(color: primary))
               : TabBarView(controller: _tab, children: [
                   // Tab Per Jenis
-                  _filteredPelanggaran.isEmpty
-                      ? _emptyState('Belum ada data pelanggaran', isDark: isDark)
-                      : RefreshIndicator(
-                          onRefresh: _load,
-                          color: primary,
-                          child: SingleChildScrollView(
+                  RefreshIndicator(
+                    onRefresh: () async {
+                      await SyncService.checkAndSync();
+                      await _load();
+                    },
+                    color: primary,
+                    child: _filteredPelanggaran.isEmpty
+                        ? _emptyState('Belum ada data pelanggaran', isDark: isDark)
+                        : SingleChildScrollView(
                             physics: const AlwaysScrollableScrollPhysics(),
                             padding: const EdgeInsets.all(16),
                             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -944,12 +948,15 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
                         ),
 
                   // Tab Per Siswa
-                  _filteredPelanggaran.isEmpty
-                      ? _emptyState('Belum ada data pelanggaran', isDark: isDark)
-                      : RefreshIndicator(
-                          onRefresh: _load,
-                          color: primary,
-                          child: ListView.builder(
+                  RefreshIndicator(
+                    onRefresh: () async {
+                      await SyncService.checkAndSync();
+                      await _load();
+                    },
+                    color: primary,
+                    child: _filteredPelanggaran.isEmpty
+                        ? _emptyState('Belum ada data pelanggaran', isDark: isDark)
+                        : ListView.builder(
                             physics: const AlwaysScrollableScrollPhysics(),
                             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                             itemCount: sortedSiswa.length,
@@ -996,10 +1003,13 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
                         ),
 
                   // Tab Per Kelas
-                   RefreshIndicator(
-                          onRefresh: _load,
-                          color: primary,
-                          child: SingleChildScrollView(
+                  RefreshIndicator(
+                    onRefresh: () async {
+                      await SyncService.checkAndSync();
+                      await _load();
+                    },
+                    color: primary,
+                    child: SingleChildScrollView(
                             physics: const AlwaysScrollableScrollPhysics(),
                             padding: const EdgeInsets.all(16),
                             child: Column(
@@ -1201,9 +1211,22 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
     );
   }
 
-  Widget _emptyState(String msg, {bool isDark = false}) => Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-    Icon(Icons.bar_chart, size: 64, color: isDark ? const Color(0xFF64748B) : kTextLight),
-    const SizedBox(height: 12),
-    Text(msg, style: TextStyle(fontSize: 15, color: isDark ? const Color(0xFF94A3B8) : kTextMid)),
-  ]));
+  Widget _emptyState(String msg, {bool isDark = false}) => LayoutBuilder(
+    builder: (context, constraints) => SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minHeight: constraints.maxHeight),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.bar_chart, size: 64, color: isDark ? const Color(0xFF64748B) : kTextLight),
+              const SizedBox(height: 12),
+              Text(msg, style: TextStyle(fontSize: 15, color: isDark ? const Color(0xFF94A3B8) : kTextMid)),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/models.dart';
 import '../services/data_service.dart';
+import '../services/sync_service.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
 import '../services/localization_service.dart';
@@ -715,25 +716,36 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
           Expanded(
             child: _loading
                 ? Center(child: CircularProgressIndicator(color: primary))
-                : _filtered.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.check_circle_outline, size: 72, color: textMuted),
-                            const SizedBox(height: 16),
-                            Text(LocalizationService.tr('pelanggaran_empty'),
-                                style: TextStyle(fontSize: 16, color: textSub), textAlign: TextAlign.center),
-                          ],
-                        ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: _load,
-                        color: primary,
-                        child: ListView.builder(
-                          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 88),
-                          itemCount: _filtered.map((p) => p.siswaId).toSet().length,
+                : RefreshIndicator(
+                    onRefresh: () async {
+                      await SyncService.checkAndSync();
+                      await _load();
+                    },
+                    color: primary,
+                    child: _filtered.isEmpty
+                        ? LayoutBuilder(
+                            builder: (context, constraints) => SingleChildScrollView(
+                              physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                                child: Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.check_circle_outline, size: 72, color: textMuted),
+                                      const SizedBox(height: 16),
+                                      Text(LocalizationService.tr('pelanggaran_empty'),
+                                          style: TextStyle(fontSize: 16, color: textSub), textAlign: TextAlign.center),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          )
+                        : ListView.builder(
+                            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 88),
+                            itemCount: _filtered.map((p) => p.siswaId).toSet().length,
                           itemBuilder: (_, i) {
                             final ids = _filtered.map((p) => p.siswaId).toSet().toList();
                             final siswaId = ids[i];

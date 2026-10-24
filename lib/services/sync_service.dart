@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
+import 'data_service.dart';
 
 const _uuid = Uuid();
 
@@ -333,6 +334,9 @@ class SyncService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_keyLastSync, now.toIso8601String());
       debugPrint('SyncService: Flush completed successfully. Queue is empty.');
+      if (queue.isNotEmpty) {
+        DataService.notifyDataChanged('all');
+      }
       return true;
     } else {
       // Verifikasi konektivitas riil sebelum mengubah status

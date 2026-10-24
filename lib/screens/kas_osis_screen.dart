@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import '../models/models.dart';
 import '../services/data_service.dart';
 import '../services/auth_service.dart';
+import '../services/sync_service.dart';
 import '../services/app_settings_service.dart';
 import '../widgets/nusantara_decorations.dart';
 
@@ -83,6 +84,13 @@ class _KasOsisScreenState extends State<KasOsisScreen>
     _dataSub?.cancel();
     _searchCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleRefresh() async {
+    try {
+      await SyncService.checkAndSync();
+    } catch (_) {}
+    await _loadData(silent: true);
   }
 
   Future<void> _loadData({bool silent = false}) async {
@@ -1437,10 +1445,26 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                 : TabBarView(
                     controller: _tabCtrl,
                     children: [
-                      _buildTabKasChecklist(theme, isDark, primary),
-                      _buildTabAbsensi(theme, isDark, primary),
-                      _buildTabBukuKas(theme, isDark, primary),
-                      _buildTabAnggota(theme, isDark, primary),
+                      RefreshIndicator(
+                        onRefresh: _handleRefresh,
+                        color: NusantaraColors.gold,
+                        child: _buildTabKasChecklist(theme, isDark, primary),
+                      ),
+                      RefreshIndicator(
+                        onRefresh: _handleRefresh,
+                        color: NusantaraColors.pandanGreen,
+                        child: _buildTabAbsensi(theme, isDark, primary),
+                      ),
+                      RefreshIndicator(
+                        onRefresh: _handleRefresh,
+                        color: NusantaraColors.batikNavy,
+                        child: _buildTabBukuKas(theme, isDark, primary),
+                      ),
+                      RefreshIndicator(
+                        onRefresh: _handleRefresh,
+                        color: NusantaraColors.gold,
+                        child: _buildTabAnggota(theme, isDark, primary),
+                      ),
                     ],
                   ),
           ),
@@ -1453,20 +1477,28 @@ class _KasOsisScreenState extends State<KasOsisScreen>
 
   Widget _buildTabKasChecklist(ThemeData theme, bool isDark, Color primary) {
     if (_selectedKasSession == null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.account_balance_wallet_outlined, size: 64, color: Colors.grey),
-            const SizedBox(height: 16),
-            const Text('Belum ada sesi kas aktif.'),
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
-              onPressed: _tambahSesiKasBaru,
-              icon: const Icon(Icons.add),
-              label: const Text('Buat Sesi Kas Pertama'),
+      return LayoutBuilder(
+        builder: (ctx, constraints) => SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.account_balance_wallet_outlined, size: 64, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  const Text('Belum ada sesi kas aktif.'),
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    onPressed: _tambahSesiKasBaru,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Buat Sesi Kas Pertama'),
+                  ),
+                ],
+              ),
             ),
-          ],
+          ),
         ),
       );
     }
@@ -2041,30 +2073,38 @@ class _KasOsisScreenState extends State<KasOsisScreen>
 
   Widget _buildTabAbsensi(ThemeData theme, bool isDark, Color primary) {
     if (_selectedAbsensiSession == null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.how_to_reg_outlined, size: 64, color: Colors.grey),
-            const SizedBox(height: 16),
-            const Text('Belum ada sesi presensi rapat OSIS.'),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: _tambahSesiAbsensiBaru,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Buat Sesi Manual'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: _pickAndImportExcel,
-                  icon: const Icon(Icons.table_view_rounded, color: NusantaraColors.gold),
-                  label: const Text('Impor dari Excel'),
-                ),
-              ],
+      return LayoutBuilder(
+        builder: (ctx, constraints) => SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.how_to_reg_outlined, size: 64, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  const Text('Belum ada sesi presensi rapat OSIS.'),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: _tambahSesiAbsensiBaru,
+                        icon: const Icon(Icons.add),
+                        label: const Text('Buat Sesi Manual'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: _pickAndImportExcel,
+                        icon: const Icon(Icons.table_view_rounded, color: NusantaraColors.gold),
+                        label: const Text('Impor dari Excel'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ],
+          ),
         ),
       );
     }

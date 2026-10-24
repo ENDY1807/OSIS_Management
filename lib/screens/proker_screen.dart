@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../models/models.dart';
 import '../services/data_service.dart';
 import '../services/auth_service.dart';
+import '../services/sync_service.dart';
 import '../services/notification_service.dart';
 import '../services/localization_service.dart';
 import '../services/app_settings_service.dart';
@@ -922,70 +923,82 @@ class _ProkerScreenState extends State<ProkerScreen>
               controller: _tab,
               children: List.generate(3, (i) {
                 final list = _filtered;
-                if (list.isEmpty) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 76,
-                            height: 76,
-                            decoration: BoxDecoration(
-                              color: primary.withAlpha(isDark ? 35 : 25),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(Icons.assignment_add,
-                                size: 38,
-                                color: primary),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(LocalizationService.tr('proker_empty'),
-                              style: TextStyle(
-                                  color: isDark
-                                      ? const Color(0xFFF1F5F9)
-                                      : kTextDark,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16)),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Belum ada program kerja di kategori status ini. Klik tombol di bawah untuk membuat program kerja baru.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: isDark ? const Color(0xFF94A3B8) : Colors.black54,
-                              fontSize: 12.5,
-                            ),
-                          ),
-                          if (_canCreateProker) ...[
-                            const SizedBox(height: 18),
-                            ElevatedButton.icon(
-                              onPressed: () => _showForm(),
-                              icon: const Icon(Icons.add_rounded, size: 18),
-                              label: Text(LocalizationService.tr('proker_add')),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: primary,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                elevation: 1,
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    try {
+                      await SyncService.checkAndSync();
+                    } catch (_) {}
+                    await _load();
+                  },
+                  color: primary,
+                  child: list.isEmpty
+                      ? LayoutBuilder(
+                          builder: (ctx, constraints) => SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                              child: Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 76,
+                                        height: 76,
+                                        decoration: BoxDecoration(
+                                          color: primary.withAlpha(isDark ? 35 : 25),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(Icons.assignment_add,
+                                            size: 38,
+                                            color: primary),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(LocalizationService.tr('proker_empty'),
+                                          style: TextStyle(
+                                              color: isDark
+                                                  ? const Color(0xFFF1F5F9)
+                                                  : kTextDark,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16)),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        'Belum ada program kerja di kategori status ini. Klik tombol di bawah untuk membuat program kerja baru.',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          color: isDark ? const Color(0xFF94A3B8) : Colors.black54,
+                                          fontSize: 12.5,
+                                        ),
+                                      ),
+                                      if (_canCreateProker) ...[
+                                        const SizedBox(height: 18),
+                                        ElevatedButton.icon(
+                                          onPressed: () => _showForm(),
+                                          icon: const Icon(Icons.add_rounded, size: 18),
+                                          label: Text(LocalizationService.tr('proker_add')),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: primary,
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                            elevation: 1,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
                               ),
                             ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  );
-                }
-                return RefreshIndicator(
-                  onRefresh: _load,
-                  color: primary,
-                  child: ListView.builder(
-                    physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-                    padding: const EdgeInsets.fromLTRB(0, 12, 0, 88),
-                    itemCount: list.length,
-                    itemBuilder: (_, i) => _buildProkerCard(list[i]),
-                  ),
+                          ),
+                        )
+                      : ListView.builder(
+                          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                          padding: const EdgeInsets.fromLTRB(0, 12, 0, 88),
+                          itemCount: list.length,
+                          itemBuilder: (_, i) => _buildProkerCard(list[i]),
+                        ),
                 );
               }),
             ),

@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 import '../models/models.dart';
 import '../services/data_service.dart';
 import '../services/auth_service.dart';
+import '../services/sync_service.dart';
 import '../services/pdf_service.dart';
 import '../services/notification_service.dart';
 import '../services/localization_service.dart';
@@ -539,19 +540,35 @@ class _LaporanScreenState extends State<LaporanScreen> {
         Expanded(
           child: _loading
               ? Center(child: CircularProgressIndicator(color: primary))
-              : filtered.isEmpty
-              ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.article_outlined, size: 72, color: textMuted),
-                  const SizedBox(height: 12),
-                  Text(LocalizationService.tr('laporan_empty'), style: TextStyle(fontSize: 15, color: textSub)),
-                ]))
               : RefreshIndicator(
-                  onRefresh: _load,
+                  onRefresh: () async {
+                    try {
+                      await SyncService.checkAndSync();
+                    } catch (_) {}
+                    await _load();
+                  },
                   color: primary,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                    itemCount: filtered.length,
-                    itemBuilder: (_, i) {
+                  child: filtered.isEmpty
+                      ? LayoutBuilder(
+                          builder: (ctx, constraints) => SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                              child: Center(
+                                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                                  Icon(Icons.article_outlined, size: 72, color: textMuted),
+                                  const SizedBox(height: 12),
+                                  Text(LocalizationService.tr('laporan_empty'), style: TextStyle(fontSize: 15, color: textSub)),
+                                ]),
+                              ),
+                            ),
+                          ),
+                        )
+                      : ListView.builder(
+                          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                          itemCount: filtered.length,
+                          itemBuilder: (_, i) {
                       final l = filtered[i];
                       final isOwner = _isOwner(l);
                       return InkWell(

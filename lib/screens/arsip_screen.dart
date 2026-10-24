@@ -13,6 +13,7 @@ import 'package:http/http.dart' as http;
 import 'package:archive/archive.dart';
 import '../models/models.dart';
 import '../services/data_service.dart';
+import '../services/sync_service.dart';
 import '../services/baknus_drive_service.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
@@ -2517,17 +2518,20 @@ class ArsipScreenState extends State<ArsipScreen> {
             Expanded(
               child: _loading
                   ? Center(child: CircularProgressIndicator(color: primary))
-                  : isEmpty
-                      ? _buildEmptyState(isDark: isDark)
-                      : RefreshIndicator(
-                          onRefresh: _load,
-                          color: primary,
-                          child: _viewMode == ViewMode.list
+                  : RefreshIndicator(
+                      onRefresh: () async {
+                        await SyncService.checkAndSync();
+                        await _load();
+                      },
+                      color: primary,
+                      child: isEmpty
+                          ? _buildEmptyState(isDark: isDark)
+                          : _viewMode == ViewMode.list
                               ? _buildListView(subfolders, files,
                                   isDark: isDark, primary: primary)
                               : _buildGridView(subfolders, files,
                                   isDark: isDark, primary: primary),
-                        ),
+                    ),
             ),
 
             // Bottom Clipboard Bar
@@ -2921,6 +2925,7 @@ class ArsipScreenState extends State<ArsipScreen> {
     final textSub = isDark ? const Color(0xFF94A3B8) : kTextMid;
 
     return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
       children: [
         // Subfolders
@@ -3139,6 +3144,7 @@ class ArsipScreenState extends State<ArsipScreen> {
     final textMuted = isDark ? const Color(0xFF64748B) : kTextLight;
 
     return CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
         if (subfolders.isNotEmpty) ...[
           SliverToBoxAdapter(
@@ -3313,29 +3319,37 @@ class ArsipScreenState extends State<ArsipScreen> {
   }
 
   Widget _buildEmptyState({bool isDark = false}) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.folder_open_rounded,
-              size: 64, color: isDark ? const Color(0xFF64748B) : kTextLight),
-          const SizedBox(height: 12),
-          Text(
-            _search.isNotEmpty
-                ? 'Tidak ada hasil untuk "$_search"'
-                : 'Folder ini masih kosong',
-            style: TextStyle(
-                fontSize: 15,
-                color: isDark ? const Color(0xFF94A3B8) : kTextMid,
-                fontWeight: FontWeight.w600),
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.folder_open_rounded,
+                    size: 64, color: isDark ? const Color(0xFF64748B) : kTextLight),
+                const SizedBox(height: 12),
+                Text(
+                  _search.isNotEmpty
+                      ? 'Tidak ada hasil untuk "$_search"'
+                      : 'Folder ini masih kosong',
+                  style: TextStyle(
+                      fontSize: 15,
+                      color: isDark ? const Color(0xFF94A3B8) : kTextMid,
+                      fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                    'Gunakan tombol + di bawah untuk membuat folder atau upload file',
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? const Color(0xFF64748B) : kTextLight)),
+              ],
+            ),
           ),
-          const SizedBox(height: 4),
-          Text(
-              'Gunakan tombol + di bawah untuk membuat folder atau upload file',
-              style: TextStyle(
-                  fontSize: 12,
-                  color: isDark ? const Color(0xFF64748B) : kTextLight)),
-        ],
+        ),
       ),
     );
   }

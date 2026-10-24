@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import '../models/models.dart';
 import '../services/data_service.dart';
+import '../services/sync_service.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
 import '../app_theme.dart';
@@ -788,73 +789,84 @@ class _KebaikanScreenState extends State<KebaikanScreen> {
           Expanded(
             child: _loading
                 ? Center(child: CircularProgressIndicator(color: primary))
-                : filtered.isEmpty
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 68,
-                                height: 68,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF10B981).withAlpha(isDark ? 35 : 20),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.volunteer_activism_rounded,
-                                  size: 34,
-                                  color: Color(0xFF059669),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Belum Ada Catatan Kebaikan',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  color: isDark ? Colors.white : kTextDark,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                'Catat aksi terpuji siswa hari ini untuk apresiasi karakter positif.',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: isDark ? const Color(0xFF94A3B8) : Colors.black54,
-                                ),
-                              ),
-                              if (_canEdit) ...[
-                                const SizedBox(height: 16),
-                                ElevatedButton.icon(
-                                  onPressed: () => _showForm(),
-                                  icon: const Icon(Icons.add_rounded, size: 18),
-                                  label: const Text('Catat Kebaikan Sekarang'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF059669),
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
+                : RefreshIndicator(
+                    onRefresh: () async {
+                      await SyncService.checkAndSync();
+                      await _load();
+                    },
+                    color: const Color(0xFF059669),
+                    child: filtered.isEmpty
+                        ? LayoutBuilder(
+                            builder: (context, constraints) => SingleChildScrollView(
+                              physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                                child: Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(24),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(
+                                          width: 68,
+                                          height: 68,
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF10B981).withAlpha(isDark ? 35 : 20),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(
+                                            Icons.volunteer_activism_rounded,
+                                            size: 34,
+                                            color: Color(0xFF059669),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 16),
+                                        Text(
+                                          'Belum Ada Catatan Kebaikan',
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.bold,
+                                            color: isDark ? Colors.white : kTextDark,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          'Catat aksi terpuji siswa hari ini untuk apresiasi karakter positif.',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: isDark ? const Color(0xFF94A3B8) : Colors.black54,
+                                          ),
+                                        ),
+                                        if (_canEdit) ...[
+                                          const SizedBox(height: 16),
+                                          ElevatedButton.icon(
+                                            onPressed: () => _showForm(),
+                                            icon: const Icon(Icons.add_rounded, size: 18),
+                                            label: const Text('Catat Kebaikan Sekarang'),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: const Color(0xFF059669),
+                                              foregroundColor: Colors.white,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(10),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
                                     ),
                                   ),
                                 ),
-                              ],
-                            ],
+                              ),
+                            ),
+                          )
+                        : ListView.builder(
+                            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                            padding: const EdgeInsets.fromLTRB(0, 8, 0, 88),
+                            itemCount: filtered.length,
+                            itemBuilder: (_, i) => _buildCard(filtered[i]),
                           ),
-                        ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: _load,
-                        color: const Color(0xFF059669),
-                        child: ListView.builder(
-                          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-                          padding: const EdgeInsets.fromLTRB(0, 8, 0, 88),
-                          itemCount: filtered.length,
-                          itemBuilder: (_, i) => _buildCard(filtered[i]),
-                        ),
-                      ),
+                  ),
           ),
         ],
       ),

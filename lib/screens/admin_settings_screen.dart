@@ -9,6 +9,7 @@ import '../services/app_settings_service.dart';
 import '../services/auth_service.dart';
 import '../services/localization_service.dart';
 import '../services/data_service.dart';
+import '../services/sync_service.dart';
 import '../widgets/color_wheel_picker.dart';
 
 class AdminSettingsScreen extends StatefulWidget {
@@ -429,6 +430,15 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
     );
   }
 
+  Future<void> _handleRefresh() async {
+    await SyncService.checkAndSync();
+    await AppSettingsService.init();
+    _loadCurrentConfigs();
+    _loadAccounts();
+    await _loadSekbidItems();
+    if (mounted) setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -475,13 +485,13 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
       body: TabBarView(
         controller: _tabCtrl,
         children: [
-          _buildBrandingTab(theme, isDark, primary),
-          _buildKonfigurasiInputTab(theme, isDark, primary),
-          _buildKasConfigTab(theme, isDark, primary),
-          _buildTataTertibTab(theme, isDark, primary),
-          _buildProkerLaporanTab(theme, isDark, primary),
-          _buildArsipTab(theme, isDark, primary),
-          _buildAccountsTab(theme, isDark, primary),
+          RefreshIndicator(onRefresh: _handleRefresh, color: primary, child: _buildBrandingTab(theme, isDark, primary)),
+          RefreshIndicator(onRefresh: _handleRefresh, color: primary, child: _buildKonfigurasiInputTab(theme, isDark, primary)),
+          RefreshIndicator(onRefresh: _handleRefresh, color: primary, child: _buildKasConfigTab(theme, isDark, primary)),
+          RefreshIndicator(onRefresh: _handleRefresh, color: primary, child: _buildTataTertibTab(theme, isDark, primary)),
+          RefreshIndicator(onRefresh: _handleRefresh, color: primary, child: _buildProkerLaporanTab(theme, isDark, primary)),
+          RefreshIndicator(onRefresh: _handleRefresh, color: primary, child: _buildArsipTab(theme, isDark, primary)),
+          RefreshIndicator(onRefresh: _handleRefresh, color: primary, child: _buildAccountsTab(theme, isDark, primary)),
         ],
       ),
     );
@@ -834,6 +844,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
 
   Widget _buildBrandingTab(ThemeData theme, bool isDark, Color primary) {
     return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1011,6 +1022,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
     final currentFields = _customFieldsMap[_selectedConfigModule] ?? [];
 
     return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1462,6 +1474,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
 
   Widget _buildTataTertibTab(ThemeData theme, bool isDark, Color primary) {
     return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1678,6 +1691,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
 
   Widget _buildProkerLaporanTab(ThemeData theme, bool isDark, Color primary) {
     return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1839,6 +1853,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
 
   Widget _buildArsipTab(ThemeData theme, bool isDark, Color primary) {
     return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1901,6 +1916,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
   Widget _buildKasConfigTab(ThemeData theme, bool isDark, Color primary) {
     final currencyFmt = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
     return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2117,6 +2133,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
         ),
         Expanded(
           child: ListView.builder(
+            physics: const AlwaysScrollableScrollPhysics(),
             itemCount: _accounts.length,
             itemBuilder: (_, i) {
               final acc = _accounts[i];
