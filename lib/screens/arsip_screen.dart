@@ -559,7 +559,7 @@ class ArsipScreenState extends State<ArsipScreen> {
                                 autofocus: true,
                                 decoration: const InputDecoration(
                                   labelText: 'Nama Folder',
-                                  hintText: 'Masukan Nama Folder',
+                                  hintText: 'Masukkan nama folder baru',
                                 ),
                               ),
                               actions: [
@@ -1439,7 +1439,7 @@ class ArsipScreenState extends State<ArsipScreen> {
                     TextStyle(color: isDark ? Colors.white70 : Colors.black54),
                 prefixIcon: const Icon(Icons.create_new_folder_outlined,
                     color: kAccent),
-                hintText: LocalizationService.tr('arsip_folder_name'),
+                hintText: 'Masukkan nama folder baru',
               ),
             ),
             const SizedBox(height: 20),

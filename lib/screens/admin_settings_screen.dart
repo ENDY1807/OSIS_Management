@@ -287,7 +287,8 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
                     controller: userC,
                     textCapitalization: TextCapitalization.characters,
                     decoration: const InputDecoration(
-                      labelText: 'Username (Huruf Kapital, cth: USER_TAMU)',
+                      labelText: 'Username (Huruf Kapital)',
+                      hintText: 'Masukkan username baru',
                       prefixIcon: Icon(Icons.person_outline_rounded),
                     ),
                   ),
@@ -296,6 +297,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
                   controller: nameC,
                   decoration: const InputDecoration(
                     labelText: 'Nama Tampilan / Jabatan Lengkap',
+                    hintText: 'Masukkan nama tampilan atau jabatan',
                     prefixIcon: Icon(Icons.badge_outlined),
                   ),
                 ),
@@ -305,6 +307,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
                   obscureText: obscure,
                   decoration: InputDecoration(
                     labelText: 'Password Akun',
+                    hintText: 'Masukkan password akun',
                     prefixIcon: const Icon(Icons.lock_outline_rounded),
                     suffixIcon: IconButton(
                       icon: Icon(obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 20),
@@ -1529,7 +1532,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
     final idCtrl = TextEditingController(text: existing?.id ?? '');
     final nameCtrl = TextEditingController(text: existing?.name ?? '');
     final deskCtrl = TextEditingController(text: existing?.deskripsi ?? '');
-    final urutanCtrl = TextEditingController(text: (existing?.urutan ?? (_sekbidItems.length + 1)).toString());
+    final urutanCtrl = TextEditingController(text: existing != null ? existing.urutan.toString() : '');
 
     showDialog(
       context: context,
@@ -1583,9 +1586,10 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
               TextField(
                 controller: urutanCtrl,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Nomor Urutan',
-                  prefixIcon: Icon(Icons.format_list_numbered_rounded),
+                  hintText: 'Masukkan nomor urutan (bawaan: ${_sekbidItems.length + 1})',
+                  prefixIcon: const Icon(Icons.format_list_numbered_rounded),
                 ),
               ),
             ],

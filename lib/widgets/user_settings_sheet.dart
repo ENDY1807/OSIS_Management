@@ -43,6 +43,7 @@ class _UserSettingsSheetState extends State<UserSettingsSheet> {
                 obscureText: obscure1,
                 decoration: InputDecoration(
                   labelText: LocalizationService.tr('new_password'),
+                  hintText: 'Masukkan password baru',
                   prefixIcon: const Icon(Icons.lock_outline_rounded),
                   suffixIcon: IconButton(
                     icon: Icon(obscure1 ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 20),
@@ -56,6 +57,7 @@ class _UserSettingsSheetState extends State<UserSettingsSheet> {
                 obscureText: obscure2,
                 decoration: InputDecoration(
                   labelText: 'Konfirmasi Password',
+                  hintText: 'Masukkan konfirmasi password baru',
                   prefixIcon: const Icon(Icons.lock_reset_rounded),
                   suffixIcon: IconButton(
                     icon: Icon(obscure2 ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 20),

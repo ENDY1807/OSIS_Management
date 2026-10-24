@@ -158,8 +158,8 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
         controllers[field.id] = TextEditingController(text: '');
         dynamicValues[field.id] = '';
       } else if (field.id == 'pel_petugas') {
-        controllers[field.id] = TextEditingController(text: widget.username);
-        dynamicValues[field.id] = widget.username;
+        controllers[field.id] = TextEditingController(text: '');
+        dynamicValues[field.id] = '';
       } else if (field.id == 'pel_sanksi') {
         final options = field.options.isNotEmpty ? field.options : ['Teguran Lisan', 'Teguran Tertulis (SP 1)', 'Peringatan Keras (SP 2)', 'Pemanggilan Orang Tua (SP 3)', 'Pembersihan Lingkungan', 'Skorsing'];
         dynamicValues[field.id] = options.first;
@@ -272,7 +272,7 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
                               style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                               decoration: InputDecoration(
                                 labelText: field.label + (field.isRequired ? ' *' : ''),
-                                hintText: field.placeholder.isNotEmpty ? field.placeholder : 'Ketik nama siswa atau kelas...',
+                                hintText: field.placeholder.isNotEmpty ? field.placeholder : 'Masukkan nama siswa atau kelas...',
                                 labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
                                 prefixIcon: const Icon(Icons.person_search_outlined, color: kAccent),
                                 suffixIcon: selectedSiswa != null

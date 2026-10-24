@@ -217,10 +217,8 @@ class _ProkerScreenState extends State<ProkerScreen>
         dynamicValues[field.id] = existing?.deskripsi ?? '';
       } else if (field.id == 'prok_pj') {
         controllers[field.id] = TextEditingController(
-            text: existing?.penanggungJawab ??
-                AuthService.getDisplayName(_currentUser));
-        dynamicValues[field.id] = existing?.penanggungJawab ??
-            AuthService.getDisplayName(_currentUser);
+            text: existing?.penanggungJawab ?? '');
+        dynamicValues[field.id] = existing?.penanggungJawab ?? '';
       } else if (field.id == 'prok_sekbid') {
         dynamicValues[field.id] = selectedSekbid;
       } else if (field.id == 'prok_tgl_rencana') {
@@ -403,9 +401,11 @@ class _ProkerScreenState extends State<ProkerScreen>
                           dynamicValues['prok_desk']?.toString().trim() ??
                           '';
                       final penanggungJawab =
-                          controllers['prok_pj']?.text.trim() ??
-                              dynamicValues['prok_pj']?.toString().trim() ??
-                              '';
+                          (controllers['prok_pj']?.text.trim().isNotEmpty == true)
+                              ? controllers['prok_pj']!.text.trim()
+                              : ((dynamicValues['prok_pj']?.toString().trim().isNotEmpty == true)
+                                  ? dynamicValues['prok_pj'].toString().trim()
+                                  : AuthService.getDisplayName(_currentUser));
                       final keterangan = controllers['prok_ket']?.text.trim() ??
                           dynamicValues['prok_ket']?.toString().trim() ??
                           '';

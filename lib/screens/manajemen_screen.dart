@@ -331,11 +331,11 @@ class _ManajemenScreenState extends State<ManajemenScreen> with SingleTickerProv
     _showBottomForm(
       title: existing == null ? 'Tambah Siswa' : 'Edit Siswa',
       fields: [
-        TextField(controller: namaC, decoration: const InputDecoration(labelText: 'Nama Lengkap', prefixIcon: Icon(Icons.person_outline, color: kAccent))),
+        TextField(controller: namaC, decoration: const InputDecoration(labelText: 'Nama Lengkap', hintText: 'Masukkan nama lengkap siswa', prefixIcon: Icon(Icons.person_outline, color: kAccent))),
         const SizedBox(height: 12),
-        TextField(controller: kelasC, decoration: const InputDecoration(labelText: 'Kelas', prefixIcon: Icon(Icons.class_outlined, color: kAccent))),
+        TextField(controller: kelasC, decoration: const InputDecoration(labelText: 'Kelas', hintText: 'Masukkan kelas siswa', prefixIcon: Icon(Icons.class_outlined, color: kAccent))),
         const SizedBox(height: 12),
-        TextField(controller: nisC, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'NIS', prefixIcon: Icon(Icons.badge_outlined, color: kAccent))),
+        TextField(controller: nisC, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'NIS', hintText: 'Masukkan NIS siswa', prefixIcon: Icon(Icons.badge_outlined, color: kAccent))),
       ],
       onSave: () async {
         if (namaC.text.isEmpty) return false;
@@ -389,7 +389,7 @@ class _ManajemenScreenState extends State<ManajemenScreen> with SingleTickerProv
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
               const SizedBox(height: 16),
               TextField(controller: namaC, decoration: const InputDecoration(
-                labelText: 'Nama Pelanggaran', prefixIcon: Icon(Icons.warning_amber_outlined, color: kAccent))),
+                labelText: 'Nama Pelanggaran', hintText: 'Masukkan nama jenis pelanggaran', prefixIcon: Icon(Icons.warning_amber_outlined, color: kAccent))),
               const SizedBox(height: 16),
               Text('Aktif pada hari:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white : kTextDark)),
               const SizedBox(height: 4),

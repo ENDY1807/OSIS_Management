@@ -438,9 +438,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
 
   void _showEditNominalDialog(KasOsisItem item) {
     if (!_canEdit) return;
-    final nominalCtrl = TextEditingController(
-      text: item.nominalBayar > 0 ? item.nominalBayar.toString() : '',
-    );
+    final nominalCtrl = TextEditingController();
     bool tandaiLunas = item.sudahBayar;
 
     showModalBottomSheet(
@@ -514,11 +512,13 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                     controller: nominalCtrl,
                     keyboardType: TextInputType.number,
                     autofocus: true,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       prefixText: 'Rp ',
                       isDense: true,
-                      border: OutlineInputBorder(),
-                      hintText: 'Masukkan nominal pembayaran',
+                      border: const OutlineInputBorder(),
+                      hintText: item.nominalBayar > 0
+                          ? 'Masukkan nominal (saat ini: ${_currencyFormat.format(item.nominalBayar)})'
+                          : 'Masukkan nominal pembayaran',
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -566,7 +566,10 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                   const SizedBox(height: 12),
                   ElevatedButton.icon(
                     onPressed: () {
-                      final nom = int.tryParse(nominalCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+                      final rawText = nominalCtrl.text.replaceAll(RegExp(r'[^0-9]'), '');
+                      final nom = rawText.isNotEmpty
+                          ? (int.tryParse(rawText) ?? 0)
+                          : (tandaiLunas ? (_selectedKasSession?.nominalWajib ?? 5000) : item.nominalBayar);
                       Navigator.pop(ctx);
                       setState(() {
                         item.nominalBayar = nom;

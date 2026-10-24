@@ -100,7 +100,7 @@ class DynamicFormFieldBuilder {
             style: TextStyle(color: isDark ? Colors.white : Colors.black87),
             decoration: InputDecoration(
               labelText: fieldLabel,
-              hintText: field.placeholder.isNotEmpty ? field.placeholder : null,
+              hintText: field.placeholder.isNotEmpty ? field.placeholder : 'Masukkan $fieldLabel',
               labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
               prefixIcon: const Icon(Icons.edit_note_rounded, color: kAccent),
             ),
@@ -118,7 +118,9 @@ class DynamicFormFieldBuilder {
             style: TextStyle(color: isDark ? Colors.white : Colors.black87),
             decoration: InputDecoration(
               labelText: fieldLabel,
-              hintText: field.placeholder.isNotEmpty ? field.placeholder : '0',
+              hintText: field.placeholder.isNotEmpty && field.placeholder != '0'
+                  ? field.placeholder
+                  : 'Masukkan $fieldLabel',
               labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
               prefixIcon: const Icon(Icons.numbers_rounded, color: kAccent),
             ),
@@ -207,7 +209,7 @@ class DynamicFormFieldBuilder {
             style: TextStyle(color: isDark ? Colors.white : Colors.black87),
             decoration: InputDecoration(
               labelText: fieldLabel,
-              hintText: field.placeholder.isNotEmpty ? field.placeholder : null,
+              hintText: field.placeholder.isNotEmpty ? field.placeholder : 'Masukkan $fieldLabel',
               labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
               prefixIcon: Icon(
                 isMultiline ? Icons.description_outlined : Icons.text_fields_rounded,
