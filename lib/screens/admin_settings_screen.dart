@@ -643,7 +643,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
                       controller: labelCtrl,
                       decoration: const InputDecoration(
                         labelText: 'Label Kolom Input *',
-                        hintText: 'Contoh: Lokasi Ruangan / Anggaran',
+                        hintText: 'Masukkan label kolom input',
                         prefixIcon: Icon(Icons.label_outline_rounded),
                         isDense: true,
                       ),
@@ -653,7 +653,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
                       controller: placeholderCtrl,
                       decoration: const InputDecoration(
                         labelText: 'Placeholder / Petunjuk Pengisian',
-                        hintText: 'Contoh: Masukkan nama ruangan...',
+                        hintText: 'Masukkan petunjuk pengisian placeholder',
                         prefixIcon: Icon(Icons.help_outline_rounded),
                         isDense: true,
                       ),
@@ -1549,7 +1549,8 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
                 TextField(
                   controller: idCtrl,
                   decoration: const InputDecoration(
-                    labelText: 'ID / Kode Sekbid (contoh: SEKBID11)',
+                    labelText: 'ID / Kode Sekbid',
+                    hintText: 'Masukkan ID atau kode sekbid',
                     prefixIcon: Icon(Icons.key_rounded),
                   ),
                 )
@@ -1564,7 +1565,8 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
               TextField(
                 controller: nameCtrl,
                 decoration: const InputDecoration(
-                  labelText: 'Nama Sekbid / Divisi (contoh: SEKBID 11)',
+                  labelText: 'Nama Sekbid / Divisi',
+                  hintText: 'Masukkan nama sekbid atau divisi',
                   prefixIcon: Icon(Icons.badge_outlined),
                 ),
               ),
@@ -1573,7 +1575,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
                 controller: deskCtrl,
                 decoration: const InputDecoration(
                   labelText: 'Deskripsi / Bidang Tugas',
-                  hintText: 'Contoh: Hubungan Masyarakat & Publikasi',
+                  hintText: 'Masukkan deskripsi tugas atau sekbid',
                   prefixIcon: Icon(Icons.description_outlined),
                 ),
               ),
@@ -1874,7 +1876,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
               _sectionHeader(title: 'Ekstensi File Diizinkan (${_arsipAllowedExts.length})', icon: Icons.extension_rounded, color: _selectedAccent),
               IconButton(
                 icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.green),
-                onPressed: () => _showAddChipDialog('Ekstensi File (contoh: pdf)', (val) => setState(() => _arsipAllowedExts.add(val.replaceAll('.', '').toLowerCase()))),
+                onPressed: () => _showAddChipDialog('Ekstensi File Baru', (val) => setState(() => _arsipAllowedExts.add(val.replaceAll('.', '').toLowerCase()))),
               ),
             ],
           ),

@@ -241,7 +241,7 @@ class _KebaikanScreenState extends State<KebaikanScreen> {
                       controller: fieldTextCtrl,
                       focusNode: focusNode,
                       decoration: InputDecoration(
-                        hintText: 'Ketik nama siswa atau kelas...',
+                        hintText: 'Masukkan nama siswa atau kelas...',
                         prefixIcon: const Icon(Icons.person_search_rounded, color: Color(0xFF10B981)),
                         suffixIcon: selectedSiswa != null
                             ? const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 20)
@@ -336,7 +336,7 @@ class _KebaikanScreenState extends State<KebaikanScreen> {
                   controller: ketCtrl,
                   maxLines: 3,
                   decoration: const InputDecoration(
-                    hintText: 'Tuliskan tindakan atau kebaikan yang dilakukan siswa...',
+                    hintText: 'Masukkan tindakan atau kebaikan yang dilakukan siswa...',
                     prefixIcon: Padding(
                       padding: EdgeInsets.only(bottom: 40),
                       child: Icon(Icons.edit_note_rounded, color: Color(0xFF10B981)),
@@ -765,7 +765,7 @@ class _KebaikanScreenState extends State<KebaikanScreen> {
             child: TextField(
               controller: _searchCtrl,
               decoration: InputDecoration(
-                hintText: 'Cari siswa, kelas, atau isi kebaikan...',
+                hintText: 'Masukkan nama siswa, kelas, atau isi kebaikan...',
                 prefixIcon: const Icon(Icons.search, size: 20),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(

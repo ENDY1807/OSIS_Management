@@ -163,10 +163,8 @@ class _KasOsisScreenState extends State<KasOsisScreen>
     final isDark = theme.brightness == Brightness.dark;
     final primary = theme.colorScheme.primary;
 
-    final namaKegiatanCtrl = TextEditingController(
-      text: 'Presensi Rapat OSIS ${DateFormat('d MMM yyyy', 'id_ID').format(DateTime.now())}',
-    );
-    final lokasiCtrl = TextEditingController(text: 'Ruang OSIS');
+    final namaKegiatanCtrl = TextEditingController();
+    final lokasiCtrl = TextEditingController();
 
     showModalBottomSheet(
       context: context,
@@ -254,7 +252,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                       controller: namaKegiatanCtrl,
                       decoration: const InputDecoration(
                         isDense: true,
-                        hintText: 'Contoh: Rapat Pleno OSIS',
+                        hintText: 'Masukkan nama kegiatan rapat',
                         border: OutlineInputBorder(),
                         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       ),
@@ -267,7 +265,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                       controller: lokasiCtrl,
                       decoration: const InputDecoration(
                         isDense: true,
-                        hintText: 'Contoh: Ruang OSIS / Aula',
+                        hintText: 'Masukkan lokasi kegiatan',
                         border: OutlineInputBorder(),
                         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       ),
@@ -441,9 +439,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
   void _showEditNominalDialog(KasOsisItem item) {
     if (!_canEdit) return;
     final nominalCtrl = TextEditingController(
-      text: item.nominalBayar > 0
-          ? item.nominalBayar.toString()
-          : (_selectedKasSession?.nominalWajib.toString() ?? '5000'),
+      text: item.nominalBayar > 0 ? item.nominalBayar.toString() : '',
     );
     bool tandaiLunas = item.sudahBayar;
 
@@ -522,6 +518,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                       prefixText: 'Rp ',
                       isDense: true,
                       border: OutlineInputBorder(),
+                      hintText: 'Masukkan nominal pembayaran',
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -627,7 +624,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
 
   void _ubahNominalWajibSesi() {
     if (_selectedKasSession == null || !_canEdit) return;
-    final nominalCtrl = TextEditingController(text: _selectedKasSession!.nominalWajib.toString());
+    final nominalCtrl = TextEditingController();
 
     showDialog(
       context: context,
@@ -658,6 +655,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                 prefixText: 'Rp ',
                 isDense: true,
                 border: OutlineInputBorder(),
+                hintText: 'Masukkan nominal iuran baru',
               ),
             ),
           ],
@@ -686,9 +684,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
 
   void _tambahSesiKasBaru() {
     DateTime selectedDate = DateTime.now();
-    final nominalCtrl = TextEditingController(
-      text: AppSettingsService.kasDefaultIuranNotifier.value.toString(),
-    );
+    final nominalCtrl = TextEditingController();
 
     showDialog(
       context: context,
@@ -762,10 +758,11 @@ class _KasOsisScreenState extends State<KasOsisScreen>
               TextField(
                 controller: nominalCtrl,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   isDense: true,
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
                   prefixText: 'Rp ',
+                  hintText: 'Masukkan nominal iuran (bawaan: ${_currencyFormat.format(AppSettingsService.kasDefaultIuranNotifier.value)})',
                 ),
               ),
             ],
@@ -774,7 +771,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
             ElevatedButton(
               onPressed: () async {
-                final nominal = int.tryParse(nominalCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 5000;
+                final nominal = int.tryParse(nominalCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? AppSettingsService.kasDefaultIuranNotifier.value;
                 Navigator.pop(ctx);
                 final newId = 'kas-${DateTime.now().millisecondsSinceEpoch}';
                 final judul = 'Kas Bulan ${DateFormat('MMMM yyyy', 'id_ID').format(selectedDate)}';
@@ -895,10 +892,8 @@ class _KasOsisScreenState extends State<KasOsisScreen>
 
   void _tambahSesiAbsensiBaru() {
     DateTime selectedDate = DateTime.now();
-    final kegiatanCtrl = TextEditingController(
-      text: 'Rapat Pleno OSIS ${DateFormat('d MMMM yyyy', 'id_ID').format(DateTime.now())}',
-    );
-    final lokasiCtrl = TextEditingController(text: 'Ruang OSIS');
+    final kegiatanCtrl = TextEditingController();
+    final lokasiCtrl = TextEditingController();
 
     showDialog(
       context: context,
@@ -968,7 +963,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                   decoration: const InputDecoration(
                     isDense: true,
                     border: OutlineInputBorder(),
-                    hintText: 'Contoh: Rapat Mingguan Pengurus OSIS',
+                    hintText: 'Masukkan nama kegiatan rapat',
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -981,7 +976,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                   decoration: const InputDecoration(
                     isDense: true,
                     border: OutlineInputBorder(),
-                    hintText: 'Contoh: Ruang OSIS / Perpustakaan',
+                    hintText: 'Masukkan lokasi kegiatan',
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -1144,7 +1139,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                           isDense: true,
                           border: OutlineInputBorder(),
                           prefixText: 'Rp ',
-                          hintText: '0',
+                          hintText: 'Masukkan nominal',
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -1160,8 +1155,8 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                           isDense: true,
                           border: const OutlineInputBorder(),
                           hintText: jenis == 'MASUK'
-                              ? 'Contoh: Iuran kas kegiatan OSIS'
-                              : 'Contoh: Pembelian konsumsi rapat OSIS',
+                              ? 'Masukkan keterangan pemasukan'
+                              : 'Masukkan keterangan pengeluaran',
                           hintStyle: const TextStyle(fontSize: 12),
                         ),
                       ),
@@ -1267,8 +1262,8 @@ class _KasOsisScreenState extends State<KasOsisScreen>
 
   void _tambahAnggotaManual() {
     final namaCtrl = TextEditingController();
-    final kelasCtrl = TextEditingController(text: 'XI RPL 1');
-    final jabatanCtrl = TextEditingController(text: 'Anggota OSIS');
+    final kelasCtrl = TextEditingController();
+    final jabatanCtrl = TextEditingController();
 
     showDialog(
       context: context,
@@ -1293,7 +1288,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                 decoration: const InputDecoration(
                   isDense: true,
                   border: OutlineInputBorder(),
-                  hintText: 'Nama lengkap siswa',
+                  hintText: 'Masukkan nama lengkap siswa',
                 ),
               ),
               const SizedBox(height: 12),
@@ -1304,7 +1299,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                 decoration: const InputDecoration(
                   isDense: true,
                   border: OutlineInputBorder(),
-                  hintText: 'Contoh: XI RPL 1',
+                  hintText: 'Masukkan kelas siswa',
                 ),
               ),
               const SizedBox(height: 12),
@@ -1315,7 +1310,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                 decoration: const InputDecoration(
                   isDense: true,
                   border: OutlineInputBorder(),
-                  hintText: 'Contoh: Sekbid Kewirausahaan / Anggota',
+                  hintText: 'Masukkan jabatan atau sekbid',
                 ),
               ),
             ],
@@ -1738,7 +1733,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                           controller: _searchCtrl,
                           onChanged: (val) => setState(() => _searchQuery = val),
                           decoration: InputDecoration(
-                            hintText: 'Cari nama atau kelas...',
+                            hintText: 'Masukkan nama atau kelas untuk mencari...',
                             hintStyle: const TextStyle(fontSize: 12),
                             prefixIcon: const Icon(Icons.search, size: 17),
                             suffixIcon: _searchQuery.isNotEmpty
@@ -2319,7 +2314,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                     controller: _searchCtrl,
                     onChanged: (val) => setState(() => _searchQuery = val),
                     decoration: InputDecoration(
-                      hintText: 'Cari nama atau jabatan siswa presensi...',
+                      hintText: 'Masukkan nama atau jabatan untuk mencari presensi...',
                       hintStyle: const TextStyle(fontSize: 12),
                       prefixIcon: const Icon(Icons.search, size: 17),
                       suffixIcon: _searchQuery.isNotEmpty
@@ -3052,7 +3047,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                     controller: _searchCtrl,
                     onChanged: (val) => setState(() => _searchQuery = val),
                     decoration: InputDecoration(
-                      hintText: 'Cari nama atau jabatan anggota OSIS...',
+                      hintText: 'Masukkan nama atau jabatan anggota OSIS...',
                       hintStyle: const TextStyle(fontSize: 12),
                       prefixIcon: const Icon(Icons.search, size: 17),
                       suffixIcon: _searchQuery.isNotEmpty

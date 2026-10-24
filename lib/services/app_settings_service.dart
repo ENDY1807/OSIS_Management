@@ -200,10 +200,10 @@ class AppSettingsService {
 
   static final ValueNotifier<Map<String, List<AppCustomInputField>>> customFieldsNotifier = ValueNotifier({
     'laporan': [
-      AppCustomInputField(id: 'lap_nama', label: 'Nama Kegiatan', type: InputFieldType.text, placeholder: 'Contoh: LDKS 2026', isRequired: true),
+      AppCustomInputField(id: 'lap_nama', label: 'Nama Kegiatan', type: InputFieldType.text, placeholder: 'Masukkan nama kegiatan', isRequired: true),
       AppCustomInputField(id: 'lap_kategori', label: 'Kategori Kegiatan', type: InputFieldType.dropdown, options: ['Kegiatan Rutin', 'Program Unggulan', 'Peringatan Hari Besar', 'Lomba & Kompetisi', 'Bakti Sosial', 'Rapat Kerja & Pleno', 'Lainnya']),
       AppCustomInputField(id: 'lap_tgl', label: 'Tanggal Pelaksanaan', type: InputFieldType.date, isRequired: true),
-      AppCustomInputField(id: 'lap_lokasi', label: 'Lokasi Kegiatan', type: InputFieldType.text, placeholder: 'Contoh: Aula Utama'),
+      AppCustomInputField(id: 'lap_lokasi', label: 'Lokasi Kegiatan', type: InputFieldType.text, placeholder: 'Masukkan lokasi kegiatan'),
       AppCustomInputField(id: 'lap_pj', label: 'Ketua Pelaksana', type: InputFieldType.text, placeholder: 'Nama Penanggung Jawab'),
       AppCustomInputField(id: 'lap_anggaran', label: 'Anggaran Dana (Rp)', type: InputFieldType.number, placeholder: '0'),
       AppCustomInputField(id: 'lap_desk', label: 'Deskripsi Kegiatan', type: InputFieldType.text, placeholder: 'Uraian ringkas kegiatan...'),
@@ -225,7 +225,7 @@ class AppSettingsService {
       AppCustomInputField(id: 'pel_siswa', label: 'Nama Siswa', type: InputFieldType.select, placeholder: 'Pilih siswa...', isRequired: true),
       AppCustomInputField(id: 'pel_tgl', label: 'Tanggal Kejadian', type: InputFieldType.date, isRequired: true),
       AppCustomInputField(id: 'pel_jenis', label: 'Jenis Pelanggaran', type: InputFieldType.select, placeholder: 'Pilih jenis tata tertib...', isRequired: true),
-      AppCustomInputField(id: 'pel_lokasi', label: 'Lokasi Kejadian', type: InputFieldType.text, placeholder: 'Contoh: Kantin / Kelas'),
+      AppCustomInputField(id: 'pel_lokasi', label: 'Lokasi Kejadian', type: InputFieldType.text, placeholder: 'Masukkan lokasi kejadian'),
       AppCustomInputField(id: 'pel_petugas', label: 'Petugas / Saksi', type: InputFieldType.text, placeholder: 'Nama pencatat atau saksi'),
       AppCustomInputField(id: 'pel_sanksi', label: 'Sanksi / Tindak Lanjut', type: InputFieldType.dropdown, options: ['Teguran Lisan', 'Teguran Tertulis (SP 1)', 'Peringatan Keras (SP 2)', 'Pemanggilan Orang Tua (SP 3)', 'Pembersihan Lingkungan', 'Skorsing']),
       AppCustomInputField(id: 'pel_ket', label: 'Keterangan Tambahan', type: InputFieldType.text, placeholder: 'Catatan detail kejadian...'),
