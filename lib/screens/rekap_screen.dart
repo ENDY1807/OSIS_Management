@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
@@ -289,6 +290,7 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
     final double maxKelasY = sortedKelasList.isEmpty ? 5.0 : (sortedKelasList.first.value + 2).toDouble();
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textMuted = isDark ? const Color(0xFF64748B) : kTextLight;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -321,55 +323,89 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
             const SizedBox(height: 12),
             _statCard('${pelMatching.length}', 'Total Kejadian', Colors.red.shade50, Colors.red.shade700, isDark: isDark),
             const SizedBox(height: 16),
-
             if (sortedKelasList.isNotEmpty) ...[
-              Text('Grafik Distribusi Kelas', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Grafik Distribusi Kelas', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
+                  if (sortedKelasList.length > 5)
+                    Text('(Geser grafik)', style: TextStyle(fontSize: 10, color: textMuted, fontStyle: FontStyle.italic)),
+                ],
+              ),
               const SizedBox(height: 8),
               Container(
-                height: 140,
-                padding: const EdgeInsets.all(8),
+                height: 155,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                 decoration: BoxDecoration(
                   color: isDark ? const Color(0xFF0E1626) : kBg,
                   borderRadius: BorderRadius.circular(12),
                   border: isDark ? Border.all(color: const Color(0xFF243452)) : null,
                 ),
-                child: BarChart(BarChartData(
-                  alignment: BarChartAlignment.spaceAround,
-                  maxY: maxKelasY,
-                  barTouchData: BarTouchData(
-                    touchTooltipData: BarTouchTooltipData(
-                      getTooltipColor: (_) => kAccent,
-                      getTooltipItem: (g, gi, rod, ri) => BarTooltipItem(
-                        'Kelas ${sortedKelasList[g.x.toInt()].key}\n${rod.toY.toInt()}x',
-                        const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                child: LayoutBuilder(
+                  builder: (ctx, constraints) {
+                    final displayed = sortedKelasList.take(10).toList();
+                    final calcWidth = math.max(constraints.maxWidth, displayed.length * 56.0);
+                    return SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      child: SizedBox(
+                        width: calcWidth,
+                        child: BarChart(BarChartData(
+                          alignment: BarChartAlignment.spaceAround,
+                          maxY: maxKelasY,
+                          barTouchData: BarTouchData(
+                            touchTooltipData: BarTouchTooltipData(
+                              getTooltipColor: (_) => kAccent,
+                              getTooltipItem: (g, gi, rod, ri) => BarTooltipItem(
+                                'Kelas ${displayed[g.x.toInt()].key}\n${rod.toY.toInt()}x',
+                                const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
+                          barGroups: displayed.asMap().entries.map((e) {
+                            return BarChartGroupData(x: e.key, barRods: [BarChartRodData(
+                              toY: e.value.value.toDouble(),
+                              gradient: const LinearGradient(colors: [kAccent, kPrimaryDark], begin: Alignment.bottomCenter, end: Alignment.topCenter),
+                              width: 16, borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                            )]);
+                          }).toList(),
+                          titlesData: FlTitlesData(
+                            bottomTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 32,
+                                getTitlesWidget: (v, meta) {
+                                  final idx = v.toInt();
+                                  if (idx < 0 || idx >= displayed.length) return const SizedBox();
+                                  final kName = displayed[idx].key;
+                                  return SideTitleWidget(
+                                    axisSide: meta.axisSide,
+                                    space: 4,
+                                    child: SizedBox(
+                                      width: 48,
+                                      child: Text(
+                                        kName,
+                                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: isDark ? const Color(0xFF94A3B8) : kTextMid),
+                                        textAlign: TextAlign.center,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                            leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          ),
+                          gridData: const FlGridData(show: false),
+                          borderData: FlBorderData(show: false),
+                        )),
                       ),
-                    ),
-                  ),
-                  barGroups: sortedKelasList.take(6).toList().asMap().entries.map((e) {
-                    return BarChartGroupData(x: e.key, barRods: [BarChartRodData(
-                      toY: e.value.value.toDouble(),
-                      gradient: const LinearGradient(colors: [kAccent, kPrimaryDark], begin: Alignment.bottomCenter, end: Alignment.topCenter),
-                      width: 16, borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
-                    )]);
-                  }).toList(),
-                  titlesData: FlTitlesData(
-                    bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (v, _) {
-                      final idx = v.toInt();
-                      final displayed = sortedKelasList.take(6).toList();
-                      if (idx < 0 || idx >= displayed.length) return const SizedBox();
-                      final kName = displayed[idx].key;
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(kName.length > 5 ? kName.substring(0, 5) : kName, style: TextStyle(fontSize: 9, color: isDark ? const Color(0xFF94A3B8) : kTextMid)),
-                      );
-                    })),
-                    leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  ),
-                  gridData: const FlGridData(show: false),
-                  borderData: FlBorderData(show: false),
-                )),
+                    );
+                  },
+                ),
               ),
               const SizedBox(height: 16),
             ],
@@ -442,6 +478,7 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
     final double maxJenisY = sortedJenisList.isEmpty ? 5.0 : (sortedJenisList.first.value + 2).toDouble();
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textMuted = isDark ? const Color(0xFF64748B) : kTextLight;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -474,61 +511,94 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
             const SizedBox(height: 12),
             _statCard('${pelMatching.length}', 'Total Pelanggaran Kelas', Colors.blue.shade50, Colors.blue.shade700, isDark: isDark),
             const SizedBox(height: 16),
-
             if (sortedJenisList.isNotEmpty) ...[
-              Text('Grafik Jenis Pelanggaran di Kelas Ini', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Grafik Jenis Pelanggaran di Kelas Ini', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kTextDark)),
+                  if (sortedJenisList.length > 5)
+                    Text('(Geser grafik)', style: TextStyle(fontSize: 10, color: textMuted, fontStyle: FontStyle.italic)),
+                ],
+              ),
               const SizedBox(height: 8),
               Container(
-                height: 140,
-                padding: const EdgeInsets.all(8),
+                height: 155,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                 decoration: BoxDecoration(
                   color: isDark ? const Color(0xFF0E1626) : kBg,
                   borderRadius: BorderRadius.circular(12),
                   border: isDark ? Border.all(color: const Color(0xFF243452)) : null,
                 ),
-                child: BarChart(BarChartData(
-                  alignment: BarChartAlignment.spaceAround,
-                  maxY: maxJenisY,
-                  barTouchData: BarTouchData(
-                    touchTooltipData: BarTouchTooltipData(
-                      getTooltipColor: (_) => kAccent,
-                      getTooltipItem: (g, gi, rod, ri) {
-                        final jId = sortedJenisList[g.x.toInt()].key;
-                        final jObj = _jenis.firstWhere((e) => e.id == jId, orElse: () => JenisPelanggaran(id: '', nama: '-'));
-                        return BarTooltipItem(
-                          '${jObj.nama}\n${rod.toY.toInt()}x',
-                          const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                        );
-                      },
-                    ),
-                  ),
-                  barGroups: sortedJenisList.take(6).toList().asMap().entries.map((e) {
-                    return BarChartGroupData(x: e.key, barRods: [BarChartRodData(
-                      toY: e.value.value.toDouble(),
-                      gradient: const LinearGradient(colors: [kPrimaryDark, kAccent], begin: Alignment.bottomCenter, end: Alignment.topCenter),
-                      width: 16, borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
-                    )]);
-                  }).toList(),
-                  titlesData: FlTitlesData(
-                    bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (v, _) {
-                      final idx = v.toInt();
-                      final displayed = sortedJenisList.take(6).toList();
-                      if (idx < 0 || idx >= displayed.length) return const SizedBox();
-                      final jId = displayed[idx].key;
-                      final jObj = _jenis.firstWhere((e) => e.id == jId, orElse: () => JenisPelanggaran(id: '', nama: '-'));
-                      final jName = jObj.nama;
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(jName.length > 5 ? jName.substring(0, 5) : jName, style: TextStyle(fontSize: 9, color: isDark ? const Color(0xFF94A3B8) : kTextMid)),
-                      );
-                    })),
-                    leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  ),
-                  gridData: const FlGridData(show: false),
-                  borderData: FlBorderData(show: false),
-                )),
+                child: LayoutBuilder(
+                  builder: (ctx, constraints) {
+                    final displayed = sortedJenisList.take(10).toList();
+                    final calcWidth = math.max(constraints.maxWidth, displayed.length * 60.0);
+                    return SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      child: SizedBox(
+                        width: calcWidth,
+                        child: BarChart(BarChartData(
+                          alignment: BarChartAlignment.spaceAround,
+                          maxY: maxJenisY,
+                          barTouchData: BarTouchData(
+                            touchTooltipData: BarTouchTooltipData(
+                              getTooltipColor: (_) => kAccent,
+                              getTooltipItem: (g, gi, rod, ri) {
+                                final jId = displayed[g.x.toInt()].key;
+                                final jObj = _jenis.firstWhere((e) => e.id == jId, orElse: () => JenisPelanggaran(id: '', nama: '-'));
+                                return BarTooltipItem(
+                                  '${jObj.nama}\n${rod.toY.toInt()}x',
+                                  const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                                );
+                              },
+                            ),
+                          ),
+                          barGroups: displayed.asMap().entries.map((e) {
+                            return BarChartGroupData(x: e.key, barRods: [BarChartRodData(
+                              toY: e.value.value.toDouble(),
+                              gradient: const LinearGradient(colors: [kPrimaryDark, kAccent], begin: Alignment.bottomCenter, end: Alignment.topCenter),
+                              width: 16, borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                            )]);
+                          }).toList(),
+                          titlesData: FlTitlesData(
+                            bottomTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 34,
+                                getTitlesWidget: (v, meta) {
+                                  final idx = v.toInt();
+                                  if (idx < 0 || idx >= displayed.length) return const SizedBox();
+                                  final jId = displayed[idx].key;
+                                  final jObj = _jenis.firstWhere((e) => e.id == jId, orElse: () => JenisPelanggaran(id: '', nama: '-'));
+                                  return SideTitleWidget(
+                                    axisSide: meta.axisSide,
+                                    space: 4,
+                                    child: SizedBox(
+                                      width: 52,
+                                      child: Text(
+                                        jObj.nama,
+                                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: isDark ? const Color(0xFF94A3B8) : kTextMid),
+                                        textAlign: TextAlign.center,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                            leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          ),
+                          gridData: const FlGridData(show: false),
+                          borderData: FlBorderData(show: false),
+                        )),
+                      ),
+                    );
+                  },
+                ),
               ),
               const SizedBox(height: 16),
             ],
@@ -845,69 +915,102 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text('Grafik Distribusi', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textTitle)),
-                                  Text('(Ketuk batang untuk detail)', style: TextStyle(fontSize: 11, color: textMuted, fontStyle: FontStyle.italic)),
+                                  Text(_jenis.length > 5 ? '(Geser & ketuk batang)' : '(Ketuk batang untuk detail)',
+                                      style: TextStyle(fontSize: 11, color: textMuted, fontStyle: FontStyle.italic)),
                                 ],
                               ),
                               const SizedBox(height: 16),
                               Container(
-                                padding: const EdgeInsets.all(12),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
                                 decoration: BoxDecoration(
                                   color: cardBg,
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(color: cardBorder),
                                   boxShadow: isDark ? null : [BoxShadow(color: kPrimary.withAlpha(80), blurRadius: 8)],
                                 ),
-                                child: SizedBox(
-                                  height: 200,
-                                  child: BarChart(BarChartData(
-                                    alignment: BarChartAlignment.spaceAround,
-                                    maxY: maxY,
-                                    barTouchData: BarTouchData(
-                                      touchCallback: (FlTouchEvent event, barTouchResponse) {
-                                        if (event is FlTapUpEvent && barTouchResponse != null && barTouchResponse.spot != null) {
-                                          final idx = barTouchResponse.spot!.touchedBarGroupIndex;
-                                          if (idx >= 0 && idx < _jenis.length) {
-                                            _showDetailJenis(_jenis[idx]);
-                                          }
-                                        }
-                                      },
-                                      touchTooltipData: BarTouchTooltipData(
-                                        getTooltipColor: (_) => primary,
-                                        getTooltipItem: (g, gi, rod, ri) => BarTooltipItem(
-                                          '${_jenis[g.x.toInt()].nama}\n${rod.toY.toInt()} kali\n(Ketuk untuk detail)',
-                                          const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                                        ),
+                                child: LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    final double itemWidth = 64.0;
+                                    final double calcWidth = math.max(constraints.maxWidth, _jenis.length * itemWidth);
+                                    return SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      physics: const BouncingScrollPhysics(),
+                                      child: SizedBox(
+                                        width: calcWidth,
+                                        height: 220,
+                                        child: BarChart(BarChartData(
+                                          alignment: BarChartAlignment.spaceAround,
+                                          maxY: maxY,
+                                          barTouchData: BarTouchData(
+                                            touchCallback: (FlTouchEvent event, barTouchResponse) {
+                                              if (event is FlTapUpEvent && barTouchResponse != null && barTouchResponse.spot != null) {
+                                                final idx = barTouchResponse.spot!.touchedBarGroupIndex;
+                                                if (idx >= 0 && idx < _jenis.length) {
+                                                  _showDetailJenis(_jenis[idx]);
+                                                }
+                                              }
+                                            },
+                                            touchTooltipData: BarTouchTooltipData(
+                                              getTooltipColor: (_) => primary,
+                                              getTooltipItem: (g, gi, rod, ri) => BarTooltipItem(
+                                                '${_jenis[g.x.toInt()].nama}\n${rod.toY.toInt()} kali\n(Ketuk untuk detail)',
+                                                const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                                              ),
+                                            ),
+                                          ),
+                                          barGroups: _jenis.asMap().entries.map((e) {
+                                            final count = rekapJenis[e.value.id] ?? 0;
+                                            return BarChartGroupData(x: e.key, barRods: [BarChartRodData(
+                                              toY: count.toDouble(),
+                                              gradient: LinearGradient(colors: isDark ? [primary.withAlpha(160), primary] : [kPrimaryDark, kAccent], begin: Alignment.bottomCenter, end: Alignment.topCenter),
+                                              width: 18, borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+                                              backDrawRodData: BackgroundBarChartRodData(show: true, toY: maxY, color: chartBg),
+                                            )]);
+                                          }).toList(),
+                                          titlesData: FlTitlesData(
+                                            bottomTitles: AxisTitles(sideTitles: SideTitles(
+                                              showTitles: true,
+                                              reservedSize: 42,
+                                              getTitlesWidget: (v, meta) {
+                                                final idx = v.toInt();
+                                                if (idx < 0 || idx >= _jenis.length) return const SizedBox();
+                                                final nm = _jenis[idx].nama;
+                                                return SideTitleWidget(
+                                                  axisSide: meta.axisSide,
+                                                  space: 6,
+                                                  child: SizedBox(
+                                                    width: 58,
+                                                    child: Text(
+                                                      nm,
+                                                      style: TextStyle(fontSize: 10, color: textSub, fontWeight: FontWeight.bold),
+                                                      textAlign: TextAlign.center,
+                                                      maxLines: 2,
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            )),
+                                            leftTitles: AxisTitles(sideTitles: SideTitles(
+                                              showTitles: true,
+                                              reservedSize: 28,
+                                              interval: (maxY / 4).ceilToDouble().clamp(1.0, 100.0),
+                                              getTitlesWidget: (v, meta) => SideTitleWidget(
+                                                axisSide: meta.axisSide,
+                                                space: 4,
+                                                child: Text(v.toInt().toString(), style: TextStyle(fontSize: 9, color: textMuted)),
+                                              ),
+                                            )),
+                                            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                          ),
+                                          gridData: FlGridData(show: true, drawVerticalLine: false,
+                                              getDrawingHorizontalLine: (_) => FlLine(color: isDark ? const Color(0xFF243452) : kPrimary, strokeWidth: 0.5)),
+                                          borderData: FlBorderData(show: false),
+                                        )),
                                       ),
-                                    ),
-                                    barGroups: _jenis.asMap().entries.map((e) {
-                                      final count = rekapJenis[e.value.id] ?? 0;
-                                      return BarChartGroupData(x: e.key, barRods: [BarChartRodData(
-                                        toY: count.toDouble(),
-                                        gradient: LinearGradient(colors: isDark ? [primary.withAlpha(160), primary] : [kPrimaryDark, kAccent], begin: Alignment.bottomCenter, end: Alignment.topCenter),
-                                        width: 20, borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
-                                        backDrawRodData: BackgroundBarChartRodData(show: true, toY: maxY, color: chartBg),
-                                      )]);
-                                    }).toList(),
-                                    titlesData: FlTitlesData(
-                                      bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true,
-                                        getTitlesWidget: (v, _) {
-                                          final idx = v.toInt();
-                                          if (idx < 0 || idx >= _jenis.length) return const SizedBox();
-                                          final nm = _jenis[idx].nama;
-                                          return Padding(padding: const EdgeInsets.only(top: 6),
-                                              child: Text(nm.length > 7 ? '${nm.substring(0, 7)}..' : nm,
-                                                  style: TextStyle(fontSize: 9, color: textSub, fontWeight: FontWeight.bold)));
-                                        },
-                                      )),
-                                      leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 24,
-                                        getTitlesWidget: (v, _) => Text(v.toInt().toString(), style: TextStyle(fontSize: 9, color: textMuted)))),
-                                      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                    ),
-                                    gridData: FlGridData(show: true, drawVerticalLine: false,
-                                        getDrawingHorizontalLine: (_) => FlLine(color: isDark ? const Color(0xFF243452) : kPrimary, strokeWidth: 0.5)),
-                                    borderData: FlBorderData(show: false),
-                                  )),
+                                    );
+                                  },
                                 ),
                               ),
                               const SizedBox(height: 20),
@@ -1019,73 +1122,105 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text('Grafik Distribusi per Kelas', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textTitle)),
-                                    Text('(Ketuk untuk detail)', style: TextStyle(fontSize: 11, color: textMuted, fontStyle: FontStyle.italic)),
+                                    Text(sortedKelasList.length > 5 ? '(Geser & ketuk batang)' : '(Ketuk untuk detail)',
+                                        style: TextStyle(fontSize: 11, color: textMuted, fontStyle: FontStyle.italic)),
                                   ],
                                 ),
                                 const SizedBox(height: 12),
                                 Container(
-                                  padding: const EdgeInsets.all(12),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
                                   decoration: BoxDecoration(
                                     color: cardBg,
                                     borderRadius: BorderRadius.circular(16),
                                     border: Border.all(color: cardBorder),
                                     boxShadow: isDark ? null : [BoxShadow(color: kPrimary.withAlpha(80), blurRadius: 8)],
                                   ),
-                                  child: SizedBox(
-                                    height: 180,
-                                    child: BarChart(BarChartData(
-                                      alignment: BarChartAlignment.spaceAround,
-                                      maxY: maxKelasY,
-                                      barTouchData: BarTouchData(
-                                        touchCallback: (FlTouchEvent event, barTouchResponse) {
-                                          if (event is FlTapUpEvent && barTouchResponse != null && barTouchResponse.spot != null) {
-                                            final idx = barTouchResponse.spot!.touchedBarGroupIndex;
-                                            final displayed = sortedKelasList.take(8).toList();
-                                            if (idx >= 0 && idx < displayed.length) {
-                                              _showDetailKelas(displayed[idx].key);
-                                            }
-                                          }
-                                        },
-                                        touchTooltipData: BarTouchTooltipData(
-                                          getTooltipColor: (_) => primary,
-                                          getTooltipItem: (g, gi, rod, ri) {
-                                            final displayed = sortedKelasList.take(8).toList();
-                                            final kName = g.x.toInt() < displayed.length ? displayed[g.x.toInt()].key : '';
-                                            return BarTooltipItem(
-                                              'Kelas $kName\n${rod.toY.toInt()} pelanggaran',
-                                              const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                                            );
-                                          },
+                                  child: LayoutBuilder(
+                                    builder: (context, constraints) {
+                                      final displayed = sortedKelasList.take(12).toList();
+                                      final double itemWidth = 62.0;
+                                      final double calcWidth = math.max(constraints.maxWidth, displayed.length * itemWidth);
+                                      return SingleChildScrollView(
+                                        scrollDirection: Axis.horizontal,
+                                        physics: const BouncingScrollPhysics(),
+                                        child: SizedBox(
+                                          width: calcWidth,
+                                          height: 200,
+                                          child: BarChart(BarChartData(
+                                            alignment: BarChartAlignment.spaceAround,
+                                            maxY: maxKelasY,
+                                            barTouchData: BarTouchData(
+                                              touchCallback: (FlTouchEvent event, barTouchResponse) {
+                                                if (event is FlTapUpEvent && barTouchResponse != null && barTouchResponse.spot != null) {
+                                                  final idx = barTouchResponse.spot!.touchedBarGroupIndex;
+                                                  if (idx >= 0 && idx < displayed.length) {
+                                                    _showDetailKelas(displayed[idx].key);
+                                                  }
+                                                }
+                                              },
+                                              touchTooltipData: BarTouchTooltipData(
+                                                getTooltipColor: (_) => primary,
+                                                getTooltipItem: (g, gi, rod, ri) {
+                                                  final kName = g.x.toInt() < displayed.length ? displayed[g.x.toInt()].key : '';
+                                                  return BarTooltipItem(
+                                                    'Kelas $kName\n${rod.toY.toInt()} pelanggaran\n(Ketuk untuk detail)',
+                                                    const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                            barGroups: displayed.asMap().entries.map((e) {
+                                              return BarChartGroupData(x: e.key, barRods: [BarChartRodData(
+                                                toY: e.value.value.toDouble(),
+                                                gradient: LinearGradient(colors: isDark ? [primary.withAlpha(160), primary] : [kAccent, kPrimaryDark], begin: Alignment.bottomCenter, end: Alignment.topCenter),
+                                                width: 18, borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+                                                backDrawRodData: BackgroundBarChartRodData(show: true, toY: maxKelasY, color: chartBg),
+                                              )]);
+                                            }).toList(),
+                                            titlesData: FlTitlesData(
+                                              bottomTitles: AxisTitles(sideTitles: SideTitles(
+                                                showTitles: true,
+                                                reservedSize: 36,
+                                                getTitlesWidget: (v, meta) {
+                                                  final idx = v.toInt();
+                                                  if (idx < 0 || idx >= displayed.length) return const SizedBox();
+                                                  final kName = displayed[idx].key;
+                                                  return SideTitleWidget(
+                                                    axisSide: meta.axisSide,
+                                                    space: 6,
+                                                    child: SizedBox(
+                                                      width: 54,
+                                                      child: Text(
+                                                        kName,
+                                                        style: TextStyle(fontSize: 10, color: textSub, fontWeight: FontWeight.bold),
+                                                        textAlign: TextAlign.center,
+                                                        maxLines: 2,
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                    ),
+                                                  );
+                                                },
+                                              )),
+                                              leftTitles: AxisTitles(sideTitles: SideTitles(
+                                                showTitles: true,
+                                                reservedSize: 28,
+                                                interval: (maxKelasY / 4).ceilToDouble().clamp(1.0, 100.0),
+                                                getTitlesWidget: (v, meta) => SideTitleWidget(
+                                                  axisSide: meta.axisSide,
+                                                  space: 4,
+                                                  child: Text(v.toInt().toString(), style: TextStyle(fontSize: 9, color: textMuted)),
+                                                ),
+                                              )),
+                                              topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                              rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                            ),
+                                            gridData: FlGridData(show: true, drawVerticalLine: false,
+                                                getDrawingHorizontalLine: (_) => FlLine(color: isDark ? const Color(0xFF243452) : kPrimary, strokeWidth: 0.5)),
+                                            borderData: FlBorderData(show: false),
+                                          )),
                                         ),
-                                      ),
-                                      barGroups: sortedKelasList.take(8).toList().asMap().entries.map((e) {
-                                        return BarChartGroupData(x: e.key, barRods: [BarChartRodData(
-                                          toY: e.value.value.toDouble(),
-                                          gradient: LinearGradient(colors: isDark ? [primary.withAlpha(160), primary] : [kAccent, kPrimaryDark], begin: Alignment.bottomCenter, end: Alignment.topCenter),
-                                          width: 18, borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
-                                          backDrawRodData: BackgroundBarChartRodData(show: true, toY: maxKelasY, color: chartBg),
-                                        )]);
-                                      }).toList(),
-                                      titlesData: FlTitlesData(
-                                        bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true,
-                                          getTitlesWidget: (v, _) {
-                                            final idx = v.toInt();
-                                            final displayed = sortedKelasList.take(8).toList();
-                                            if (idx < 0 || idx >= displayed.length) return const SizedBox();
-                                            final kName = displayed[idx].key;
-                                            return Padding(padding: const EdgeInsets.only(top: 6),
-                                                child: Text(kName, style: TextStyle(fontSize: 10, color: textSub, fontWeight: FontWeight.bold)));
-                                          },
-                                        )),
-                                        leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 24,
-                                          getTitlesWidget: (v, _) => Text(v.toInt().toString(), style: TextStyle(fontSize: 9, color: textMuted)))),
-                                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                      ),
-                                      gridData: FlGridData(show: true, drawVerticalLine: false,
-                                          getDrawingHorizontalLine: (_) => FlLine(color: isDark ? const Color(0xFF243452) : kPrimary, strokeWidth: 0.5)),
-                                      borderData: FlBorderData(show: false),
-                                    )),
+                                      );
+                                    },
                                   ),
                                 ),
                                 const SizedBox(height: 20),
