@@ -665,7 +665,7 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
                 _profil.updatedAt = DateTime.now();
               });
               await DataService.saveProfilOsis(_profil);
-              if (mounted) Navigator.pop(ctx);
+              if (ctx.mounted) Navigator.pop(ctx);
             },
             child: const Text('Simpan'),
           ),
@@ -1046,7 +1046,7 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
                 } else {
                   await DataService.addAnggotaOsis(item);
                 }
-                if (mounted) Navigator.pop(ctx);
+                if (ctx.mounted) Navigator.pop(ctx);
               },
               child: const Text('Simpan'),
             ),
@@ -1067,7 +1067,7 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
           TextButton(
             onPressed: () async {
               await DataService.deleteAnggotaOsis(a.id);
-              if (mounted) Navigator.pop(ctx);
+              if (ctx.mounted) Navigator.pop(ctx);
             },
             child: const Text('Hapus', style: TextStyle(color: Colors.redAccent)),
           ),

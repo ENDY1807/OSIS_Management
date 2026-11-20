@@ -444,7 +444,7 @@ class _InformasiDokumentasiScreenState extends State<InformasiDokumentasiScreen>
                   actor: widget.username,
                 );
 
-                if (mounted) Navigator.pop(ctx);
+                if (ctx.mounted) Navigator.pop(ctx);
               },
               child: const Text('Kirim Pengumuman'),
             ),
@@ -465,7 +465,7 @@ class _InformasiDokumentasiScreenState extends State<InformasiDokumentasiScreen>
           TextButton(
             onPressed: () async {
               await DataService.deletePengumuman(p.id);
-              if (mounted) Navigator.pop(ctx);
+              if (ctx.mounted) Navigator.pop(ctx);
             },
             child: const Text('Hapus', style: TextStyle(color: Colors.redAccent)),
           ),
@@ -754,7 +754,7 @@ class _InformasiDokumentasiScreenState extends State<InformasiDokumentasiScreen>
               );
 
               await DataService.saveDokumentasi(item);
-              if (mounted) Navigator.pop(ctx);
+              if (ctx.mounted) Navigator.pop(ctx);
             },
             child: const Text('Simpan'),
           ),
@@ -774,7 +774,7 @@ class _InformasiDokumentasiScreenState extends State<InformasiDokumentasiScreen>
           TextButton(
             onPressed: () async {
               await DataService.deleteDokumentasi(item.id);
-              if (mounted) Navigator.pop(ctx);
+              if (ctx.mounted) Navigator.pop(ctx);
             },
             child: const Text('Hapus', style: TextStyle(color: Colors.redAccent)),
           ),

@@ -2669,7 +2669,9 @@ class DataService {
 
       if (nama.isEmpty || nisRaw.isEmpty) continue;
       if (nama.toLowerCase().contains('nama') ||
-          nama.toLowerCase().contains('pertemuan')) continue;
+          nama.toLowerCase().contains('pertemuan')) {
+        continue;
+      }
 
       String nis = nisRaw;
       if (nis.endsWith('.0')) nis = nis.substring(0, nis.length - 2);
@@ -2784,8 +2786,9 @@ class DataService {
   /// Hapus siswa berdasarkan NIS yang ada di file Excel
   static Future<int> deleteStudentsFromExcel(List<int> bytes) async {
     final rows = _parseExcel(bytes);
-    if (rows.isEmpty)
+    if (rows.isEmpty) {
       throw Exception('File kosong atau format tidak dikenali.');
+    }
 
     final nisList =
         rows.map((r) => r['nis']!).where((n) => n.isNotEmpty).toList();

@@ -359,7 +359,7 @@ class _EvaluasiScreenState extends State<EvaluasiScreen>
               );
 
               await DataService.saveEvaluasi(item);
-              if (mounted) Navigator.pop(ctx);
+              if (ctx.mounted) Navigator.pop(ctx);
             },
             child: const Text('Simpan Evaluasi'),
           ),
@@ -379,7 +379,7 @@ class _EvaluasiScreenState extends State<EvaluasiScreen>
           TextButton(
             onPressed: () async {
               await DataService.deleteEvaluasi(e.id);
-              if (mounted) Navigator.pop(ctx);
+              if (ctx.mounted) Navigator.pop(ctx);
             },
             child: const Text('Hapus', style: TextStyle(color: Colors.redAccent)),
           ),

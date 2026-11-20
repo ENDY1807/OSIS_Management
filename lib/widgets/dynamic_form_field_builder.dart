@@ -71,7 +71,7 @@ class DynamicFormFieldBuilder {
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: DropdownButtonFormField<String>(
-              value: selectedValue,
+              initialValue: selectedValue,
               decoration: InputDecoration(
                 labelText: fieldLabel,
                 labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),

@@ -526,7 +526,7 @@ class AdministrasiScreenState extends State<AdministrasiScreen>
                 );
 
                 await DataService.saveInventaris(item);
-                if (mounted) Navigator.pop(ctx);
+                if (ctx.mounted) Navigator.pop(ctx);
               },
               child: const Text('Simpan'),
             ),
@@ -577,7 +577,7 @@ class AdministrasiScreenState extends State<AdministrasiScreen>
                 item.peminjam = p;
               }
               await DataService.saveInventaris(item);
-              if (mounted) Navigator.pop(ctx);
+              if (ctx.mounted) Navigator.pop(ctx);
             },
             child: Text(isDipinjam ? 'Sudah Kembali' : 'Simpan Peminjaman'),
           ),
@@ -597,7 +597,7 @@ class AdministrasiScreenState extends State<AdministrasiScreen>
           TextButton(
             onPressed: () async {
               await DataService.deleteInventaris(item.id);
-              if (mounted) Navigator.pop(ctx);
+              if (ctx.mounted) Navigator.pop(ctx);
             },
             child: const Text('Hapus', style: TextStyle(color: Colors.redAccent)),
           ),

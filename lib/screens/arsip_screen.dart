@@ -223,8 +223,9 @@ class ArsipScreenState extends State<ArsipScreen> {
   // Files inside current path
   List<Arsip> get _currentFiles {
     var files = _allArsip.where((a) {
-      if (a.keterangan == '__folder__' || a.nomorSurat == '__dir__')
+      if (a.keterangan == '__folder__' || a.nomorSurat == '__dir__') {
         return false;
+      }
       if (_currentPath.isEmpty) {
         return a.kategori.isEmpty || a.kategori == 'Root';
       }
@@ -1602,8 +1603,8 @@ class ArsipScreenState extends State<ArsipScreen> {
     String? pickedFileName;
     Uint8List? pickedFileBytes;
     bool uploading = false;
-    final sekbid = await AuthService.getUserName() ?? '';
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final sekbid = await AuthService.getUserName() ?? '';
 
     for (final field in configuredFields) {
       if (field.id == 'ars_nama') {
@@ -1730,13 +1731,7 @@ class ArsipScreenState extends State<ArsipScreen> {
                           );
                           if (result == null) return;
                           final f = result.files.first;
-                          Uint8List? fBytes;
-                          if (f.bytes != null) {
-                            fBytes = f.bytes;
-                          } else if (f.path != null) {
-                            fBytes = await File(f.path!).readAsBytes();
-                          }
-                          if (fBytes == null) return;
+                          final fBytes = await f.readAsBytes();
 
                           if (fBytes.lengthInBytes > maxMb * 1024 * 1024) {
                             if (ctx.mounted) {
@@ -2253,8 +2248,9 @@ class ArsipScreenState extends State<ArsipScreen> {
                                   );
                                 }
                               } finally {
-                                if (ctx.mounted)
+                                if (ctx.mounted) {
                                   setModal(() => downloading = false);
+                                }
                               }
                             },
                     ),
@@ -3008,8 +3004,9 @@ class ArsipScreenState extends State<ArsipScreen> {
                                 if (val == 'move') {
                                   _showMoveDialog([], foldersToMove: [path]);
                                 }
-                                if (val == 'rename')
+                                if (val == 'rename') {
                                   _showRenameFolderDialog(path);
+                                }
                                 if (val == 'delete') {
                                   _selectedFolderPaths.add(path);
                                   await _deleteSelected();

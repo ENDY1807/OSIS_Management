@@ -501,18 +501,16 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
     try {
       final res = await FilePicker.pickFiles(
         type: FileType.image,
-        withData: true,
       );
       if (res != null && res.files.isNotEmpty) {
         final file = res.files.first;
-        final bytes = file.bytes;
-        if (bytes != null) {
-          final ext = file.extension?.toLowerCase() ?? 'png';
-          final base64String = base64Encode(bytes);
-          final dataUrl = 'data:image/$ext;base64,$base64String';
-          setState(() {
-            _logoUrlCtrl.text = dataUrl;
-          });
+        final bytes = await file.readAsBytes();
+        final ext = file.extension?.toLowerCase() ?? 'png';
+        final base64String = base64Encode(bytes);
+        final dataUrl = 'data:image/$ext;base64,$base64String';
+        setState(() {
+          _logoUrlCtrl.text = dataUrl;
+        });
           AppSettingsService.setLogoUrl(dataUrl);
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -529,7 +527,6 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
             );
           }
         }
-      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1168,11 +1165,8 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
               physics: const NeverScrollableScrollPhysics(),
               itemCount: currentFields.length,
               buildDefaultDragHandles: false,
-              onReorder: (int oldIndex, int newIndex) {
+              onReorderItem: (int oldIndex, int newIndex) {
                 setState(() {
-                  if (newIndex > oldIndex) {
-                    newIndex -= 1;
-                  }
                   final item = currentFields.removeAt(oldIndex);
                   currentFields.insert(newIndex, item);
                   _customFieldsMap[_selectedConfigModule] = currentFields;

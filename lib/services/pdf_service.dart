@@ -834,10 +834,15 @@ $pesertaXml
         final match = s.items.where((it) => it.anggotaId == a.id || it.nama.toLowerCase() == a.nama.toLowerCase());
         if (match.isNotEmpty) {
           final st = match.first.status.toLowerCase();
-          if (st.contains('hadir')) hadir++;
-          else if (st.contains('izin')) izin++;
-          else if (st.contains('sakit')) sakit++;
-          else alpa++;
+          if (st.contains('hadir')) {
+            hadir++;
+          } else if (st.contains('izin')) {
+            izin++;
+          } else if (st.contains('sakit')) {
+            sakit++;
+          } else {
+            alpa++;
+          }
         }
       }
 

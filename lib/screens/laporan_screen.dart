@@ -169,7 +169,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: DropdownButtonFormField<String>(
-                      value: selectedSekbid,
+                      initialValue: selectedSekbid,
                       decoration: InputDecoration(
                         labelText: 'Unit / Sekbid Penyelenggara',
                         labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
@@ -210,7 +210,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: DropdownButtonFormField<String>(
-                    value: status,
+                    initialValue: status,
                     decoration: InputDecoration(
                       labelText: 'Status Laporan',
                       labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),

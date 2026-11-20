@@ -89,6 +89,7 @@ class _UserSettingsSheetState extends State<UserSettingsSheet> {
                 await AuthService.changePassword(widget.username, passC.text.trim());
                 if (!ctx.mounted) return;
                 Navigator.pop(ctx);
+                if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(LocalizationService.tr('msg_saved')),

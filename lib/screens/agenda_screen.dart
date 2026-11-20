@@ -551,7 +551,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
                 );
 
                 await DataService.saveAgenda(item);
-                if (mounted) Navigator.pop(ctx);
+                if (ctx.mounted) Navigator.pop(ctx);
               },
               child: const Text('Simpan'),
             ),
@@ -572,7 +572,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
           TextButton(
             onPressed: () async {
               await DataService.deleteAgenda(a.id);
-              if (mounted) Navigator.pop(ctx);
+              if (ctx.mounted) Navigator.pop(ctx);
             },
             child: const Text('Hapus', style: TextStyle(color: Colors.redAccent)),
           ),
