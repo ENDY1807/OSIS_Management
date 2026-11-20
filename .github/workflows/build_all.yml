@@ -37,10 +37,10 @@ jobs:
         run: chmod +x android/gradlew
 
       - name: Build Android Release APK
-        run: flutter build apk --release
+        run: flutter build apk --release --verbose
 
       - name: Build Android Release AAB
-        run: flutter build appbundle --release
+        run: flutter build appbundle --release --verbose
 
       - name: Prepare Android Artifacts
         run: |

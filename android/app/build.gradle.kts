@@ -35,7 +35,7 @@ android {
 
     defaultConfig {
         applicationId = "com.endy.osis_management"
-        minSdk = flutter.minSdkVersion
+        minSdk = 21
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
