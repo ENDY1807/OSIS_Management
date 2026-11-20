@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import '../models/models.dart';
 import '../services/data_service.dart';
 import '../services/auth_service.dart';
-import '../services/sync_service.dart';
 
 class EvaluasiScreen extends StatefulWidget {
   final String username;
@@ -25,7 +24,6 @@ class _EvaluasiScreenState extends State<EvaluasiScreen>
   late TabController _tabCtrl;
   List<EvaluasiProker> _evaluasiList = [];
   List<Proker> _prokerList = [];
-  List<AnggotaOsis> _anggotaList = [];
   List<AktivitasPengguna> _aktivitasList = [];
 
   bool _loading = true;
@@ -65,14 +63,12 @@ class _EvaluasiScreenState extends State<EvaluasiScreen>
     try {
       final evl = await DataService.getEvaluasi();
       final prk = await DataService.getProker();
-      final ang = await DataService.getAnggotaOsis();
       final akt = await DataService.getAktivitas();
 
       if (!mounted) return;
       setState(() {
         _evaluasiList = evl;
         _prokerList = prk;
-        _anggotaList = ang;
         _aktivitasList = akt;
         _loading = false;
       });

@@ -35,7 +35,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   StreamSubscription<String>? _dataSub;
 
   final _currencyFmt = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
-  final _dateFmt = DateFormat('EEEE, d MMMM yyyy', 'id_ID');
 
   @override
   void initState() {
@@ -307,7 +306,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           _buildMetricTile(
             title: 'Program Kerja',
-            value: '${_prokerSelesai} / ${_prokerList.length}',
+            value: '$_prokerSelesai / ${_prokerList.length}',
             icon: Icons.task_alt_rounded,
             color: const Color(0xFF8B5CF6),
             subtitle: '$_prokerBerjalan Sedang Berjalan',

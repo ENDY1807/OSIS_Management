@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import '../models/models.dart';
 import '../services/data_service.dart';
 import '../services/auth_service.dart';
-import '../services/sync_service.dart';
 
 class AgendaScreen extends StatefulWidget {
   final String username;
@@ -23,7 +22,6 @@ class _AgendaScreenState extends State<AgendaScreen> {
   String _searchQuery = '';
   final TextEditingController _searchCtrl = TextEditingController();
 
-  final _dateFmt = DateFormat('EEEE, d MMMM yyyy', 'id_ID');
   final _timeFmt = DateFormat('HH:mm', 'id_ID');
 
   bool get _canManage =>

@@ -408,7 +408,7 @@ class AdministrasiScreenState extends State<AdministrasiScreen>
                   child: Row(
                     children: [
                       Icon(Icons.edit_outlined, size: 18, color: Colors.blueGrey),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       Text('Edit Detail'),
                     ],
                   ),
@@ -418,7 +418,7 @@ class AdministrasiScreenState extends State<AdministrasiScreen>
                   child: Row(
                     children: [
                       Icon(Icons.delete_outline_rounded, size: 18, color: Colors.redAccent),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       Text('Hapus Barang'),
                     ],
                   ),
