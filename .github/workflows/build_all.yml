@@ -48,6 +48,13 @@ jobs:
           echo '```text' >> $GITHUB_STEP_SUMMARY
           tail -n 150 build_apk.log >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -B build-error-log
+          tail -n 300 build_apk.log > ERROR_LOG.txt
+          git add ERROR_LOG.txt
+          git commit -m "ci: android build error log [skip ci]"
+          git push -f origin build-error-log
 
       - name: Upload Build Log Artifact
         if: failure()
