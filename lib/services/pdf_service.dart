@@ -685,4 +685,182 @@ $pesertaXml
     await file.writeAsBytes(zipBytes);
     return file;
   }
+
+  // ── 2. Cetak Data Pengurus OSIS ───────────────────────────────────────────
+  static Future<void> cetakDataPengurus(List<AnggotaOsis> list) async {
+    final headers = ['No', 'Nama Lengkap', 'Jabatan', 'Bidang', 'Kelas / Jurusan', 'NIS / NISN', 'WhatsApp', 'Status'];
+    final rows = <List<String>>[];
+    for (int i = 0; i < list.length; i++) {
+      final a = list[i];
+      rows.add([
+        '${i + 1}',
+        a.nama,
+        a.jabatan,
+        a.bidang,
+        '${a.kelas} ${a.jurusan}'.trim(),
+        '${a.nis}${a.nisn.isNotEmpty ? ' / ${a.nisn}' : ''}',
+        a.noHp.isNotEmpty ? a.noHp : '-',
+        a.statusKeaktifan,
+      ]);
+    }
+    await cetakRekapDinamis(
+      judul: 'DAFTAR SUSUNAN PENGURUS OSIS',
+      headers: headers,
+      rows: rows,
+      periodeLabel: 'Masa Bakti Aktif',
+    );
+  }
+
+  // ── 3. Cetak Daftar Inventaris OSIS ───────────────────────────────────────
+  static Future<void> cetakDaftarInventaris(List<InventarisOsis> list) async {
+    final headers = ['No', 'Kode', 'Nama Barang', 'Kategori', 'Jml', 'Kondisi', 'Lokasi', 'Status'];
+    final rows = <List<String>>[];
+    for (int i = 0; i < list.length; i++) {
+      final item = list[i];
+      rows.add([
+        '${i + 1}',
+        item.kodeBarang.isNotEmpty ? item.kodeBarang : '-',
+        item.namaBarang,
+        item.kategori,
+        '${item.jumlah}',
+        item.kondisi,
+        item.lokasiSimpan,
+        item.statusPeminjaman,
+      ]);
+    }
+    await cetakRekapDinamis(
+      judul: 'DAFTAR INVENTARIS BARANG DAN ASET OSIS',
+      headers: headers,
+      rows: rows,
+      periodeLabel: 'Tahun Pelajaran Berjalan',
+    );
+  }
+
+  // ── 7. Cetak Laporan Keuangan OSIS ────────────────────────────────────────
+  static Future<void> cetakLaporanKeuangan({
+    required List<KasOsisTransaksi> transaksi,
+    required int totalMasuk,
+    required int totalKeluar,
+    required int saldo,
+  }) async {
+    final fmtRp = NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0);
+    final fmtDate = DateFormat('dd/MM/yyyy');
+
+    final headers = ['No', 'Tanggal', 'Jenis', 'Uraian Transaksi', 'Kategori', 'PJ', 'Nominal'];
+    final rows = <List<String>>[];
+    for (int i = 0; i < transaksi.length; i++) {
+      final t = transaksi[i];
+      final isMasuk = t.jenis.toLowerCase() == 'masuk';
+      rows.add([
+        '${i + 1}',
+        fmtDate.format(t.tanggal),
+        isMasuk ? 'Pemasukan' : 'Pengeluaran',
+        t.judul,
+        t.kategori,
+        t.penanggungJawab.isNotEmpty ? t.penanggungJawab : '-',
+        '${isMasuk ? '+' : '-'} ${fmtRp.format(t.nominal)}',
+      ]);
+    }
+
+    final pdf = pw.Document();
+    final tanggal = DateFormat('dd MMMM yyyy', 'id').format(DateTime.now());
+
+    pdf.addPage(pw.MultiPage(
+      pageFormat: PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.all(36),
+      header: (context) => _schoolHeader(judul: 'LAPORAN REKAPITULASI KEUANGAN OSIS', periodeLabel: 'Laporan Buku Kas', tanggal: tanggal),
+      build: (ctx) => [
+        pw.Container(
+          padding: const pw.EdgeInsets.all(10),
+          decoration: pw.BoxDecoration(
+            color: PdfColors.grey100,
+            borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
+            border: pw.Border.all(color: PdfColors.grey300),
+          ),
+          child: pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
+            children: [
+              pw.Column(children: [
+                pw.Text('Total Pemasukan', style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
+                pw.SizedBox(height: 2),
+                pw.Text(fmtRp.format(totalMasuk), style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.green700)),
+              ]),
+              pw.Column(children: [
+                pw.Text('Total Pengeluaran', style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
+                pw.SizedBox(height: 2),
+                pw.Text(fmtRp.format(totalKeluar), style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.red700)),
+              ]),
+              pw.Column(children: [
+                pw.Text('Saldo Kas Bersih', style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
+                pw.SizedBox(height: 2),
+                pw.Text(fmtRp.format(saldo), style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: _primaryColor)),
+              ]),
+            ],
+          ),
+        ),
+        pw.SizedBox(height: 14),
+        pw.TableHelper.fromTextArray(
+          border: _tableBorder(),
+          headerStyle: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 9),
+          headerDecoration: pw.BoxDecoration(color: _headerBgColor),
+          cellAlignment: pw.Alignment.centerLeft,
+          cellStyle: const pw.TextStyle(fontSize: 8),
+          headers: headers,
+          data: rows,
+        ),
+      ],
+      footer: _footer,
+    ));
+
+    await Printing.layoutPdf(onLayout: (_) => pdf.save());
+  }
+
+  // ── 6. Cetak Rekapitulasi Absensi Pengurus ─────────────────────────────────
+  static Future<void> cetakRekapAbsensiOsis({
+    required List<AbsensiOsisSession> sessions,
+    required List<AnggotaOsis> anggota,
+  }) async {
+    final headers = ['No', 'Nama Pengurus', 'Jabatan / Sekbid', 'Hadir', 'Izin', 'Sakit', 'Alpa', '% Kehadiran'];
+    final rows = <List<String>>[];
+
+    for (int i = 0; i < anggota.length; i++) {
+      final a = anggota[i];
+      int hadir = 0;
+      int izin = 0;
+      int sakit = 0;
+      int alpa = 0;
+
+      for (final s in sessions) {
+        final match = s.items.where((it) => it.anggotaId == a.id || it.nama.toLowerCase() == a.nama.toLowerCase());
+        if (match.isNotEmpty) {
+          final st = match.first.status.toLowerCase();
+          if (st.contains('hadir')) hadir++;
+          else if (st.contains('izin')) izin++;
+          else if (st.contains('sakit')) sakit++;
+          else alpa++;
+        }
+      }
+
+      final totalSesi = hadir + izin + sakit + alpa;
+      final pct = totalSesi > 0 ? ((hadir / totalSesi) * 100).toStringAsFixed(1) : '100.0';
+
+      rows.add([
+        '${i + 1}',
+        a.nama,
+        '${a.jabatan} (${a.bidang})',
+        '$hadir',
+        '$izin',
+        '$sakit',
+        '$alpa',
+        '$pct%',
+      ]);
+    }
+
+    await cetakRekapDinamis(
+      judul: 'REKAPITULASI KEDISIPLINAN DAN ABSENSI PENGURUS OSIS',
+      headers: headers,
+      rows: rows,
+      periodeLabel: 'Total ${sessions.length} Kegiatan / Rapat',
+    );
+  }
 }

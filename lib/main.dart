@@ -3,11 +3,14 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'screens/karakter_siswa_screen.dart';
-import 'screens/rekap_screen.dart';
 import 'screens/manajemen_screen.dart';
 import 'screens/proker_screen.dart';
-import 'screens/arsip_screen.dart';
-import 'screens/laporan_screen.dart';
+import 'screens/dashboard_screen.dart';
+import 'screens/profil_osis_screen.dart';
+import 'screens/administrasi_screen.dart';
+import 'screens/agenda_screen.dart';
+import 'screens/informasi_dokumentasi_screen.dart';
+import 'screens/evaluasi_screen.dart';
 import 'services/data_service.dart';
 import 'services/auth_service.dart';
 import 'services/sync_service.dart';
@@ -156,7 +159,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     });
   }
 
-  final GlobalKey<ArsipScreenState> _arsipKey = GlobalKey<ArsipScreenState>();
+  final GlobalKey<AdministrasiScreenState> _administrasiKey = GlobalKey<AdministrasiScreenState>();
 
   Future<void> _refreshUser() async {
     final u = await AuthService.getUserName() ?? '';
@@ -181,9 +184,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   void _handleBackPress() {
-    // 1. If on Arsip tab and inside a subfolder, go up one folder level first
-    if (_idx == 2 && _arsipKey.currentState?.canGoUp == true) {
-      _arsipKey.currentState?.goUp();
+    // 1. If on Administrasi tab and inside a subfolder, go up one folder level first
+    if (_idx == 4 && _administrasiKey.currentState?.canGoUp == true) {
+      _administrasiKey.currentState?.goUp();
       return;
     }
 
@@ -246,12 +249,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   List<Widget> get _screens => [
+    DashboardScreen(key: ValueKey('dash_$_username'), username: _username, onNavigateTab: _onTabSelected),
+    ProfilOsisScreen(key: ValueKey('profil_$_username'), username: _username),
     ProkerScreen(key: ValueKey('proker_${_username}_${LocalizationService.currentLocale.value.languageCode}'), username: _username),
-    LaporanScreen(key: ValueKey('laporan_${_username}_${LocalizationService.currentLocale.value.languageCode}'), username: _username),
-    ArsipScreen(key: _arsipKey, username: _username),
+    AgendaScreen(key: ValueKey('agenda_$_username'), username: _username),
+    AdministrasiScreen(key: _administrasiKey, username: _username),
     KasOsisScreen(key: ValueKey('kas_${_username}_${LocalizationService.currentLocale.value.languageCode}'), username: _username),
+    InformasiDokumentasiScreen(key: ValueKey('infodok_$_username'), username: _username),
+    EvaluasiScreen(key: ValueKey('evaluasi_$_username'), username: _username),
     KarakterSiswaScreen(key: ValueKey('karakter_${_username}_${LocalizationService.currentLocale.value.languageCode}'), username: _username),
-    RekapScreen(key: ValueKey('rekap_${LocalizationService.currentLocale.value.languageCode}')),
   ];
 
   @override
@@ -262,12 +268,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final isDesktop = MediaQuery.of(context).size.width >= 800;
 
     final navItems = [
-      (title: LocalizationService.tr('nav_proker'),      icon: Icons.assignment_outlined,        activeIcon: Icons.assignment_rounded),
-      (title: LocalizationService.tr('nav_laporan'),     icon: Icons.article_outlined,           activeIcon: Icons.article_rounded),
-      (title: LocalizationService.tr('nav_arsip'),       icon: Icons.folder_outlined,            activeIcon: Icons.folder_rounded),
-      (title: 'Kas & Absen',                             icon: Icons.account_balance_wallet_outlined, activeIcon: Icons.account_balance_wallet_rounded),
-      (title: 'Karakter',                                icon: Icons.verified_user_outlined,     activeIcon: Icons.verified_user_rounded),
-      (title: LocalizationService.tr('nav_rekap'),       icon: Icons.bar_chart_outlined,         activeIcon: Icons.bar_chart_rounded),
+      (title: 'Beranda',           icon: Icons.dashboard_outlined,             activeIcon: Icons.dashboard_rounded),
+      (title: 'Profil & Pengurus', icon: Icons.badge_outlined,                 activeIcon: Icons.badge_rounded),
+      (title: 'Program Kerja',     icon: Icons.assignment_outlined,            activeIcon: Icons.assignment_rounded),
+      (title: 'Kalender & Agenda', icon: Icons.calendar_month_outlined,        activeIcon: Icons.calendar_month_rounded),
+      (title: 'Administrasi',      icon: Icons.folder_shared_outlined,         activeIcon: Icons.folder_shared_rounded),
+      (title: 'Kas & Absensi',     icon: Icons.account_balance_wallet_outlined, activeIcon: Icons.account_balance_wallet_rounded),
+      (title: 'Pengumuman & Media',icon: Icons.campaign_outlined,              activeIcon: Icons.campaign_rounded),
+      (title: 'Evaluasi & Rekap',  icon: Icons.rate_review_outlined,           activeIcon: Icons.rate_review_rounded),
+      (title: 'Karakter Siswa',    icon: Icons.verified_user_outlined,         activeIcon: Icons.verified_user_rounded),
     ];
 
     if (isDesktop) {
@@ -723,59 +732,64 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             top: false,
             child: SizedBox(
               height: 60,
-              child: Row(
-                children: List.generate(navItems.length, (i) {
-                  final item = navItems[i];
-                  final isSelected = _idx == i;
-                  return Expanded(
-                    child: InkWell(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  children: List.generate(navItems.length, (i) {
+                    final item = navItems[i];
+                    final isSelected = _idx == i;
+                    return InkWell(
                       onTap: () {
                         _onTabSelected(i);
                         DataService.notifyDataChanged('all');
                       },
                       splashColor: primary.withAlpha(20),
                       highlightColor: Colors.transparent,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            curve: Curves.easeOut,
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3.5),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? primary.withAlpha(isDark ? 45 : 30)
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              curve: Curves.easeOut,
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3.5),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? primary.withAlpha(isDark ? 45 : 30)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Icon(
+                                isSelected ? item.activeIcon : item.icon,
+                                size: 20,
+                                color: isSelected
+                                    ? primary
+                                    : (isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                              ),
                             ),
-                            child: Icon(
-                              isSelected ? item.activeIcon : item.icon,
-                              size: 20,
-                              color: isSelected
-                                  ? primary
-                                  : (isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                            const SizedBox(height: 3),
+                            Text(
+                              item.title,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                color: isSelected
+                                    ? (isDark ? Colors.white : primary)
+                                    : (isDark ? const Color(0xFF64748B) : const Color(0xFF64748B)),
+                                letterSpacing: 0.1,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
                             ),
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            item.title,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                              color: isSelected
-                                  ? (isDark ? Colors.white : primary)
-                                  : (isDark ? const Color(0xFF64748B) : const Color(0xFF64748B)),
-                              letterSpacing: 0.1,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  );
-                }),
+                    );
+                  }),
+                ),
               ),
             ),
           ),

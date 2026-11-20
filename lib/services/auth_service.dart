@@ -449,6 +449,110 @@ class AuthService {
   /// namun pengeditan dibatasi oleh canEditKasAndAbsensi.
   static bool canAccessKasAndAbsensi(String username) => true;
 
+  // ── 11. HAK AKSES APLIKASI (RBAC) SESUAI TINGKATAN PENGGUNA ─────────────
+
+  /// Cek apakah pengguna adalah Ketua OSIS
+  static bool isKetua(String username) {
+    if (username.isEmpty || isReadOnly(username)) return false;
+    final u = normalizeUsername(username);
+    final r = getRole(u).toUpperCase();
+    return u == 'KETUA' || r == 'KETUA' || r == 'KETUA_OSIS';
+  }
+
+  /// Cek apakah pengguna adalah Wakil Ketua OSIS
+  static bool isWakil(String username) {
+    if (username.isEmpty || isReadOnly(username)) return false;
+    final u = normalizeUsername(username);
+    final r = getRole(u).toUpperCase();
+    return u.startsWith('WAKIL') || r.startsWith('WAKIL');
+  }
+
+  /// Cek apakah pengguna adalah Sekretaris OSIS
+  static bool isSekretaris(String username) {
+    if (username.isEmpty || isReadOnly(username)) return false;
+    final u = normalizeUsername(username);
+    final r = getRole(u).toUpperCase();
+    return u.startsWith('SEKRETARIS') || r.startsWith('SEKRETARIS');
+  }
+
+  /// Cek apakah pengguna adalah Bendahara OSIS
+  static bool isBendahara(String username) {
+    if (username.isEmpty || isReadOnly(username)) return false;
+    final u = normalizeUsername(username);
+    final r = getRole(u).toUpperCase();
+    return u.startsWith('BENDAHARA') || r.startsWith('BENDAHARA');
+  }
+
+  /// Cek apakah pengguna adalah Pembina OSIS
+  static bool isPembina(String username) {
+    if (username.isEmpty || isReadOnly(username)) return false;
+    final u = normalizeUsername(username);
+    final r = getRole(u).toUpperCase();
+    return u == 'PEMBINA' || r == 'PEMBINA' || u == 'KESISWAAN' || r == 'KESISWAAN' || isKepalaSekolah(u) || isAdmin(u);
+  }
+
+  /// Cek apakah pengguna adalah Koordinator Bidang (Sekbid 1..10)
+  static bool isKoordinatorBidang(String username) {
+    if (username.isEmpty || isReadOnly(username)) return false;
+    final u = normalizeUsername(username);
+    final r = getRole(u).toUpperCase();
+    return u.startsWith('SEKBID') || r.startsWith('SEKBID') || r == 'KOORDINATOR_BIDANG';
+  }
+
+  /// Cek apakah pengguna adalah Anggota OSIS biasa
+  static bool isAnggotaOsis(String username) {
+    if (username.isEmpty) return false;
+    final u = normalizeUsername(username);
+    final r = getRole(u).toUpperCase();
+    return r == 'ANGGOTA' || r == 'ANGGOTA_OSIS' || isReadOnly(u);
+  }
+
+  /// Hak Kelola Organisasi (Profil OSIS, Pengurus, AD/ART): Admin, Pembina, Ketua, Wakil
+  static bool canManageOrganisasi(String username) {
+    return isAdmin(username) || isPembina(username) || isKetua(username) || isWakil(username);
+  }
+
+  /// Hak Kelola Administrasi & Surat: Admin, Ketua, Wakil, Sekretaris
+  static bool canManageAdministrasi(String username) {
+    return isAdmin(username) || isKetua(username) || isWakil(username) || isSekretaris(username);
+  }
+
+  /// Hak Kelola Keuangan OSIS: Admin, Bendahara, Ketua, Pembina
+  static bool canManageKeuangan(String username) {
+    return isAdmin(username) || isBendahara(username) || isKetua(username) || isPembina(username);
+  }
+
+  /// Hak Kelola Program Kerja: Admin, Pembina, Ketua, Wakil, atau Koordinator Bidang terkait
+  static bool canManageProker(String username, [String? targetSekbid]) {
+    if (isAdmin(username) || isPembina(username) || isKetua(username) || isWakil(username)) return true;
+    if (isKoordinatorBidang(username)) {
+      if (targetSekbid == null) return true;
+      final u = normalizeUsername(username);
+      return targetSekbid.toUpperCase() == u;
+    }
+    return false;
+  }
+
+  /// Hak Menyetujui / Memantau Kegiatan: Pembina OSIS, Kepala Sekolah, Admin, Ketua OSIS
+  static bool canApproveKegiatan(String username) {
+    return isAdmin(username) || isKepalaSekolah(username) || isPembina(username) || isKetua(username);
+  }
+
+  /// Hak Kelola Inventaris OSIS: Admin, Ketua, Wakil, Sekretaris
+  static bool canManageInventaris(String username) {
+    return isAdmin(username) || isKetua(username) || isWakil(username) || isSekretaris(username);
+  }
+
+  /// Hak Buat / Kirim Pengumuman: Admin, Pembina, Ketua, Wakil, Sekretaris, Koordinator Bidang
+  static bool canPostPengumuman(String username) {
+    return isAdmin(username) || isPembina(username) || isKetua(username) || isWakil(username) || isSekretaris(username) || isKoordinatorBidang(username);
+  }
+
+  /// Hak Menilai Kinerja Pengurus: Pembina, Ketua, Wakil, Admin
+  static bool canNilaiKinerja(String username) {
+    return isAdmin(username) || isPembina(username) || isKetua(username) || isWakil(username);
+  }
+
   /// Autentikasi user dengan pengecekan online Supabase + fallback offline cache.
   static Future<bool> authenticate(String username, String password) async {
     final uname = normalizeUsername(username);

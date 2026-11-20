@@ -207,6 +207,11 @@ class _ProkerScreenState extends State<ProkerScreen>
       selectedSekbid = prokerUnits.isNotEmpty ? prokerUnits.first : 'SEKBID1';
     }
 
+    final tujuanCtrl = TextEditingController(text: existing?.tujuanKegiatan ?? '');
+    final tempatCtrl = TextEditingController(text: existing?.tempatKegiatan ?? '');
+    final anggaranCtrl = TextEditingController(text: existing?.anggaran != null && existing!.anggaran > 0 ? '${existing.anggaran}' : '');
+    final dokCtrl = TextEditingController(text: existing?.dokumentasiUrls.join(', ') ?? '');
+
     for (final field in configuredFields) {
       if (field.id == 'prok_nama') {
         controllers[field.id] =
@@ -300,7 +305,7 @@ class _ProkerScreenState extends State<ProkerScreen>
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: DropdownButtonFormField<String>(
-                          value: prokerUnits.contains(currentVal) ? currentVal : (prokerUnits.isNotEmpty ? prokerUnits.first : null),
+                          initialValue: prokerUnits.contains(currentVal) ? currentVal : (prokerUnits.isNotEmpty ? prokerUnits.first : null),
                           decoration: InputDecoration(
                             labelText:
                                 field.label + (field.isRequired ? ' *' : ''),
@@ -347,7 +352,7 @@ class _ProkerScreenState extends State<ProkerScreen>
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: DropdownButtonFormField<String>(
-                        value: currentStatus,
+                        initialValue: currentStatus,
                         decoration: InputDecoration(
                           labelText:
                               field.label + (field.isRequired ? ' *' : ''),
@@ -376,7 +381,48 @@ class _ProkerScreenState extends State<ProkerScreen>
                     setModalState: setModal,
                   );
                 }),
+                const SizedBox(height: 4),
+                TextField(
+                  controller: tujuanCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Tujuan Kegiatan',
+                    prefixIcon: Icon(Icons.track_changes_rounded, color: kAccent),
+                  ),
+                ),
                 const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: tempatCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Tempat Kegiatan',
+                          prefixIcon: Icon(Icons.place_outlined, color: kAccent),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: anggaranCtrl,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Anggaran (Rp)',
+                          prefixIcon: Icon(Icons.monetization_on_outlined, color: kAccent),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: dokCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Link Dokumentasi Kegiatan (URL)',
+                    prefixIcon: Icon(Icons.link_rounded, color: kAccent),
+                  ),
+                ),
+                const SizedBox(height: 14),
                 ElevatedButton(
                   onPressed: isSaving ? null : () async {
                     final rawNama = controllers['prok_nama']?.text.trim();
@@ -440,6 +486,10 @@ class _ProkerScreenState extends State<ProkerScreen>
                         keterangan: keterangan,
                         disahkanKepsek: existing?.disahkanKepsek ?? false,
                         catatanKepsek: existing?.catatanKepsek ?? '',
+                        tujuanKegiatan: tujuanCtrl.text.trim(),
+                        tempatKegiatan: tempatCtrl.text.trim(),
+                        anggaran: int.tryParse(anggaranCtrl.text.trim().replaceAll('.', '').replaceAll(',', '')) ?? 0,
+                        dokumentasiUrls: dokCtrl.text.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList(),
                       );
 
                       if (existing == null) {
@@ -666,6 +716,14 @@ class _ProkerScreenState extends State<ProkerScreen>
                           .format(p.tanggalRealisasi!),
                       color: const Color(0xFF10B981),
                       isDark: isDark),
+                if (p.tujuanKegiatan.isNotEmpty)
+                  _chip(Icons.track_changes_rounded, 'Tujuan: ${p.tujuanKegiatan}', isDark: isDark),
+                if (p.tempatKegiatan.isNotEmpty)
+                  _chip(Icons.place_outlined, p.tempatKegiatan, isDark: isDark),
+                if (p.anggaran > 0)
+                  _chip(Icons.monetization_on_outlined, NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0).format(p.anggaran), isDark: isDark, color: Colors.amber),
+                if (p.dokumentasiUrls.isNotEmpty)
+                  _chip(Icons.link_rounded, 'Dokumentasi (${p.dokumentasiUrls.length})', isDark: isDark, color: Colors.blueAccent),
               ],
             ),
             if (p.catatanKepsek.isNotEmpty) ...[

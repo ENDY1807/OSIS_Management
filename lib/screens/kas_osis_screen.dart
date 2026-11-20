@@ -9,6 +9,7 @@ import '../services/data_service.dart';
 import '../services/auth_service.dart';
 import '../services/sync_service.dart';
 import '../services/app_settings_service.dart';
+import '../services/pdf_service.dart';
 import '../widgets/nusantara_decorations.dart';
 
 class KasOsisScreen extends StatefulWidget {
@@ -1415,6 +1416,33 @@ class _KasOsisScreenState extends State<KasOsisScreen>
     );
   }
 
+  void _handlePrintPdf() {
+    if (_tabCtrl.index == 1) {
+      // Absensi
+      PdfService.cetakRekapAbsensiOsis(sessions: _absensiSessions, anggota: _anggotaList);
+    } else if (_tabCtrl.index == 2) {
+      // Buku Kas
+      int masuk = 0;
+      int keluar = 0;
+      for (final t in _transaksiList) {
+        if (t.jenis.toLowerCase() == 'masuk') {
+          masuk += t.nominal;
+        } else {
+          keluar += t.nominal;
+        }
+      }
+      PdfService.cetakLaporanKeuangan(
+        transaksi: _transaksiList,
+        totalMasuk: masuk,
+        totalKeluar: keluar,
+        saldo: masuk - keluar,
+      );
+    } else {
+      // Anggota OSIS or Kas
+      PdfService.cetakDataPengurus(_anggotaList);
+    }
+  }
+
   // ── BUILD UTAMA SCREEN ─────────────────────────────────────────────────────
 
   @override
@@ -1439,30 +1467,44 @@ class _KasOsisScreenState extends State<KasOsisScreen>
           ),
           child: SafeArea(
             bottom: false,
-            child: TabBar(
-              controller: _tabCtrl,
-              isScrollable: true,
-              indicatorColor: NusantaraColors.gold,
-              indicatorWeight: 3,
-              labelColor: isDark ? Colors.white : const Color(0xFF0F172A),
-              unselectedLabelColor: isDark ? Colors.white54 : Colors.black54,
-              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-              tabs: const [
-                Tab(
-                  icon: Icon(Icons.check_box_outlined, size: 18),
-                  text: 'Ceklis Kas Bendahara',
+            child: Row(
+              children: [
+                Expanded(
+                  child: TabBar(
+                    controller: _tabCtrl,
+                    isScrollable: true,
+                    indicatorColor: NusantaraColors.gold,
+                    indicatorWeight: 3,
+                    labelColor: isDark ? Colors.white : const Color(0xFF0F172A),
+                    unselectedLabelColor: isDark ? Colors.white54 : Colors.black54,
+                    labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    tabs: const [
+                      Tab(
+                        icon: Icon(Icons.check_box_outlined, size: 18),
+                        text: 'Ceklis Kas Bendahara',
+                      ),
+                      Tab(
+                        icon: Icon(Icons.how_to_reg_rounded, size: 18),
+                        text: 'Absensi OSIS',
+                      ),
+                      Tab(
+                        icon: Icon(Icons.account_balance_wallet_rounded, size: 18),
+                        text: 'Buku Kas & Saldo',
+                      ),
+                      Tab(
+                        icon: Icon(Icons.groups_rounded, size: 18),
+                        text: 'Anggota OSIS',
+                      ),
+                    ],
+                  ),
                 ),
-                Tab(
-                  icon: Icon(Icons.how_to_reg_rounded, size: 18),
-                  text: 'Absensi OSIS',
-                ),
-                Tab(
-                  icon: Icon(Icons.account_balance_wallet_rounded, size: 18),
-                  text: 'Buku Kas & Saldo',
-                ),
-                Tab(
-                  icon: Icon(Icons.groups_rounded, size: 18),
-                  text: 'Anggota OSIS',
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: IconButton(
+                    icon: const Icon(Icons.picture_as_pdf_rounded, color: Colors.redAccent, size: 21),
+                    tooltip: 'Cetak Laporan / Rekap PDF',
+                    onPressed: _handlePrintPdf,
+                  ),
                 ),
               ],
             ),
