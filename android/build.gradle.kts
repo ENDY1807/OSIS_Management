@@ -16,12 +16,6 @@ subprojects {
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
 
-// Fix cross-drive Kotlin incremental cache issue on Windows
-allprojects {
-    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-        incremental = false
-    }
-}
 subprojects {
     project.evaluationDependsOn(":app")
 }

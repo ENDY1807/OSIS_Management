@@ -37,10 +37,29 @@ jobs:
         run: chmod +x android/gradlew
 
       - name: Build Android Release APK
-        run: flutter build apk --release --verbose
+        run: |
+          set -o pipefail
+          flutter build apk --release --verbose 2>&1 | tee build_apk.log
+
+      - name: Output Error Summary on Failure
+        if: failure()
+        run: |
+          echo "## ❌ Android Build Error Log" >> $GITHUB_STEP_SUMMARY
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          tail -n 150 build_apk.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload Build Log Artifact
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-build-error-log
+          path: build_apk.log
 
       - name: Build Android Release AAB
-        run: flutter build appbundle --release --verbose
+        run: |
+          set -o pipefail
+          flutter build appbundle --release --verbose 2>&1 | tee build_aab.log
 
       - name: Prepare Android Artifacts
         run: |
