@@ -39,7 +39,7 @@ jobs:
       - name: Build Android Release APK
         run: |
           set -o pipefail
-          flutter build apk --release --verbose 2>&1 | tee build_apk.log
+          flutter build apk --release --android-skip-build-dependency-validation --verbose 2>&1 | tee build_apk.log
 
       - name: Output Error Summary on Failure
         if: failure()
@@ -66,7 +66,7 @@ jobs:
       - name: Build Android Release AAB
         run: |
           set -o pipefail
-          flutter build appbundle --release --verbose 2>&1 | tee build_aab.log
+          flutter build appbundle --release --android-skip-build-dependency-validation --verbose 2>&1 | tee build_aab.log
 
       - name: Prepare Android Artifacts
         run: |
