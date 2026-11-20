@@ -244,102 +244,208 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
   }
 
   Widget _buildVisiMisiCard(ThemeData theme, bool isDark, Color primary) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.flag_rounded, color: Colors.blueAccent, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'Visi & Misi OSIS',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : const Color(0xFF0F172A),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          // Visi
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: primary.withAlpha(isDark ? 25 : 15),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: primary.withAlpha(60)),
+    const maroonColor = Color(0xFF5B121A);
+    const creamColor = Color(0xFFFFFDF8);
+    const creamBorder = Color(0xFFEADBCE);
+
+    Widget buildVisiSection() {
+      return Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF3B1017) : maroonColor,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(isDark ? 40 : 25),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'VISI:',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(80),
+                    shape: BoxShape.circle,
+                  ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  _profil.visi,
+                const Text(
+                  'VISI',
                   style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? Colors.white : const Color(0xFF0F172A),
-                    height: 1.35,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 2.0,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 12),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Text(
+              _profil.visi,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                height: 1.5,
+                letterSpacing: 0.3,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    Widget buildMisiSection() {
+      return Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : creamColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark ? const Color(0xFF475569) : creamBorder,
+            width: 1.2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(isDark ? 40 : 15),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const SizedBox(width: 12),
+                Text(
+                  'MISI',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 2.0,
+                    color: isDark ? Colors.white : maroonColor,
+                  ),
+                ),
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white24 : maroonColor.withAlpha(80),
+                    shape: BoxShape.circle,
                   ),
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 14),
-          // Misi
-          const Text(
-            'MISI ORGANISASI:',
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey),
-          ),
-          const SizedBox(height: 6),
-          ..._profil.misi.asMap().entries.map((entry) {
-            final idx = entry.key + 1;
-            final text = entry.value;
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    margin: const EdgeInsets.only(top: 2),
-                    width: 18,
-                    height: 18,
-                    decoration: BoxDecoration(
-                      color: primary.withAlpha(isDark ? 40 : 25),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Text(
-                        '$idx',
-                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: primary),
+            const SizedBox(height: 14),
+            ..._profil.misi.asMap().entries.map((entry) {
+              final idx = entry.key + 1;
+              final text = entry.value;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.only(top: 2),
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF5B121A) : maroonColor,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(
+                          '$idx',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        text,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: isDark ? Colors.white : const Color(0xFF1E293B),
+                          height: 1.35,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth > 700;
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF0F172A) : Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.stars_rounded, color: Color(0xFF5B121A), size: 22),
                   const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      text,
-                      style: TextStyle(fontSize: 12.5, color: isDark ? Colors.white70 : const Color(0xFF334155), height: 1.3),
+                  Text(
+                    'Visi & Misi OSIS SMK Bakti Nusantara 666',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : const Color(0xFF0F172A),
                     ),
                   ),
                 ],
               ),
-            );
-          }),
-        ],
-      ),
+              const SizedBox(height: 14),
+              if (isWide)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: buildVisiSection()),
+                    const SizedBox(width: 14),
+                    Expanded(child: buildMisiSection()),
+                  ],
+                )
+              else
+                Column(
+                  children: [
+                    buildVisiSection(),
+                    const SizedBox(height: 14),
+                    buildMisiSection(),
+                  ],
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -603,6 +709,7 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
 
   void _showEditProfilDialog() {
     final visiCtrl = TextEditingController(text: _profil.visi);
+    final misiCtrl = TextEditingController(text: _profil.misi.join('\n'));
     final masaCtrl = TextEditingController(text: _profil.masaBakti);
     final ketuaCtrl = TextEditingController(text: _profil.namaKetua);
     final wakilCtrl = TextEditingController(text: _profil.namaWakil);
@@ -636,7 +743,9 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
                 const SizedBox(height: 8),
                 TextField(controller: bendaCtrl, decoration: const InputDecoration(labelText: 'Nama Bendahara OSIS')),
                 const SizedBox(height: 8),
-                TextField(controller: visiCtrl, maxLines: 2, decoration: const InputDecoration(labelText: 'Visi OSIS')),
+                TextField(controller: visiCtrl, maxLines: 3, decoration: const InputDecoration(labelText: 'Visi OSIS')),
+                const SizedBox(height: 8),
+                TextField(controller: misiCtrl, maxLines: 4, decoration: const InputDecoration(labelText: 'Misi OSIS (1 misi per baris)', hintText: 'Masukkan butir-butir misi dipisahkan baris baru')),
                 const SizedBox(height: 8),
                 TextField(controller: deskCtrl, maxLines: 2, decoration: const InputDecoration(labelText: 'Deskripsi Singkat')),
                 const SizedBox(height: 8),
@@ -659,6 +768,7 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
                 _profil.namaSekretaris = sekreCtrl.text.trim();
                 _profil.namaBendahara = bendaCtrl.text.trim();
                 _profil.visi = visiCtrl.text.trim();
+                _profil.misi = misiCtrl.text.split('\n').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
                 _profil.deskripsi = deskCtrl.text.trim();
                 _profil.adArt = adArtCtrl.text.trim();
                 _profil.gbho = gbhoCtrl.text.trim();

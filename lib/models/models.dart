@@ -837,13 +837,12 @@ class ProfilOsis {
     this.namaSekolah = 'SMK Bakti Nusantara 666',
     this.logoOsisUrl = '',
     this.logoSekolahUrl = '',
-    this.visi = 'Mewujudkan OSIS yang berintegritas, kreatif, disiplin, berdaya saing global, serta berlandaskan nilai-nilai ketakwaan dan budaya bangsa.',
+    this.visi = 'MEWUJUDKAN OSIS SMK BAKTI NUSANTARA 666 SEBAGAI ORGANISASI BERBASIS PADI (PREDICTION, ACTION, DEVELOPMENT, IMPACT) GUNA MENCIPTAKAN SISWA/I YANG BERANI BERSUARA, AKTIF BERKARYA, DAN MENJADI TELADAN KEPEMIMPINAN BAGI SESAMA.',
     this.misi = const [
-      'Meningkatkan keimanan dan ketaqwaan seluruh pengurus dan warga sekolah.',
-      'Menjadi wadah aspirasi, kreativitas, dan inovasi siswa di berbagai bidang.',
-      'Mengembangkan kedisiplinan dan profesionalisme organisasi melalui kegiatan terprogram.',
-      'Mempererat tali persaudaraan dan solidaritas antarsiswa serta hubungan dengan pihak luar.',
-      'Mengoptimalkan pemanfaatan teknologi digital dalam tata kelola organisasi.',
+      'MEMBENTUK SIKAP KEPEMIMPINAN SISWA/I YANG BERLANDASKAN INTEGRITAS DAN TANGGUNG JAWAB.',
+      'MEMBANGUN MEKANISME PARTISIPASI YANG TERBUKA DAN MENYENANGKAN BAGI SISWA/I.',
+      'MENINGKATKAN KETERATURAN DAN KEEFEKTIFITASAN KERJA OSIS SMK BAKTI NUSANTARA 666.',
+      'MENGEMBANGKAN KEGIATAN SISWA/I YANG TERENCANA DAN BERMANFAAT.',
     ],
     this.masaBakti = '2026 / 2027',
     this.namaKetua = 'Ketua OSIS',
@@ -932,8 +931,12 @@ III. ARAH KEBIJAKAN BIDANG
       namaSekolah: j['nama_sekolah']?.toString() ?? 'SMK Bakti Nusantara 666',
       logoOsisUrl: j['logo_osis_url']?.toString() ?? '',
       logoSekolahUrl: j['logo_sekolah_url']?.toString() ?? '',
-      visi: j['visi']?.toString() ?? 'Mewujudkan OSIS yang berintegritas, kreatif, disiplin, berdaya saing global, serta berlandaskan nilai-nilai ketakwaan dan budaya bangsa.',
-      misi: parsedMisi.isNotEmpty ? parsedMisi : ProfilOsis().misi,
+      visi: (j['visi'] == null || j['visi']?.toString().isEmpty == true || j['visi']?.toString().contains('berdaya saing global') == true)
+          ? ProfilOsis().visi
+          : j['visi']!.toString(),
+      misi: (parsedMisi.isEmpty || (parsedMisi.isNotEmpty && parsedMisi.first.contains('keimanan dan ketaqwaan')))
+          ? ProfilOsis().misi
+          : parsedMisi,
       masaBakti: j['masa_bakti']?.toString() ?? '2026 / 2027',
       namaKetua: j['nama_ketua']?.toString() ?? 'Ketua OSIS',
       namaWakil: j['nama_wakil']?.toString() ?? 'Wakil Ketua OSIS',
