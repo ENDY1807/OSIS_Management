@@ -160,9 +160,13 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
           _buildStrukturOrganisasiCard(theme, isDark, primary),
           const SizedBox(height: 16),
 
-          // AD/ART & GBHO Section
-          _buildLegalDocumentsCard(theme, isDark, primary),
-          const SizedBox(height: 30),
+          // AD/ART Card Mandiri
+          _buildAdArtCard(theme, isDark, primary),
+          const SizedBox(height: 16),
+
+          // GBHO Card Mandiri
+          _buildGbhoCard(theme, isDark, primary),
+          const SizedBox(height: 24),
         ],
       ),
     );
@@ -226,8 +230,8 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
               if (_canManage)
                 IconButton(
                   icon: const Icon(Icons.edit_note_rounded, color: Colors.blueAccent),
-                  tooltip: 'Edit Profil Organisasi',
-                  onPressed: _showEditProfilDialog,
+                  tooltip: 'Edit Identitas Organisasi',
+                  onPressed: _showEditIdentitasDialog,
                 ),
             ],
           ),
@@ -244,21 +248,21 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
   }
 
   Widget _buildVisiMisiCard(ThemeData theme, bool isDark, Color primary) {
-    const maroonColor = Color(0xFF5B121A);
-    const creamColor = Color(0xFFFFFDF8);
-    const creamBorder = Color(0xFFEADBCE);
-
     Widget buildVisiSection() {
       return Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF3B1017) : maroonColor,
+          color: primary.withAlpha(isDark ? 35 : 18),
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: primary.withAlpha(isDark ? 100 : 60),
+            width: 1.2,
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withAlpha(isDark ? 40 : 25),
+              color: Colors.black.withAlpha(isDark ? 30 : 8),
               blurRadius: 8,
-              offset: const Offset(0, 3),
+              offset: const Offset(0, 2),
             ),
           ],
         ),
@@ -269,34 +273,34 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  width: 12,
-                  height: 12,
+                  width: 10,
+                  height: 10,
                   decoration: BoxDecoration(
-                    color: Colors.white.withAlpha(80),
+                    color: primary.withAlpha(160),
                     shape: BoxShape.circle,
                   ),
                 ),
-                const Text(
+                Text(
                   'VISI',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 2.0,
-                    color: Colors.white,
+                    color: primary,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
               ],
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             Text(
               _profil.visi,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                height: 1.5,
-                letterSpacing: 0.3,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white : const Color(0xFF0F172A),
+                height: 1.55,
+                letterSpacing: 0.2,
               ),
             ),
           ],
@@ -308,17 +312,17 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
       return Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : creamColor,
+          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isDark ? const Color(0xFF475569) : creamBorder,
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
             width: 1.2,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withAlpha(isDark ? 40 : 15),
+              color: Colors.black.withAlpha(isDark ? 30 : 8),
               blurRadius: 8,
-              offset: const Offset(0, 3),
+              offset: const Offset(0, 2),
             ),
           ],
         ),
@@ -328,32 +332,32 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Text(
                   'MISI',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 2.0,
-                    color: isDark ? Colors.white : maroonColor,
+                    color: primary,
                   ),
                 ),
                 Container(
-                  width: 12,
-                  height: 12,
+                  width: 10,
+                  height: 10,
                   decoration: BoxDecoration(
-                    color: isDark ? Colors.white24 : maroonColor.withAlpha(80),
+                    color: primary.withAlpha(160),
                     shape: BoxShape.circle,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             ..._profil.misi.asMap().entries.map((entry) {
               final idx = entry.key + 1;
               final text = entry.value;
               return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.only(bottom: 10),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -362,7 +366,7 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
                       width: 22,
                       height: 22,
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF5B121A) : maroonColor,
+                        color: primary,
                         shape: BoxShape.circle,
                       ),
                       child: Center(
@@ -382,9 +386,9 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
                         text,
                         style: TextStyle(
                           fontSize: 12.5,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                           color: isDark ? Colors.white : const Color(0xFF1E293B),
-                          height: 1.35,
+                          height: 1.4,
                         ),
                       ),
                     ),
@@ -406,22 +410,40 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
             color: isDark ? const Color(0xFF0F172A) : Colors.white,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withAlpha(isDark ? 30 : 6),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Icon(Icons.stars_rounded, color: Color(0xFF5B121A), size: 22),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Visi & Misi OSIS SMK Bakti Nusantara 666',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : const Color(0xFF0F172A),
-                    ),
+                  Row(
+                    children: [
+                      Icon(Icons.stars_rounded, color: primary, size: 22),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Visi & Misi OSIS',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        ),
+                      ),
+                    ],
                   ),
+                  if (_canManage)
+                    IconButton(
+                      icon: const Icon(Icons.edit_note_rounded, color: Colors.blueAccent),
+                      tooltip: 'Edit Visi & Misi',
+                      onPressed: _showEditVisiMisiDialog,
+                    ),
                 ],
               ),
               const SizedBox(height: 14),
@@ -477,9 +499,21 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
                   ),
                 ],
               ),
-              Text(
-                'Masa ${_profil.masaBakti}',
-                style: const TextStyle(fontSize: 11, color: Colors.grey),
+              Row(
+                children: [
+                  Text(
+                    'Masa ${_profil.masaBakti}',
+                    style: const TextStyle(fontSize: 11, color: Colors.grey),
+                  ),
+                  if (_canManage) ...[
+                    const SizedBox(width: 4),
+                    IconButton(
+                      icon: const Icon(Icons.edit_note_rounded, color: Colors.purpleAccent),
+                      tooltip: 'Sesuaikan Pejabat Organisasi',
+                      onPressed: _showEditStrukturOrganisasiDialog,
+                    ),
+                  ],
+                ],
               ),
             ],
           ),
@@ -617,57 +651,283 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
     );
   }
 
-  Widget _buildLegalDocumentsCard(ThemeData theme, bool isDark, Color primary) {
+  // ── 4. CARD AD / ART MANDIRI ───────────────────────────────────────────────
+  Widget _buildAdArtCard(ThemeData theme, bool isDark, Color primary) {
+    final hasContent = _profil.adArt.trim().isNotEmpty;
+    final snippet = hasContent
+        ? _profil.adArt.trim().split('\n').take(3).join(' ')
+        : 'Belum ada dokumen AD/ART resmi yang dipasang.';
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(isDark ? 30 : 6),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Icon(Icons.menu_book_rounded, color: Colors.amber, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'Landasan Hukum & Pedoman Organisasi',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : const Color(0xFF0F172A),
-                ),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withAlpha(isDark ? 40 : 25),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.gavel_rounded, color: Colors.amber, size: 20),
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'AD / ART OSIS',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        ),
+                      ),
+                      const Text(
+                        'Anggaran Dasar & Anggaran Rumah Tangga',
+                        style: TextStyle(fontSize: 11, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ],
               ),
+              if (_canManage)
+                IconButton(
+                  icon: const Icon(Icons.edit_note_rounded, color: Colors.amber, size: 22),
+                  tooltip: 'Pasang / Edit AD & ART',
+                  onPressed: () => _showEditDocumentDialog(
+                    title: 'Edit AD / ART OSIS',
+                    docType: 'AD/ART',
+                    initialContent: _profil.adArt,
+                    onSave: (val) async {
+                      setState(() {
+                        _profil.adArt = val;
+                        _profil.updatedAt = DateTime.now();
+                      });
+                      await DataService.saveProfilOsis(_profil);
+                    },
+                  ),
+                ),
             ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+            ),
+            child: Text(
+              snippet,
+              style: TextStyle(
+                fontSize: 12,
+                fontStyle: hasContent ? FontStyle.normal : FontStyle.italic,
+                color: isDark ? Colors.white70 : const Color(0xFF475569),
+                height: 1.45,
+              ),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
           const SizedBox(height: 14),
           Row(
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  icon: const Icon(Icons.gavel_rounded, size: 18),
-                  label: const Text('Baca AD / ART OSIS'),
+                  icon: const Icon(Icons.chrome_reader_mode_rounded, size: 17),
+                  label: const Text('Baca AD / ART Lengkap'),
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                   onPressed: () => _showDocumentDialog('AD / ART OSIS', _profil.adArt),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: OutlinedButton.icon(
-                  icon: const Icon(Icons.alt_route_rounded, size: 18),
-                  label: const Text('Baca GBHO OSIS'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+              if (_canManage) ...[
+                const SizedBox(width: 8),
+                FilledButton.tonalIcon(
+                  icon: const Icon(Icons.edit_document, size: 17),
+                  label: const Text('Ubah AD / ART'),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                  onPressed: () => _showDocumentDialog('GBHO (Garis-Garis Besar Haluan Organisasi)', _profil.gbho),
+                  onPressed: () => _showEditDocumentDialog(
+                    title: 'Edit AD / ART OSIS',
+                    docType: 'AD/ART',
+                    initialContent: _profil.adArt,
+                    onSave: (val) async {
+                      setState(() {
+                        _profil.adArt = val;
+                        _profil.updatedAt = DateTime.now();
+                      });
+                      await DataService.saveProfilOsis(_profil);
+                    },
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── 5. CARD GBHO MANDIRI ──────────────────────────────────────────────────
+  Widget _buildGbhoCard(ThemeData theme, bool isDark, Color primary) {
+    final hasContent = _profil.gbho.trim().isNotEmpty;
+    final snippet = hasContent
+        ? _profil.gbho.trim().split('\n').take(3).join(' ')
+        : 'Belum ada dokumen GBHO resmi yang dipasang.';
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(isDark ? 30 : 6),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.cyan.withAlpha(isDark ? 40 : 25),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.alt_route_rounded, color: Colors.cyan, size: 20),
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'GBHO OSIS',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        ),
+                      ),
+                      const Text(
+                        'Garis-Garis Besar Haluan Organisasi',
+                        style: TextStyle(fontSize: 11, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              if (_canManage)
+                IconButton(
+                  icon: const Icon(Icons.edit_note_rounded, color: Colors.cyan, size: 22),
+                  tooltip: 'Pasang / Edit GBHO',
+                  onPressed: () => _showEditDocumentDialog(
+                    title: 'Edit GBHO OSIS',
+                    docType: 'GBHO',
+                    initialContent: _profil.gbho,
+                    onSave: (val) async {
+                      setState(() {
+                        _profil.gbho = val;
+                        _profil.updatedAt = DateTime.now();
+                      });
+                      await DataService.saveProfilOsis(_profil);
+                    },
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+            ),
+            child: Text(
+              snippet,
+              style: TextStyle(
+                fontSize: 12,
+                fontStyle: hasContent ? FontStyle.normal : FontStyle.italic,
+                color: isDark ? Colors.white70 : const Color(0xFF475569),
+                height: 1.45,
+              ),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.chrome_reader_mode_rounded, size: 17),
+                  label: const Text('Baca GBHO Lengkap'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  onPressed: () => _showDocumentDialog('GBHO OSIS', _profil.gbho),
                 ),
               ),
+              if (_canManage) ...[
+                const SizedBox(width: 8),
+                FilledButton.tonalIcon(
+                  icon: const Icon(Icons.edit_document, size: 17),
+                  label: const Text('Ubah GBHO'),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  onPressed: () => _showEditDocumentDialog(
+                    title: 'Edit GBHO OSIS',
+                    docType: 'GBHO',
+                    initialContent: _profil.gbho,
+                    onSave: (val) async {
+                      setState(() {
+                        _profil.gbho = val;
+                        _profil.updatedAt = DateTime.now();
+                      });
+                      await DataService.saveProfilOsis(_profil);
+                    },
+                  ),
+                ),
+              ],
             ],
           ),
         ],
@@ -676,24 +936,52 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
   }
 
   void _showDocumentDialog(String title, String content) {
+    final hasContent = content.trim().isNotEmpty;
     showDialog(
       context: context,
       builder: (ctx) {
         final isDark = Theme.of(ctx).brightness == Brightness.dark;
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          content: SizedBox(
-            width: 600,
-            child: SingleChildScrollView(
-              child: SelectableText(
-                content,
-                style: TextStyle(
-                  fontSize: 12.5,
-                  height: 1.5,
-                  color: isDark ? Colors.white70 : const Color(0xFF334155),
-                ),
+          title: Row(
+            children: [
+              Icon(
+                title.contains('AD') ? Icons.gavel_rounded : Icons.alt_route_rounded,
+                color: title.contains('AD') ? Colors.amber : Colors.cyan,
+                size: 22,
               ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+          content: SizedBox(
+            width: 650,
+            child: SingleChildScrollView(
+              child: hasContent
+                  ? SelectableText(
+                      content,
+                      style: TextStyle(
+                        fontSize: 13,
+                        height: 1.6,
+                        color: isDark ? Colors.white70 : const Color(0xFF334155),
+                      ),
+                    )
+                  : Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: Center(
+                        child: Text(
+                          'Dokumen ini belum memiliki isi.\nPengurus dapat memasang isi dokumen melalui tombol Ubah Dokumen.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: isDark ? Colors.white38 : Colors.grey,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ),
+                    ),
             ),
           ),
           actions: [
@@ -707,51 +995,37 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
     );
   }
 
-  void _showEditProfilDialog() {
-    final visiCtrl = TextEditingController(text: _profil.visi);
-    final misiCtrl = TextEditingController(text: _profil.misi.join('\n'));
+  // ── DIALOG EDIT IDENTITAS ORGANISASI ───────────────────────────────────────
+  void _showEditIdentitasDialog() {
     final masaCtrl = TextEditingController(text: _profil.masaBakti);
-    final ketuaCtrl = TextEditingController(text: _profil.namaKetua);
-    final wakilCtrl = TextEditingController(text: _profil.namaWakil);
-    final pembinaCtrl = TextEditingController(text: _profil.namaPembina);
-    final sekreCtrl = TextEditingController(text: _profil.namaSekretaris);
-    final bendaCtrl = TextEditingController(text: _profil.namaBendahara);
+    final sekolahCtrl = TextEditingController(text: _profil.namaSekolah);
+    final orgCtrl = TextEditingController(text: _profil.namaOrganisasi);
     final deskCtrl = TextEditingController(text: _profil.deskripsi);
-    final adArtCtrl = TextEditingController(text: _profil.adArt);
-    final gbhoCtrl = TextEditingController(text: _profil.gbho);
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Edit Profil Organisasi OSIS', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Row(
+          children: [
+            Icon(Icons.badge_rounded, color: Colors.blueAccent, size: 22),
+            SizedBox(width: 10),
+            Text('Edit Identitas Organisasi', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
+        ),
         content: SizedBox(
-          width: 550,
+          width: 500,
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(controller: masaCtrl, decoration: const InputDecoration(labelText: 'Masa Bakti (e.g. 2026 / 2027)')),
-                const SizedBox(height: 8),
-                TextField(controller: pembinaCtrl, decoration: const InputDecoration(labelText: 'Nama Pembina OSIS')),
-                const SizedBox(height: 8),
-                TextField(controller: ketuaCtrl, decoration: const InputDecoration(labelText: 'Nama Ketua OSIS')),
-                const SizedBox(height: 8),
-                TextField(controller: wakilCtrl, decoration: const InputDecoration(labelText: 'Nama Wakil Ketua OSIS')),
-                const SizedBox(height: 8),
-                TextField(controller: sekreCtrl, decoration: const InputDecoration(labelText: 'Nama Sekretaris OSIS')),
-                const SizedBox(height: 8),
-                TextField(controller: bendaCtrl, decoration: const InputDecoration(labelText: 'Nama Bendahara OSIS')),
-                const SizedBox(height: 8),
-                TextField(controller: visiCtrl, maxLines: 3, decoration: const InputDecoration(labelText: 'Visi OSIS')),
-                const SizedBox(height: 8),
-                TextField(controller: misiCtrl, maxLines: 4, decoration: const InputDecoration(labelText: 'Misi OSIS (1 misi per baris)', hintText: 'Masukkan butir-butir misi dipisahkan baris baru')),
-                const SizedBox(height: 8),
-                TextField(controller: deskCtrl, maxLines: 2, decoration: const InputDecoration(labelText: 'Deskripsi Singkat')),
-                const SizedBox(height: 8),
-                TextField(controller: adArtCtrl, maxLines: 4, decoration: const InputDecoration(labelText: 'Teks AD / ART')),
-                const SizedBox(height: 8),
-                TextField(controller: gbhoCtrl, maxLines: 4, decoration: const InputDecoration(labelText: 'Teks GBHO')),
+                TextField(controller: orgCtrl, decoration: const InputDecoration(labelText: 'Nama Organisasi', border: OutlineInputBorder())),
+                const SizedBox(height: 12),
+                TextField(controller: sekolahCtrl, decoration: const InputDecoration(labelText: 'Nama Sekolah', border: OutlineInputBorder())),
+                const SizedBox(height: 12),
+                TextField(controller: masaCtrl, decoration: const InputDecoration(labelText: 'Masa Bakti (Contoh: 2024 / 2025)', border: OutlineInputBorder())),
+                const SizedBox(height: 12),
+                TextField(controller: deskCtrl, maxLines: 3, decoration: const InputDecoration(labelText: 'Deskripsi Singkat Organisasi', border: OutlineInputBorder())),
               ],
             ),
           ),
@@ -761,23 +1035,361 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
           ElevatedButton(
             onPressed: () async {
               setState(() {
+                _profil.namaOrganisasi = orgCtrl.text.trim();
+                _profil.namaSekolah = sekolahCtrl.text.trim();
                 _profil.masaBakti = masaCtrl.text.trim();
-                _profil.namaPembina = pembinaCtrl.text.trim();
-                _profil.namaKetua = ketuaCtrl.text.trim();
-                _profil.namaWakil = wakilCtrl.text.trim();
-                _profil.namaSekretaris = sekreCtrl.text.trim();
-                _profil.namaBendahara = bendaCtrl.text.trim();
-                _profil.visi = visiCtrl.text.trim();
-                _profil.misi = misiCtrl.text.split('\n').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
                 _profil.deskripsi = deskCtrl.text.trim();
-                _profil.adArt = adArtCtrl.text.trim();
-                _profil.gbho = gbhoCtrl.text.trim();
                 _profil.updatedAt = DateTime.now();
               });
               await DataService.saveProfilOsis(_profil);
               if (ctx.mounted) Navigator.pop(ctx);
             },
             child: const Text('Simpan'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── DIALOG EDIT VISI & MISI INTERAKTIF ─────────────────────────────────────
+  void _showEditVisiMisiDialog() {
+    final visiCtrl = TextEditingController(text: _profil.visi);
+    final List<TextEditingController> misiCtrls = _profil.misi.map((m) => TextEditingController(text: m)).toList();
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        final theme = Theme.of(ctx);
+        final primary = theme.colorScheme.primary;
+
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Row(
+                children: [
+                  Icon(Icons.stars_rounded, color: primary, size: 22),
+                  const SizedBox(width: 10),
+                  const Text('Sesuaikan Visi & Misi OSIS', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              content: SizedBox(
+                width: 580,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('VISI ORGANISASI', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: visiCtrl,
+                        maxLines: 3,
+                        decoration: const InputDecoration(
+                          hintText: 'Masukkan visi OSIS...',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('BUTIR-BUTIR MISI', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
+                          TextButton.icon(
+                            icon: const Icon(Icons.add, size: 16),
+                            label: const Text('Tambah Butir Misi'),
+                            onPressed: () {
+                              setModalState(() {
+                                misiCtrls.add(TextEditingController());
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      for (int i = 0; i < misiCtrls.length; i++)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                margin: const EdgeInsets.only(top: 10, right: 8),
+                                width: 22,
+                                height: 22,
+                                decoration: BoxDecoration(
+                                  color: primary,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Center(
+                                  child: Text('${i + 1}', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                                ),
+                              ),
+                              Expanded(
+                                child: TextField(
+                                controller: misiCtrls[i],
+                                maxLines: 2,
+                                decoration: InputDecoration(
+                                  hintText: 'Butir misi ${i + 1}',
+                                  border: const OutlineInputBorder(),
+                                  isDense: true,
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+                              tooltip: 'Hapus butir ini',
+                              onPressed: () {
+                                setModalState(() {
+                                  misiCtrls.removeAt(i);
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+              ElevatedButton(
+                onPressed: () async {
+                  final newMisi = misiCtrls.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList();
+                  setState(() {
+                    _profil.visi = visiCtrl.text.trim();
+                    _profil.misi = newMisi;
+                    _profil.updatedAt = DateTime.now();
+                  });
+                  await DataService.saveProfilOsis(_profil);
+                  if (ctx.mounted) Navigator.pop(ctx);
+                },
+                child: const Text('Simpan'),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+}
+
+  // ── DIALOG EDIT STRUKTUR ORGANISASI & PEJABAT ──────────────────────────────
+  void _showEditStrukturOrganisasiDialog() {
+    final pembinaCtrl = TextEditingController(text: _profil.namaPembina);
+    final ketuaCtrl = TextEditingController(text: _profil.namaKetua);
+    final wakilCtrl = TextEditingController(text: _profil.namaWakil);
+    final sekreCtrl = TextEditingController(text: _profil.namaSekretaris);
+    final bendaCtrl = TextEditingController(text: _profil.namaBendahara);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.account_tree_rounded, color: Colors.purpleAccent, size: 22),
+            SizedBox(width: 10),
+            Text('Sesuaikan Pejabat Organisasi', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: SizedBox(
+          width: 520,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Masukkan nama pembina dan pengurus inti OSIS untuk masa bakti ini.',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: pembinaCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Nama Pembina OSIS',
+                    prefixIcon: Icon(Icons.school_rounded, color: Colors.purple),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: ketuaCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Nama Ketua OSIS',
+                    prefixIcon: Icon(Icons.stars_rounded, color: Colors.indigo),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: wakilCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Nama Wakil Ketua OSIS',
+                    prefixIcon: Icon(Icons.star_border_rounded, color: Colors.blue),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: sekreCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Nama Sekretaris OSIS',
+                    prefixIcon: Icon(Icons.description_rounded, color: Colors.teal),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: bendaCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Nama Bendahara OSIS',
+                    prefixIcon: Icon(Icons.account_balance_wallet_rounded, color: Colors.green),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+          ElevatedButton(
+            onPressed: () async {
+              setState(() {
+                _profil.namaPembina = pembinaCtrl.text.trim();
+                _profil.namaKetua = ketuaCtrl.text.trim();
+                _profil.namaWakil = wakilCtrl.text.trim();
+                _profil.namaSekretaris = sekreCtrl.text.trim();
+                _profil.namaBendahara = bendaCtrl.text.trim();
+                _profil.updatedAt = DateTime.now();
+              });
+              await DataService.saveProfilOsis(_profil);
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            child: const Text('Simpan Pejabat'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── DIALOG EDIT DOKUMEN AD/ART & GBHO DENGAN TEMPLATE RESMI ───────────────
+  void _showEditDocumentDialog({
+    required String title,
+    required String docType,
+    required String initialContent,
+    required Function(String) onSave,
+  }) {
+    final textCtrl = TextEditingController(text: initialContent);
+
+    final adArtTemplate = '''ANGGARAN DASAR & ANGGARAN RUMAH TANGGA
+ORGANISASI SISWA INTRA SEKOLAH (OSIS)
+SMK BAKTI NUSANTARA 666
+
+BAB I: NAMA, WAKTU, DAN KEDUDUKAN
+Pasal 1: Organisasi ini bernama Organisasi Siswa Intra Sekolah (OSIS) SMK Bakti Nusantara 666.
+Pasal 2: OSIS didirikan untuk waktu yang tidak ditentukan dan berkedudukan di SMK Bakti Nusantara 666.
+
+BAB II: ASAS, DASAR, DAN SIFAT
+Pasal 3: OSIS berasaskan Pancasila dan Undang-Undang Dasar Negara Republik Indonesia 1945.
+Pasal 4: OSIS berlandaskan nilai PADI (Prediction, Action, Development, Impact) dan Integritas.
+Pasal 5: OSIS bersifat intra sekolah dan menjadi wadah penampung aspirasi seluruh siswa/i.
+
+BAB III: TUJUAN DAN TUGAS POKOK
+Pasal 6: Membentuk kepemimpinan siswa/i yang berlandaskan integritas dan tanggung jawab.
+Pasal 7: Mengembangkan kegiatan siswa/i yang terencana, aktif berkarya, dan bermanfaat bagi sesama.
+
+BAB IV: KEANGGOTAAN DAN KEPENGURUSAN
+Pasal 8: Anggota OSIS adalah seluruh siswa/i resmi SMK Bakti Nusantara 666.
+Pasal 9: Pengurus OSIS terdiri dari Pengurus Inti dan Koordinator Seksi Bidang (Sekbid 1 - 10).''';
+
+    final gbhoTemplate = '''GARIS-GARIS BESAR HALUAN ORGANISASI (GBHO)
+OSIS SMK BAKTI NUSANTARA 666
+MASA BAKTI ${_profil.masaBakti}
+
+I. PENDAHULUAN
+GBHO merupakan pedoman umum dan arahan strategis pelaksanaan program kerja OSIS SMK Bakti Nusantara 666 selama satu periode kepengurusan.
+
+II. ARAH KEBIJAKAN UMUM
+1. Mewujudkan OSIS sebagai organisasi berbasis PADI (Prediction, Action, Development, Impact).
+2. Membangun mekanisme partisipasi yang terbuka dan menyenangkan bagi seluruh siswa/i.
+3. Meningkatkan keteraturan dan keefektifan kerja organisasi.
+4. Menjadi teladan kepemimpinan yang berakhlak mulia dan berintegritas.
+
+III. SASARAN STRATEGIS SEKSI BIDANG
+- Pembinaan keimanan, ketakwaan, dan budi pekerti luhur.
+- Peningkatan kedisiplinan dan kepemimpinan siswa.
+- Pengembangan kreativitas, teknologi, vokasi, dan kewirausahaan.
+- Peningkatan kepedulian sosial, lingkungan hidup, dan kehumasan digital.
+
+IV. EVALUASI DAN PERTANGGUNGJAWABAN
+Setiap program kerja wajib melalui tahap perencanaan, pelaksanaan terkoordinasi, dan evaluasi hasil secara berkala.''';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  docType == 'AD/ART' ? Icons.gavel_rounded : Icons.alt_route_rounded,
+                  color: docType == 'AD/ART' ? Colors.amber : Colors.cyan,
+                  size: 22,
+                ),
+                const SizedBox(width: 10),
+                Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            TextButton.icon(
+              icon: const Icon(Icons.auto_fix_high_rounded, size: 16),
+              label: const Text('Gunakan Template Standar', style: TextStyle(fontSize: 11)),
+              onPressed: () {
+                textCtrl.text = docType == 'AD/ART' ? adArtTemplate : gbhoTemplate;
+              },
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 680,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                docType == 'AD/ART'
+                    ? 'Susun Anggaran Dasar & Anggaran Rumah Tangga (AD/ART) OSIS secara terperinci per Bab dan Pasal.'
+                    : 'Susun Garis-Garis Besar Haluan Organisasi (GBHO) sebagai panduan arah kebijakan kepengurusan OSIS.',
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: textCtrl,
+                maxLines: 15,
+                style: const TextStyle(fontSize: 12.5, height: 1.5),
+                decoration: InputDecoration(
+                  hintText: 'Tuliskan teks dokumen resmi di sini...',
+                  border: const OutlineInputBorder(),
+                  filled: true,
+                  fillColor: Theme.of(ctx).brightness == Brightness.dark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+          ElevatedButton(
+            onPressed: () async {
+              await onSave(textCtrl.text.trim());
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            child: const Text('Simpan Dokumen'),
           ),
         ],
       ),

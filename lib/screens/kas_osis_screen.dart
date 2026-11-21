@@ -1467,44 +1467,31 @@ class _KasOsisScreenState extends State<KasOsisScreen>
           ),
           child: SafeArea(
             bottom: false,
-            child: Row(
-              children: [
-                Expanded(
-                  child: TabBar(
-                    controller: _tabCtrl,
-                    isScrollable: true,
-                    indicatorColor: NusantaraColors.gold,
-                    indicatorWeight: 3,
-                    labelColor: isDark ? Colors.white : const Color(0xFF0F172A),
-                    unselectedLabelColor: isDark ? Colors.white54 : Colors.black54,
-                    labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                    tabs: const [
-                      Tab(
-                        icon: Icon(Icons.check_box_outlined, size: 18),
-                        text: 'Ceklis Kas Bendahara',
-                      ),
-                      Tab(
-                        icon: Icon(Icons.how_to_reg_rounded, size: 18),
-                        text: 'Absensi OSIS',
-                      ),
-                      Tab(
-                        icon: Icon(Icons.account_balance_wallet_rounded, size: 18),
-                        text: 'Buku Kas & Saldo',
-                      ),
-                      Tab(
-                        icon: Icon(Icons.groups_rounded, size: 18),
-                        text: 'Anggota OSIS',
-                      ),
-                    ],
-                  ),
+            child: TabBar(
+              controller: _tabCtrl,
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
+              indicatorColor: NusantaraColors.gold,
+              indicatorWeight: 3,
+              labelColor: isDark ? Colors.white : const Color(0xFF0F172A),
+              unselectedLabelColor: isDark ? Colors.white54 : Colors.black54,
+              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              tabs: const [
+                Tab(
+                  icon: Icon(Icons.check_box_outlined, size: 18),
+                  text: 'Ceklis Kas Bendahara',
                 ),
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: IconButton(
-                    icon: const Icon(Icons.picture_as_pdf_rounded, color: Colors.redAccent, size: 21),
-                    tooltip: 'Cetak Laporan / Rekap PDF',
-                    onPressed: _handlePrintPdf,
-                  ),
+                Tab(
+                  icon: Icon(Icons.how_to_reg_rounded, size: 18),
+                  text: 'Absensi OSIS',
+                ),
+                Tab(
+                  icon: Icon(Icons.account_balance_wallet_rounded, size: 18),
+                  text: 'Buku Kas & Saldo',
+                ),
+                Tab(
+                  icon: Icon(Icons.groups_rounded, size: 18),
+                  text: 'Anggota OSIS',
                 ),
               ],
             ),
@@ -1713,6 +1700,14 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                           constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                           padding: EdgeInsets.zero,
                           onPressed: _shareRekapKasWhatsApp,
+                        ),
+                        const SizedBox(width: 4),
+                        IconButton.filledTonal(
+                          icon: const Icon(Icons.picture_as_pdf_rounded, size: 18, color: Colors.redAccent),
+                          tooltip: 'Cetak Rekap Kas PDF',
+                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                          padding: EdgeInsets.zero,
+                          onPressed: _handlePrintPdf,
                         ),
                         if (_canEdit) ...[
                           const SizedBox(width: 4),
@@ -2319,6 +2314,14 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                           constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                           padding: EdgeInsets.zero,
                           onPressed: _shareRekapAbsensiWhatsApp,
+                        ),
+                        const SizedBox(width: 4),
+                        IconButton.filledTonal(
+                          icon: const Icon(Icons.picture_as_pdf_rounded, size: 18, color: Colors.redAccent),
+                          tooltip: 'Cetak Rekap Presensi PDF',
+                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                          padding: EdgeInsets.zero,
+                          onPressed: _handlePrintPdf,
                         ),
                         if (_canEdit) ...[
                           const SizedBox(width: 4),
@@ -3190,6 +3193,14 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                       constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                       padding: EdgeInsets.zero,
                       onPressed: _pickAndImportExcel,
+                    ),
+                    const SizedBox(width: 4),
+                    IconButton.filledTonal(
+                      icon: const Icon(Icons.picture_as_pdf_rounded, size: 18, color: Colors.redAccent),
+                      tooltip: 'Cetak Data Anggota PDF',
+                      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                      padding: EdgeInsets.zero,
+                      onPressed: _handlePrintPdf,
                     ),
                     if (_canEdit) ...[
                       const SizedBox(width: 4),

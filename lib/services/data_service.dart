@@ -401,6 +401,39 @@ class DataService {
     // Hapus cache lama yang tidak kompatibel
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('laporan_kegiatan');
+    final hasClearedMock = prefs.getBool('has_cleared_mock_seeds_v2') ?? false;
+    if (!hasClearedMock) {
+      await clearMockSeedCache();
+      await prefs.setBool('has_cleared_mock_seeds_v2', true);
+    }
+  }
+
+  static Future<void> clearMockSeedCache() async {
+    try {
+      final inv = await _readCache(_keyInventarisOsis);
+      inv.removeWhere((e) => e['id']?.toString().startsWith('inv-') == true);
+      await _saveCache(_keyInventarisOsis, inv);
+
+      final agd = await _readCache(_keyAgendaOsis);
+      agd.removeWhere((e) => e['id']?.toString().startsWith('agd-') == true);
+      await _saveCache(_keyAgendaOsis, agd);
+
+      final peng = await _readCache(_keyPengumumanOsis);
+      peng.removeWhere((e) => e['id']?.toString().startsWith('peng-') == true);
+      await _saveCache(_keyPengumumanOsis, peng);
+
+      final dok = await _readCache(_keyDokumentasiKegiatan);
+      dok.removeWhere((e) => e['id']?.toString().startsWith('dok-') == true);
+      await _saveCache(_keyDokumentasiKegiatan, dok);
+
+      final evl = await _readCache(_keyEvaluasiProker);
+      evl.removeWhere((e) => e['id']?.toString().startsWith('evl-') == true);
+      await _saveCache(_keyEvaluasiProker, evl);
+
+      final ang = await _readCache(_keyAnggotaOsis);
+      ang.removeWhere((e) => e['id']?.toString().startsWith('ang-') == true);
+      await _saveCache(_keyAnggotaOsis, ang);
+    } catch (_) {}
   }
 
   // ── helpers cache ────────────────────────────────────────────────────────
@@ -2912,13 +2945,7 @@ class DataService {
     } catch (_) {}
 
     final cache = await _readCache(_keyInventarisOsis);
-    if (cache.isNotEmpty) {
-      return cache.map(InventarisOsis.fromJson).toList();
-    }
-
-    final seed = defaultInventarisSeed();
-    await _saveCache(_keyInventarisOsis, seed.map((e) => e.toJson()).toList());
-    return seed;
+    return cache.map(InventarisOsis.fromJson).toList();
   }
 
   static Future<void> saveInventaris(InventarisOsis item) async {
@@ -3027,15 +3054,9 @@ class DataService {
     } catch (_) {}
 
     final cache = await _readCache(_keyAgendaOsis);
-    if (cache.isNotEmpty) {
-      final list = cache.map(AgendaOsis.fromJson).toList();
-      list.sort((a, b) => a.waktuMulai.compareTo(b.waktuMulai));
-      return list;
-    }
-
-    final seed = defaultAgendaSeed();
-    await _saveCache(_keyAgendaOsis, seed.map((e) => e.toJson()).toList());
-    return seed;
+    final list = cache.map(AgendaOsis.fromJson).toList();
+    list.sort((a, b) => a.waktuMulai.compareTo(b.waktuMulai));
+    return list;
   }
 
   static Future<void> saveAgenda(AgendaOsis item) async {
@@ -3131,19 +3152,13 @@ class DataService {
     } catch (_) {}
 
     final cache = await _readCache(_keyPengumumanOsis);
-    if (cache.isNotEmpty) {
-      final list = cache.map(PengumumanOsis.fromJson).toList();
-      list.sort((a, b) {
-        if (a.isPinned && !b.isPinned) return -1;
-        if (!a.isPinned && b.isPinned) return 1;
-        return b.tanggal.compareTo(a.tanggal);
-      });
-      return list;
-    }
-
-    final seed = defaultPengumumanSeed();
-    await _saveCache(_keyPengumumanOsis, seed.map((e) => e.toJson()).toList());
-    return seed;
+    final list = cache.map(PengumumanOsis.fromJson).toList();
+    list.sort((a, b) {
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      return b.tanggal.compareTo(a.tanggal);
+    });
+    return list;
   }
 
   static Future<void> savePengumuman(PengumumanOsis item) async {
@@ -3240,13 +3255,7 @@ class DataService {
     } catch (_) {}
 
     final cache = await _readCache(_keyDokumentasiKegiatan);
-    if (cache.isNotEmpty) {
-      return cache.map(DokumentasiKegiatan.fromJson).toList();
-    }
-
-    final seed = defaultDokumentasiSeed();
-    await _saveCache(_keyDokumentasiKegiatan, seed.map((e) => e.toJson()).toList());
-    return seed;
+    return cache.map(DokumentasiKegiatan.fromJson).toList();
   }
 
   static Future<void> saveDokumentasi(DokumentasiKegiatan item) async {
@@ -3330,13 +3339,7 @@ class DataService {
     } catch (_) {}
 
     final cache = await _readCache(_keyEvaluasiProker);
-    if (cache.isNotEmpty) {
-      return cache.map(EvaluasiProker.fromJson).toList();
-    }
-
-    final seed = defaultEvaluasiSeed();
-    await _saveCache(_keyEvaluasiProker, seed.map((e) => e.toJson()).toList());
-    return seed;
+    return cache.map(EvaluasiProker.fromJson).toList();
   }
 
   static Future<void> saveEvaluasi(EvaluasiProker item) async {

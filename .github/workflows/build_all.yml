@@ -34,7 +34,10 @@ jobs:
         run: flutter pub get
 
       - name: Make Gradlew Executable
-        run: chmod +x android/gradlew
+        run: |
+          if [ -f "android/gradlew" ]; then
+            chmod +x android/gradlew
+          fi
 
       - name: Build Android Release APK
         run: |

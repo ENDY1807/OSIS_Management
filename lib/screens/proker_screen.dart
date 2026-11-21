@@ -36,7 +36,10 @@ class _ProkerScreenState extends State<ProkerScreen>
     return AuthService.isSuperStaff(_currentUser);
   }
 
-  bool get _canCreateProker => !_isReadOnly;
+  bool get _canCreateProker {
+    if (_isReadOnly) return false;
+    return _isSuperStaff || AuthService.isKoordinatorBidang(_currentUser);
+  }
 
   /// Normalisasi status agar selalu selaras antara database, form, dan tab
   static String _canonicalStatus(String? s) {
