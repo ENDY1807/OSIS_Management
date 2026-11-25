@@ -1,12 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../models/models.dart';
 import '../services/data_service.dart';
-import '../services/auth_service.dart';
 import '../services/sync_service.dart';
-import '../services/app_settings_service.dart';
-import '../widgets/nusantara_decorations.dart';
 
 class DashboardScreen extends StatefulWidget {
   final String username;
@@ -29,10 +27,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   List<AgendaOsis> _agendaList = [];
   List<KasOsisTransaksi> _transaksiList = [];
   List<PengumumanOsis> _pengumumanList = [];
-  List<AktivitasPengguna> _aktivitasList = [];
 
   bool _loading = true;
   StreamSubscription<String>? _dataSub;
+
+  DateTime _calendarMonth = DateTime(DateTime.now().year, DateTime.now().month);
+  int _touchedChartIndex = -1;
 
   final _currencyFmt = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
@@ -60,7 +60,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final agd = await DataService.getAgenda();
       final trx = await DataService.getKasTransaksi();
       final pgm = await DataService.getPengumuman();
-      final akt = await DataService.getAktivitas();
 
       if (!mounted) return;
       setState(() {
@@ -70,7 +69,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _agendaList = agd;
         _transaksiList = trx;
         _pengumumanList = pgm;
-        _aktivitasList = akt;
         _loading = false;
       });
     } catch (_) {
@@ -93,6 +91,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   int get _prokerSelesai => _prokerList.where((p) => p.status.toLowerCase().contains('selesai')).length;
   int get _prokerBerjalan => _prokerList.where((p) => p.status.toLowerCase().contains('jalan') || p.status.toLowerCase().contains('proses')).length;
+  int get _prokerBelum => _prokerList.length - _prokerSelesai - _prokerBerjalan;
   double get _prokerPercent => _prokerList.isEmpty ? 0.0 : (_prokerSelesai / _prokerList.length);
 
   @override
@@ -116,36 +115,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Hero Organization Header Banner
-            _buildHeroBanner(theme, isDark, primary),
-            const SizedBox(height: 16),
-
-            // 2. Stat Overview Grid
+            // 1. Stat Overview Cards (Clean, modern KPI grid)
             _buildStatCards(theme, isDark, primary),
-            const SizedBox(height: 16),
-
-            // 3. Quick Action Shortcut Grid
-            _buildQuickActions(theme, isDark, primary),
             const SizedBox(height: 20),
 
-            // 4. Proker Progress & Upcoming Agenda in 2 Columns or Stack
+            // 2. Perkembangan Proker (Modern Chart) & Kalender Agenda Terdekat
             LayoutBuilder(
               builder: (context, constraints) {
-                if (constraints.maxWidth >= 750) {
+                if (constraints.maxWidth >= 850) {
                   return Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(flex: 5, child: _buildProkerProgressCard(theme, isDark, primary)),
+                      Expanded(flex: 5, child: _buildProkerChartCard(theme, isDark, primary)),
                       const SizedBox(width: 16),
-                      Expanded(flex: 6, child: _buildUpcomingAgendaCard(theme, isDark, primary)),
+                      Expanded(flex: 6, child: _buildCalendarAgendaCard(theme, isDark, primary)),
                     ],
                   );
                 } else {
                   return Column(
                     children: [
-                      _buildProkerProgressCard(theme, isDark, primary),
+                      _buildProkerChartCard(theme, isDark, primary),
                       const SizedBox(height: 16),
-                      _buildUpcomingAgendaCard(theme, isDark, primary),
+                      _buildCalendarAgendaCard(theme, isDark, primary),
                     ],
                   );
                 }
@@ -153,127 +144,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 20),
 
-            // 5. Pinned / Latest Pengumuman OSIS
+            // 3. Pengumuman OSIS (jika ada)
             _buildPengumumanSection(theme, isDark, primary),
-            const SizedBox(height: 20),
-
-            // 6. Recent Audit Activities Log
-            _buildAktivitasSection(theme, isDark, primary),
             const SizedBox(height: 30),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildHeroBanner(ThemeData theme, bool isDark, Color primary) {
-    final userDisplay = AuthService.getDisplayName(widget.username);
-    final userRole = AuthService.getRole(widget.username);
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isDark
-              ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
-              : [primary, primary.withAlpha(200)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: primary.withAlpha(isDark ? 40 : 60),
-            blurRadius: 14,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          AppSettingsService.buildLogoWidget(width: 58, height: 58, fit: BoxFit.contain),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        _profil.namaOrganisasi,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.2,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withAlpha(40),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.white30, width: 0.8),
-                      ),
-                      child: Text(
-                        _profil.masaBakti,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _profil.namaSekolah,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12.5,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withAlpha(45),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.account_circle, color: NusantaraColors.goldLight, size: 14),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Login: $userDisplay',
-                        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                        decoration: BoxDecoration(
-                          color: NusantaraColors.goldLight.withAlpha(50),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          userRole,
-                          style: const TextStyle(color: NusantaraColors.goldLight, fontSize: 9, fontWeight: FontWeight.w800),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -418,107 +293,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildQuickActions(ThemeData theme, bool isDark, Color primary) {
-    final actions = [
-      (title: 'Profil OSIS', icon: Icons.badge_rounded, color: Colors.blueAccent, tab: 1),
-      (title: 'Data Pengurus', icon: Icons.people_alt_rounded, color: Colors.teal, tab: 1),
-      (title: 'Program Kerja', icon: Icons.assignment_rounded, color: Colors.indigoAccent, tab: 2),
-      (title: 'Kalender Agenda', icon: Icons.calendar_month_rounded, color: Colors.deepOrange, tab: 2),
-      (title: 'Administrasi', icon: Icons.folder_shared_rounded, color: Colors.purpleAccent, tab: 3),
-      (title: 'Inventaris', icon: Icons.inventory_2_rounded, color: Colors.amber.shade800, tab: 3),
-      (title: 'Kas OSIS', icon: Icons.account_balance_wallet_rounded, color: Colors.green, tab: 4),
-      (title: 'Absensi OSIS', icon: Icons.how_to_reg_rounded, color: Colors.cyan, tab: 4),
-      (title: 'Pengumuman', icon: Icons.campaign_rounded, color: Colors.redAccent, tab: 5),
-      (title: 'Dokumentasi', icon: Icons.photo_library_rounded, color: Colors.pinkAccent, tab: 5),
-      (title: 'Evaluasi & Rekap', icon: Icons.assessment_rounded, color: Colors.orange, tab: 6),
-      (title: 'Karakter Siswa', icon: Icons.verified_user_rounded, color: Colors.blueGrey, tab: 7),
-    ];
+  // Modern Diagram Chart for Proker Progress
+  Widget _buildProkerChartCard(ThemeData theme, bool isDark, Color primary) {
+    final total = _prokerList.length;
+    final selesai = _prokerSelesai;
+    final proses = _prokerBerjalan;
+    final belum = _prokerBelum < 0 ? 0 : _prokerBelum;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.dashboard_customize_rounded, size: 20, color: primary),
-              const SizedBox(width: 8),
-              Text(
-                'Menu Utama & Layanan OSIS',
-                style: TextStyle(
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : const Color(0xFF0F172A),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 8,
-            runSpacing: 10,
-            children: actions.map((act) {
-              return InkWell(
-                onTap: () => widget.onNavigateTab?.call(act.tab),
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  width: 90,
-                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF0F172A).withAlpha(120) : const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: act.color.withAlpha(isDark ? 40 : 30)),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: act.color.withAlpha(isDark ? 40 : 25),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(act.icon, color: act.color, size: 20),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        act.title,
-                        style: TextStyle(
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w600,
-                          color: isDark ? Colors.white70 : const Color(0xFF334155),
-                        ),
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }).toList(),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(isDark ? 25 : 6),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildProkerProgressCard(ThemeData theme, bool isDark, Color primary) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -528,93 +324,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.pie_chart_outline_rounded, color: Color(0xFF8B5CF6), size: 20),
-                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF8B5CF6).withAlpha(isDark ? 40 : 25),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.donut_large_rounded, color: Color(0xFF8B5CF6), size: 20),
+                  ),
+                  const SizedBox(width: 10),
                   Text(
                     'Perkembangan Proker',
                     style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : const Color(0xFF0F172A),
-                    ),
-                  ),
-                ],
-              ),
-              Text(
-                '${(_prokerPercent * 100).toStringAsFixed(0)}%',
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF8B5CF6),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: _prokerPercent,
-              minHeight: 10,
-              backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-              valueColor: const AlwaysStoppedAnimation(Color(0xFF8B5CF6)),
-            ),
-          ),
-          const SizedBox(height: 14),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildProgressChip('Selesai', '$_prokerSelesai', Colors.green, isDark),
-              _buildProgressChip('Proses', '$_prokerBerjalan', Colors.blue, isDark),
-              _buildProgressChip('Belum', '${_prokerList.length - _prokerSelesai - _prokerBerjalan}', Colors.orange, isDark),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProgressChip(String label, String count, Color color, bool isDark) {
-    return Column(
-      children: [
-        Text(
-          count,
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: color),
-        ),
-        Text(
-          label,
-          style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.black54),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildUpcomingAgendaCard(ThemeData theme, bool isDark, Color primary) {
-    final upcoming = _agendaList.take(3).toList();
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.calendar_today_rounded, color: Color(0xFFF59E0B), size: 19),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Agenda Terdekat',
-                    style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 15,
                       fontWeight: FontWeight.bold,
                       color: isDark ? Colors.white : const Color(0xFF0F172A),
                     ),
@@ -623,77 +345,582 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               InkWell(
                 onTap: () => widget.onNavigateTab?.call(2),
-                child: const Text('Lihat Semua', style: TextStyle(fontSize: 11.5, color: Colors.blueAccent, fontWeight: FontWeight.bold)),
+                child: const Text('Detail >', style: TextStyle(fontSize: 12, color: Color(0xFF8B5CF6), fontWeight: FontWeight.bold)),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          if (upcoming.isEmpty)
+          const SizedBox(height: 20),
+          if (total == 0)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
+              padding: const EdgeInsets.symmetric(vertical: 40),
               child: Center(
-                child: Text(
-                  'Belum ada agenda kegiatan mendatang.',
-                  style: TextStyle(color: isDark ? Colors.white60 : Colors.black54, fontSize: 12),
-                ),
-              ),
-            )
-          else
-            ...upcoming.map((a) {
-              return Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF0F172A).withAlpha(120) : const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0), width: 0.8),
-                ),
-                child: Row(
+                child: Column(
                   children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: Colors.amber.withAlpha(isDark ? 40 : 25),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Center(
-                        child: Text(
-                          DateFormat('dd\nMMM').format(a.waktuMulai),
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.amberAccent),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            a.judul,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: isDark ? Colors.white : const Color(0xFF0F172A),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '${a.kategori} • ${a.lokasi}',
-                            style: TextStyle(fontSize: 10.5, color: isDark ? Colors.white60 : Colors.black54),
-                          ),
-                        ],
-                      ),
+                    Icon(Icons.assignment_outlined, size: 48, color: isDark ? Colors.white30 : Colors.black26),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Belum ada data program kerja',
+                      style: TextStyle(fontSize: 13, color: isDark ? Colors.white60 : Colors.black54),
                     ),
                   ],
                 ),
-              );
-            }),
+              ),
+            )
+          else ...[
+            SizedBox(
+              height: 190,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  PieChart(
+                    PieChartData(
+                      pieTouchData: PieTouchData(
+                        touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                          setState(() {
+                            if (!event.isInterestedForInteractions ||
+                                pieTouchResponse == null ||
+                                pieTouchResponse.touchedSection == null) {
+                              _touchedChartIndex = -1;
+                              return;
+                            }
+                            _touchedChartIndex = pieTouchResponse.touchedSection!.touchedSectionIndex;
+                          });
+                        },
+                      ),
+                      borderData: FlBorderData(show: false),
+                      sectionsSpace: 3,
+                      centerSpaceRadius: 52,
+                      sections: [
+                        if (selesai > 0)
+                          PieChartSectionData(
+                            color: const Color(0xFF10B981),
+                            value: selesai.toDouble(),
+                            title: '${((selesai / total) * 100).toStringAsFixed(0)}%',
+                            radius: _touchedChartIndex == 0 ? 30.0 : 24.0,
+                            titleStyle: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        if (proses > 0)
+                          PieChartSectionData(
+                            color: const Color(0xFF3B82F6),
+                            value: proses.toDouble(),
+                            title: '${((proses / total) * 100).toStringAsFixed(0)}%',
+                            radius: _touchedChartIndex == 1 ? 30.0 : 24.0,
+                            titleStyle: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        if (belum > 0)
+                          PieChartSectionData(
+                            color: const Color(0xFFF59E0B),
+                            value: belum.toDouble(),
+                            title: '${((belum / total) * 100).toStringAsFixed(0)}%',
+                            radius: _touchedChartIndex == 2 ? 30.0 : 24.0,
+                            titleStyle: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '${(_prokerPercent * 100).toStringAsFixed(0)}%',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        ),
+                      ),
+                      Text(
+                        'Selesai',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: isDark ? Colors.white60 : Colors.black54,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Legends
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildChartLegend('Selesai', '$selesai', const Color(0xFF10B981), isDark),
+                _buildChartLegend('Berjalan', '$proses', const Color(0xFF3B82F6), isDark),
+                _buildChartLegend('Belum', '$belum', const Color(0xFFF59E0B), isDark),
+              ],
+            ),
+          ],
         ],
       ),
+    );
+  }
+
+  Widget _buildChartLegend(String label, String value, Color color, bool isDark) {
+    return Row(
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(3),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                color: isDark ? Colors.white60 : Colors.black54,
+              ),
+            ),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : const Color(0xFF0F172A),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // Modern Interactive Calendar for Agenda Terdekat
+  Widget _buildCalendarAgendaCard(ThemeData theme, bool isDark, Color primary) {
+    final now = DateTime.now();
+    final year = _calendarMonth.year;
+    final month = _calendarMonth.month;
+    final firstDayOfMonth = DateTime(year, month, 1);
+    final daysInMonth = DateUtils.getDaysInMonth(year, month);
+    // 1 = Monday, 7 = Sunday
+    final startingWeekday = firstDayOfMonth.weekday;
+
+    // Filter agenda by dates in this month
+    final agendaDates = <int, List<AgendaOsis>>{};
+    for (final ag in _agendaList) {
+      if (ag.waktuMulai.year == year && ag.waktuMulai.month == month) {
+        agendaDates.putIfAbsent(ag.waktuMulai.day, () => []).add(ag);
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(isDark ? 25 : 6),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Calendar
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF59E0B).withAlpha(isDark ? 40 : 25),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.calendar_month_rounded, color: Color(0xFFF59E0B), size: 20),
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _profil.namaOrganisasi.isNotEmpty ? _profil.namaOrganisasi : 'Kalender Agenda',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        ),
+                      ),
+                      Text(
+                        DateFormat('MMMM yyyy', 'id_ID').format(_calendarMonth),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? Colors.amberAccent : const Color(0xFFD97706),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.chevron_left_rounded, size: 22),
+                    tooltip: 'Bulan Sebelumnya',
+                    onPressed: () {
+                      setState(() {
+                        _calendarMonth = DateTime(_calendarMonth.year, _calendarMonth.month - 1);
+                      });
+                    },
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_right_rounded, size: 22),
+                    tooltip: 'Bulan Berikutnya',
+                    onPressed: () {
+                      setState(() {
+                        _calendarMonth = DateTime(_calendarMonth.year, _calendarMonth.month + 1);
+                      });
+                    },
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Days of Week Header
+          Row(
+            children: const ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min']
+                .map(
+                  (d) => Expanded(
+                    child: Center(
+                      child: Text(
+                        d,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+          const Divider(height: 16),
+
+          // Calendar Grid (6 rows max)
+          Builder(
+            builder: (context) {
+              final totalCells = ((startingWeekday - 1) + daysInMonth + 6) ~/ 7 * 7;
+              final rows = <Widget>[];
+
+              for (int i = 0; i < totalCells; i += 7) {
+                final dayCells = <Widget>[];
+                for (int j = 0; j < 7; j++) {
+                  final index = i + j;
+                  final dayNum = index - (startingWeekday - 1) + 1;
+                  final isValidDay = dayNum >= 1 && dayNum <= daysInMonth;
+
+                  if (!isValidDay) {
+                    dayCells.add(const Expanded(child: SizedBox(height: 34)));
+                    continue;
+                  }
+
+                  final isToday = now.year == year && now.month == month && now.day == dayNum;
+                  final hasAgenda = agendaDates.containsKey(dayNum);
+                  final agendasOnDay = agendaDates[dayNum] ?? [];
+
+                  dayCells.add(
+                    Expanded(
+                      child: InkWell(
+                        onTap: () {
+                          _showAgendaDialog(DateTime(year, month, dayNum), agendasOnDay);
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          height: 34,
+                          margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isToday
+                                ? primary.withAlpha(isDark ? 80 : 35)
+                                : (hasAgenda ? const Color(0xFFF59E0B).withAlpha(isDark ? 40 : 25) : Colors.transparent),
+                            borderRadius: BorderRadius.circular(8),
+                            border: isToday
+                                ? Border.all(color: primary, width: 1.2)
+                                : (hasAgenda
+                                    ? Border.all(color: const Color(0xFFF59E0B).withAlpha(120), width: 0.8)
+                                    : null),
+                          ),
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              Text(
+                                '$dayNum',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: (isToday || hasAgenda) ? FontWeight.bold : FontWeight.normal,
+                                  color: isToday
+                                      ? primary
+                                      : (isDark ? Colors.white : const Color(0xFF0F172A)),
+                                ),
+                              ),
+                              if (hasAgenda)
+                                Positioned(
+                                  bottom: 3,
+                                  child: Container(
+                                    width: 5,
+                                    height: 5,
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFFF59E0B),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }
+                rows.add(Row(children: dayCells));
+              }
+
+              return Column(children: rows);
+            },
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: const BoxDecoration(color: Color(0xFFF59E0B), shape: BoxShape.circle),
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    'Titik kuning = Ada agenda',
+                    style: TextStyle(fontSize: 10.5, color: isDark ? Colors.white60 : Colors.black54),
+                  ),
+                ],
+              ),
+              InkWell(
+                onTap: () => widget.onNavigateTab?.call(2),
+                child: const Text('Buka Kalender Lengkap >', style: TextStyle(fontSize: 11, color: Colors.blueAccent, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAgendaDialog(DateTime date, List<AgendaOsis> agendas) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dateStr = DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(date);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withAlpha(100),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  const Icon(Icons.event_note_rounded, color: Color(0xFFF59E0B), size: 24),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Agenda Kegiatan OSIS',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          dateStr,
+                          style: TextStyle(fontSize: 12, color: isDark ? Colors.white60 : Colors.black54),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const Divider(height: 24),
+              if (agendas.isEmpty) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        Icon(Icons.event_busy_rounded, size: 48, color: isDark ? Colors.white30 : Colors.black26),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Tidak ada agenda pada tanggal ini.',
+                          style: TextStyle(color: isDark ? Colors.white60 : Colors.black54, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ] else ...[
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 340),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: agendas.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (_, index) {
+                      final a = agendas[index];
+                      return Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                          ),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF59E0B).withAlpha(isDark ? 40 : 25),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.schedule_rounded, color: Color(0xFFF59E0B), size: 18),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          a.judul,
+                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                                        ),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.blue.withAlpha(isDark ? 50 : 25),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          a.status,
+                                          style: const TextStyle(fontSize: 10, color: Colors.blueAccent, fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Waktu: ${DateFormat('HH:mm').format(a.waktuMulai)}${a.waktuSelesai != null ? ' - ${DateFormat('HH:mm').format(a.waktuSelesai!)}' : ''}',
+                                    style: TextStyle(fontSize: 11.5, color: isDark ? Colors.white70 : const Color(0xFF475569)),
+                                  ),
+                                  Text(
+                                    'Lokasi: ${a.lokasi}',
+                                    style: TextStyle(fontSize: 11.5, color: isDark ? Colors.white70 : const Color(0xFF475569)),
+                                  ),
+                                  if (a.deskripsi.isNotEmpty) ...[
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      a.deskripsi,
+                                      style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.black54),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    widget.onNavigateTab?.call(2);
+                  },
+                  icon: const Icon(Icons.calendar_month_rounded, size: 18),
+                  label: const Text('Buka Menu Agenda & Tambah Agenda'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -763,100 +990,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ],
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAktivitasSection(ThemeData theme, bool isDark, Color primary) {
-    final recent = _aktivitasList.take(4).toList();
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.history_rounded, size: 20, color: Colors.grey),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Riwayat Aktivitas Pengguna',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : const Color(0xFF0F172A),
-                    ),
-                  ),
-                ],
-              ),
-              InkWell(
-                onTap: () => widget.onNavigateTab?.call(6),
-                child: const Text('Lihat Log', style: TextStyle(fontSize: 11.5, color: Colors.blueAccent, fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          if (recent.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Text(
-                'Belum ada rekaman aktivitas pengguna.',
-                style: TextStyle(color: isDark ? Colors.white60 : Colors.black54, fontSize: 12),
-              ),
-            )
-          else
-            ...recent.map((akt) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      margin: const EdgeInsets.only(top: 2),
-                      width: 7,
-                      height: 7,
-                      decoration: BoxDecoration(color: primary, shape: BoxShape.circle),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: RichText(
-                        text: TextSpan(
-                          style: TextStyle(fontSize: 11.5, color: isDark ? Colors.white70 : const Color(0xFF334155)),
-                          children: [
-                            TextSpan(
-                              text: '${akt.displayName}: ',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            TextSpan(text: '${akt.aksi} di '),
-                            TextSpan(
-                              text: akt.modul,
-                              style: TextStyle(color: primary, fontWeight: FontWeight.w600),
-                            ),
-                            if (akt.detail.isNotEmpty) TextSpan(text: ' (${akt.detail})'),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      DateFormat('HH:mm').format(akt.waktu),
-                      style: const TextStyle(fontSize: 10, color: Colors.grey),
-                    ),
-                  ],
-                ),
-              );
-            }),
         ],
       ),
     );

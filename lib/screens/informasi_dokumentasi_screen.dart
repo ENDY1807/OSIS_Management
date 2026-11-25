@@ -107,8 +107,8 @@ class _InformasiDokumentasiScreenState extends State<InformasiDokumentasiScreen>
             unselectedLabelColor: isDark ? Colors.white60 : Colors.black54,
             labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
             tabs: const [
-              Tab(icon: Icon(Icons.campaign_rounded, size: 18), text: '8. Informasi & Pengumuman'),
-              Tab(icon: Icon(Icons.photo_library_rounded, size: 18), text: '9. Dokumentasi Kegiatan'),
+              Tab(icon: Icon(Icons.campaign_rounded, size: 18), text: 'Informasi & Pengumuman'),
+              Tab(icon: Icon(Icons.photo_library_rounded, size: 18), text: 'Dokumentasi Kegiatan'),
             ],
           ),
         ),

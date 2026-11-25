@@ -1849,24 +1849,7 @@ class DataService {
   // ── SISTEM KAS & ABSENSI OSIS ──────────────────────────────────────────────
 
   static List<AnggotaOsis> defaultAnggotaOsis() {
-    return [
-      AnggotaOsis(id: 'ang-1', nama: 'ABBY MUHAMMAD RAFI\'U', jabatan: 'Ketua OSIS', kelas: 'XI RPL 1', nis: '2526019070001'),
-      AnggotaOsis(id: 'ang-2', nama: 'ABDILAH MALIK AL - JABBAR', jabatan: 'Wakil Ketua OSIS', kelas: 'X PPLG 1', nis: '2627020070001'),
-      AnggotaOsis(id: 'ang-3', nama: 'A\'RASYAA SYOFHA NOER AL-FIYACH', jabatan: 'Sekretaris 1', kelas: 'XII AKT', nis: '242510119002'),
-      AnggotaOsis(id: 'ang-4', nama: 'ANITA SITI NURJANAH', jabatan: 'Sekretaris 2', kelas: 'X PPLG 1', nis: '2627020070006'),
-      AnggotaOsis(id: 'ang-5', nama: 'ALFI LAILA KAMIL', jabatan: 'Bendahara 1', kelas: 'XII AKT', nis: '242510119001'),
-      AnggotaOsis(id: 'ang-6', nama: 'ALFIRA NUR REVANDA', jabatan: 'Bendahara 2', kelas: 'XI AKT', nis: '2526011119001'),
-      AnggotaOsis(id: 'ang-7', nama: 'ALFARINI NUR AULIA', jabatan: 'Sekbid Keimanan & Ketaqwaan', kelas: 'XI DKV', nis: '2526016084001'),
-      AnggotaOsis(id: 'ang-8', nama: 'AKBAR FACHREZA WILYAS', jabatan: 'Sekbid Budi Pekerti & Karakter', kelas: 'XI RPL 1', nis: '2526019070002'),
-      AnggotaOsis(id: 'ang-9', nama: 'ANINDYA RANA MALAIKA', jabatan: 'Sekbid Bela Negara & Kepemimpinan', kelas: 'XI ANIMASI', nis: '2526016073001'),
-      AnggotaOsis(id: 'ang-10', nama: 'ADITYA MUSYAFFA', jabatan: 'Sekbid Prestasi Akademik & IPTEK', kelas: 'X PPLG 1', nis: '2627020070003'),
-      AnggotaOsis(id: 'ang-11', nama: 'ALVIRA KAVALERA PONIMAN', jabatan: 'Sekbid Demokrasi & Hak Asasi', kelas: 'X DKV 1', nis: '2627017084003'),
-      AnggotaOsis(id: 'ang-12', nama: 'AMEERA NAYANA HIDAYAT', jabatan: 'Sekbid Kewirausahaan', kelas: 'XI AKT', nis: '2526011119002'),
-      AnggotaOsis(id: 'ang-13', nama: 'ALVINO NOUFAL SANJAYA', jabatan: 'Sekbid Jasmani & Olahraga', kelas: 'XI RPL 1', nis: '2526019070006'),
-      AnggotaOsis(id: 'ang-14', nama: 'AFTAH ARDIANSYAH', jabatan: 'Sekbid Seni & Budaya', kelas: 'XII DKV', nis: '242515084001'),
-      AnggotaOsis(id: 'ang-15', nama: 'ADID YULIANTO', jabatan: 'Sekbid Teknologi Informasi', kelas: 'XII RPL 2', nis: '242518070002'),
-      AnggotaOsis(id: 'ang-16', nama: 'ANGGITA ANGGRAINI KUSNAINDAR', jabatan: 'Sekbid Bahasa & Komunikasi', kelas: 'XI AKT', nis: '2526011119003'),
-    ];
+    return [];
   }
 
   // 1. Anggota OSIS

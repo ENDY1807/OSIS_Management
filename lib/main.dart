@@ -19,7 +19,6 @@ import 'services/app_settings_service.dart';
 import 'services/localization_service.dart';
 import 'widgets/notification_center_sheet.dart';
 import 'widgets/user_settings_sheet.dart';
-import 'widgets/sync_status_dialog.dart';
 import 'screens/kas_osis_screen.dart';
 import 'screens/login_screen.dart';
 import 'app_theme.dart';
@@ -325,68 +324,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             ),
                           ),
                           const Spacer(),
-                          // 1. Sync Status Dot (Online / Offline)
-                          ValueListenableBuilder<SyncStatus>(
-                            valueListenable: SyncService.statusNotifier,
-                            builder: (context, syncStatus, _) {
-                              return ValueListenableBuilder<int>(
-                                valueListenable: SyncService.pendingCountNotifier,
-                                builder: (context, pendingCount, _) {
-                                  final isOnline = syncStatus == SyncStatus.online;
-                                  final isSyncing = syncStatus == SyncStatus.syncing;
-                                  final dotColor = isSyncing
-                                      ? Colors.lightBlueAccent
-                                      : (isOnline ? const Color(0xFF10B981) : const Color(0xFFF59E0B));
-                                  final tooltipMsg = isSyncing
-                                      ? 'Sedang menyinkronkan data...'
-                                      : (isOnline
-                                          ? (pendingCount > 0 ? 'Online • $pendingCount antrean' : 'Online (Terhubung)')
-                                          : (pendingCount > 0 ? 'Offline • $pendingCount data tersimpan' : 'Mode Offline'));
 
-                                  return Padding(
-                                    padding: const EdgeInsets.only(right: 8),
-                                    child: Tooltip(
-                                      message: tooltipMsg,
-                                      child: InkWell(
-                                        onTap: () => SyncStatusDialog.show(context),
-                                        borderRadius: BorderRadius.circular(16),
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: dotColor.withAlpha(isDark ? 35 : 25),
-                                            borderRadius: BorderRadius.circular(12),
-                                            border: Border.all(color: dotColor.withAlpha(120), width: 1.1),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Container(
-                                                width: 8,
-                                                height: 8,
-                                                decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
-                                              ),
-                                              const SizedBox(width: 6),
-                                              Text(
-                                                isOnline ? 'Online' : 'Offline',
-                                                style: TextStyle(
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: isDark ? Colors.white70 : const Color(0xFF334155),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                },
-                              );
-                            },
-                          ),
-                          const SizedBox(width: 4),
-
-                          // 2. Notification Center Bell
+                          // 1. Notification Center Bell
                           if (_canReceiveNotifications)
                             ValueListenableBuilder<int>(
                               valueListenable: NotificationService.unreadCountNotifier,
@@ -560,77 +499,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ],
           ),
           actions: [
-            // 1. Minimalist Single Dot Status (Kuning = Offline, Hijau = Online)
-            ValueListenableBuilder<SyncStatus>(
-              valueListenable: SyncService.statusNotifier,
-              builder: (context, syncStatus, _) {
-                return ValueListenableBuilder<int>(
-                  valueListenable: SyncService.pendingCountNotifier,
-                  builder: (context, pendingCount, _) {
-                    final isOnline = syncStatus == SyncStatus.online;
-                    final isSyncing = syncStatus == SyncStatus.syncing;
-
-                    // Hijau (#10B981) saat Online, Kuning (#F59E0B) saat Offline
-                    final dotColor = isSyncing
-                        ? Colors.lightBlueAccent
-                        : (isOnline ? const Color(0xFF10B981) : const Color(0xFFF59E0B));
-
-                    final tooltipMsg = isSyncing
-                        ? 'Sedang menyinkronkan data...'
-                        : (isOnline
-                            ? (pendingCount > 0 ? 'Online • $pendingCount antrean' : 'Online (Terhubung)')
-                            : (pendingCount > 0 ? 'Offline • $pendingCount data tersimpan' : 'Mode Offline'));
-
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.only(right: 4),
-                        child: Tooltip(
-                          message: tooltipMsg,
-                          child: InkWell(
-                            onTap: () => SyncStatusDialog.show(context),
-                            borderRadius: BorderRadius.circular(16),
-                            child: Container(
-                              width: 28,
-                              height: 28,
-                              decoration: BoxDecoration(
-                                color: dotColor.withAlpha(isDark ? 35 : 45),
-                                shape: BoxShape.circle,
-                                border: Border.all(color: dotColor.withAlpha(140), width: 1.2),
-                              ),
-                              child: Center(
-                                child: isSyncing
-                                    ? SizedBox(
-                                        width: 10,
-                                        height: 10,
-                                        child: CircularProgressIndicator(strokeWidth: 1.8, color: dotColor),
-                                      )
-                                    : Container(
-                                        width: 8,
-                                        height: 8,
-                                        decoration: BoxDecoration(
-                                          color: dotColor,
-                                          shape: BoxShape.circle,
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: dotColor.withAlpha(220),
-                                              blurRadius: 5,
-                                              spreadRadius: 0.8,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
-
-            // 2. Notification Bell (Reaktif Real-time)
+            // 1. Notification Bell (Reaktif Real-time)
             if (_canReceiveNotifications)
               ValueListenableBuilder<int>(
                 valueListenable: NotificationService.unreadCountNotifier,
@@ -915,43 +784,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      // Sync Status
-                      ValueListenableBuilder<SyncStatus>(
-                        valueListenable: SyncService.statusNotifier,
-                        builder: (context, syncStatus, _) {
-                          return ValueListenableBuilder<int>(
-                            valueListenable: SyncService.pendingCountNotifier,
-                            builder: (context, pendingCount, _) {
-                              final isOnline = syncStatus == SyncStatus.online;
-                              final isSyncing = syncStatus == SyncStatus.syncing;
-                              final dotColor = isSyncing
-                                  ? Colors.lightBlueAccent
-                                  : (isOnline ? const Color(0xFF10B981) : const Color(0xFFF59E0B));
-                              final tooltipMsg = isSyncing
-                                  ? 'Sedang menyinkronkan data...'
-                                  : (isOnline
-                                      ? (pendingCount > 0 ? 'Online • $pendingCount antrean' : 'Online')
-                                      : (pendingCount > 0 ? 'Offline • $pendingCount data tersimpan' : 'Offline'));
-
-                              return Tooltip(
-                                message: tooltipMsg,
-                                child: IconButton(
-                                  icon: Icon(
-                                    isSyncing
-                                        ? Icons.sync_rounded
-                                        : (isOnline ? Icons.cloud_done_rounded : Icons.cloud_off_rounded),
-                                    color: dotColor,
-                                    size: 19,
-                                  ),
-                                  onPressed: () => SyncStatusDialog.show(context),
-                                  splashRadius: 18,
-                                ),
-                              );
-                            },
-                          );
-                        },
-                      ),
-
                       // Quick Theme Toggle
                       IconButton(
                         icon: Icon(

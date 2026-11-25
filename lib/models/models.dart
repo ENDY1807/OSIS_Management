@@ -822,11 +822,16 @@ class ProfilOsis {
   String visi;
   List<String> misi;
   String masaBakti;
+  String namaKepsek;
+  String namaPembina;
   String namaKetua;
   String namaWakil;
-  String namaPembina;
+  String namaWakil2;
   String namaSekretaris;
   String namaBendahara;
+  String namaSekretaris2;
+  String namaBendahara2;
+  Map<String, Map<String, dynamic>> sekbidDetails;
   String adArt;
   String gbho;
   String deskripsi;
@@ -845,11 +850,16 @@ class ProfilOsis {
       'MENGEMBANGKAN KEGIATAN SISWA/I YANG TERENCANA DAN BERMANFAAT.',
     ],
     this.masaBakti = '2026 / 2027',
-    this.namaKetua = 'Ketua OSIS',
-    this.namaWakil = 'Wakil Ketua OSIS',
-    this.namaPembina = 'Pembina OSIS',
-    this.namaSekretaris = 'Sekretaris OSIS',
-    this.namaBendahara = 'Bendahara OSIS',
+    this.namaKepsek = '',
+    this.namaPembina = '',
+    this.namaKetua = '',
+    this.namaWakil = '',
+    this.namaWakil2 = '',
+    this.namaSekretaris = '',
+    this.namaBendahara = '',
+    this.namaSekretaris2 = '',
+    this.namaBendahara2 = '',
+    Map<String, Map<String, dynamic>>? sekbidDetails,
     this.adArt = '''BAB I: NAMA, WAKTU, DAN TEMPAT KEDUDUKAN
 Pasal 1: Organisasi ini bernama Organisasi Siswa Intra Sekolah (OSIS).
 Pasal 2: OSIS didirikan untuk jangka waktu tidak terbatas.
@@ -892,7 +902,8 @@ III. ARAH KEBIJAKAN BIDANG
 - Sekbid 10: Kemampuan komunikasi bilingual (Bahasa Indonesia & Bahasa Asing), public speaking, dan kehumasan.''',
     this.deskripsi = 'Organisasi Siswa Intra Sekolah resmi sebagai wadah utama kepemimpinan dan kegiatan siswa.',
     DateTime? updatedAt,
-  }) : updatedAt = updatedAt ?? DateTime.now();
+  })  : sekbidDetails = sekbidDetails ?? {},
+        updatedAt = updatedAt ?? DateTime.now();
 
   Map<String, dynamic> toJson() => {
     'nama_organisasi': namaOrganisasi,
@@ -902,11 +913,16 @@ III. ARAH KEBIJAKAN BIDANG
     'visi': visi,
     'misi': misi,
     'masa_bakti': masaBakti,
+    'nama_kepsek': namaKepsek,
+    'nama_pembina': namaPembina,
     'nama_ketua': namaKetua,
     'nama_wakil': namaWakil,
-    'nama_pembina': namaPembina,
+    'nama_wakil_2': namaWakil2,
     'nama_sekretaris': namaSekretaris,
     'nama_bendahara': namaBendahara,
+    'nama_sekretaris_2': namaSekretaris2,
+    'nama_bendahara_2': namaBendahara2,
+    'sekbid_details': sekbidDetails,
     'ad_art': adArt,
     'gbho': gbho,
     'deskripsi': deskripsi,
@@ -926,6 +942,26 @@ III. ARAH KEBIJAKAN BIDANG
         parsedMisi = [rawMisi];
       }
     }
+
+    Map<String, Map<String, dynamic>> parsedSekbidDetails = {};
+    final rawSekbid = j['sekbid_details'];
+    if (rawSekbid is Map) {
+      rawSekbid.forEach((k, v) {
+        if (v is Map) {
+          parsedSekbidDetails[k.toString()] = Map<String, dynamic>.from(v);
+        }
+      });
+    } else if (rawSekbid is String && rawSekbid.isNotEmpty) {
+      try {
+        final dec = jsonDecode(rawSekbid);
+        if (dec is Map) {
+          dec.forEach((k, v) {
+            if (v is Map) parsedSekbidDetails[k.toString()] = Map<String, dynamic>.from(v);
+          });
+        }
+      } catch (_) {}
+    }
+
     return ProfilOsis(
       namaOrganisasi: j['nama_organisasi']?.toString() ?? 'OSIS SMK Bakti Nusantara 666',
       namaSekolah: j['nama_sekolah']?.toString() ?? 'SMK Bakti Nusantara 666',
@@ -938,11 +974,16 @@ III. ARAH KEBIJAKAN BIDANG
           ? ProfilOsis().misi
           : parsedMisi,
       masaBakti: j['masa_bakti']?.toString() ?? '2026 / 2027',
-      namaKetua: j['nama_ketua']?.toString() ?? 'Ketua OSIS',
-      namaWakil: j['nama_wakil']?.toString() ?? 'Wakil Ketua OSIS',
-      namaPembina: j['nama_pembina']?.toString() ?? 'Pembina OSIS',
-      namaSekretaris: j['nama_sekretaris']?.toString() ?? 'Sekretaris OSIS',
-      namaBendahara: j['nama_bendahara']?.toString() ?? 'Bendahara OSIS',
+      namaKepsek: j['nama_kepsek']?.toString() ?? '',
+      namaPembina: j['nama_pembina']?.toString() ?? '',
+      namaKetua: j['nama_ketua']?.toString() ?? '',
+      namaWakil: j['nama_wakil']?.toString() ?? j['nama_wakil_1']?.toString() ?? '',
+      namaWakil2: j['nama_wakil_2']?.toString() ?? '',
+      namaSekretaris: j['nama_sekretaris']?.toString() ?? j['nama_sekretaris_1']?.toString() ?? '',
+      namaBendahara: j['nama_bendahara']?.toString() ?? j['nama_bendahara_1']?.toString() ?? '',
+      namaSekretaris2: j['nama_sekretaris_2']?.toString() ?? '',
+      namaBendahara2: j['nama_bendahara_2']?.toString() ?? '',
+      sekbidDetails: parsedSekbidDetails,
       adArt: j['ad_art']?.toString() ?? ProfilOsis().adArt,
       gbho: j['gbho']?.toString() ?? ProfilOsis().gbho,
       deskripsi: j['deskripsi']?.toString() ?? 'Organisasi Siswa Intra Sekolah resmi.',

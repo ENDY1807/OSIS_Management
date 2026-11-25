@@ -1,6 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:archive/archive.dart';
 import '../models/models.dart';
 import '../services/data_service.dart';
 import '../services/auth_service.dart';
@@ -120,8 +124,8 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
             unselectedLabelColor: isDark ? Colors.white60 : Colors.black54,
             labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
             tabs: const [
-              Tab(icon: Icon(Icons.account_balance_rounded, size: 18), text: '1. Profil Organisasi'),
-              Tab(icon: Icon(Icons.people_alt_rounded, size: 18), text: '2. Data Pengurus OSIS'),
+              Tab(icon: Icon(Icons.account_balance_rounded, size: 18), text: 'Profil Organisasi'),
+              Tab(icon: Icon(Icons.people_alt_rounded, size: 18), text: 'Data Pengurus OSIS'),
             ],
           ),
         ),
@@ -519,38 +523,133 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
           ),
           const SizedBox(height: 16),
 
-          // Pembina & Kepala Sekolah
+          // 1. Kepala Sekolah
           Center(
-            child: _buildOrgCard('Pembina OSIS', _profil.namaPembina, Colors.purple, Icons.school_rounded, isDark),
+            child: _buildOrgCard(
+              'Kepala Sekolah',
+              _profil.namaKepsek.isEmpty ? '- Belum Diisi -' : _profil.namaKepsek,
+              Colors.deepPurple,
+              Icons.account_balance_rounded,
+              isDark,
+            ),
           ),
           const Center(child: Icon(Icons.arrow_downward_rounded, size: 18, color: Colors.grey)),
 
-          // Ketua OSIS
+          // 2. Pembina OSIS
           Center(
-            child: _buildOrgCard('Ketua OSIS', _profil.namaKetua, Colors.indigo, Icons.stars_rounded, isDark),
+            child: _buildOrgCard(
+              'Pembina OSIS',
+              _profil.namaPembina.isEmpty ? '- Belum Diisi -' : _profil.namaPembina,
+              Colors.purple,
+              Icons.school_rounded,
+              isDark,
+            ),
           ),
           const Center(child: Icon(Icons.arrow_downward_rounded, size: 18, color: Colors.grey)),
 
-          // Wakil Ketua OSIS
+          // 3. Ketua OSIS
           Center(
-            child: _buildOrgCard('Wakil Ketua OSIS', _profil.namaWakil, Colors.blue, Icons.star_border_rounded, isDark),
+            child: _buildOrgCard(
+              'Ketua OSIS',
+              _profil.namaKetua.isEmpty ? '- Belum Diisi -' : _profil.namaKetua,
+              Colors.indigo,
+              Icons.stars_rounded,
+              isDark,
+            ),
           ),
           const Center(child: Icon(Icons.arrow_downward_rounded, size: 18, color: Colors.grey)),
 
-          // Sekretaris & Bendahara
+          // 4. Wakil Ketua OSIS 1 & Wakil Ketua OSIS 2
           Row(
             children: [
-              Expanded(child: _buildOrgCard('Sekretaris', _profil.namaSekretaris, Colors.teal, Icons.description_rounded, isDark)),
+              Expanded(
+                child: _buildOrgCard(
+                  'Wakil Ketua OSIS 1',
+                  _profil.namaWakil.isEmpty ? '- Belum Diisi -' : _profil.namaWakil,
+                  Colors.blue,
+                  Icons.star_border_rounded,
+                  isDark,
+                ),
+              ),
               const SizedBox(width: 12),
-              Expanded(child: _buildOrgCard('Bendahara', _profil.namaBendahara, Colors.green, Icons.account_balance_wallet_rounded, isDark)),
+              Expanded(
+                child: _buildOrgCard(
+                  'Wakil Ketua OSIS 2',
+                  _profil.namaWakil2.isEmpty ? '- Belum Diisi -' : _profil.namaWakil2,
+                  Colors.lightBlue,
+                  Icons.star_half_rounded,
+                  isDark,
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 16),
+          const Center(child: Icon(Icons.arrow_downward_rounded, size: 18, color: Colors.grey)),
 
-          // Sekbid 1 - 10 Grid
-          const Text(
-            'KOORDINATOR SEKSI BIDANG (SEKBID 1 - 10):',
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey),
+          // 5. Sekretaris 1 & Bendahara 1
+          Row(
+            children: [
+              Expanded(
+                child: _buildOrgCard(
+                  'Sekretaris 1',
+                  _profil.namaSekretaris.isEmpty ? '- Belum Diisi -' : _profil.namaSekretaris,
+                  Colors.teal,
+                  Icons.description_rounded,
+                  isDark,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildOrgCard(
+                  'Bendahara 1',
+                  _profil.namaBendahara.isEmpty ? '- Belum Diisi -' : _profil.namaBendahara,
+                  Colors.green,
+                  Icons.account_balance_wallet_rounded,
+                  isDark,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // 6. Sekretaris 2 & Bendahara 2
+          Row(
+            children: [
+              Expanded(
+                child: _buildOrgCard(
+                  'Sekretaris 2',
+                  _profil.namaSekretaris2.isEmpty ? '- Belum Diisi -' : _profil.namaSekretaris2,
+                  Colors.teal.shade700,
+                  Icons.edit_note_rounded,
+                  isDark,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildOrgCard(
+                  'Bendahara 2',
+                  _profil.namaBendahara2.isEmpty ? '- Belum Diisi -' : _profil.namaBendahara2,
+                  Colors.green.shade700,
+                  Icons.payments_rounded,
+                  isDark,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // 7. Sekbid 1 - 10 Grid (Clickable)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'SEKSI BIDANG (SEKBID 1 - 10):',
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey),
+              ),
+              Text(
+                'Ketuk card untuk melihat struktur Sekbid',
+                style: TextStyle(fontSize: 10.5, fontStyle: FontStyle.italic, color: isDark ? Colors.white60 : Colors.black54),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           _buildSekbidGrid(isDark),
@@ -561,7 +660,7 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
 
   Widget _buildOrgCard(String title, String name, Color color, IconData icon, bool isDark) {
     return Container(
-      constraints: const BoxConstraints(maxWidth: 320),
+      constraints: const BoxConstraints(maxWidth: 340),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: color.withAlpha(isDark ? 30 : 15),
@@ -615,39 +714,305 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
         crossAxisCount: 2,
         mainAxisSpacing: 8,
         crossAxisSpacing: 8,
-        mainAxisExtent: 68,
+        mainAxisExtent: 74,
       ),
       itemBuilder: (context, i) {
         final s = sekbids[i];
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF0F172A).withAlpha(120) : const Color(0xFFF8FAFC),
+        final sekbidData = _profil.sekbidDetails[s.id] ?? {};
+        final ketua = sekbidData['ketua']?.toString() ?? '';
+
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => _showSekbidDetailDialog(s),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                s.name,
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF0F172A).withAlpha(120) : const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
               ),
-              const SizedBox(height: 2),
-              Text(
-                s.deskripsi,
-                style: TextStyle(
-                  fontSize: 10.5,
-                  color: isDark ? Colors.white70 : const Color(0xFF334155),
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          s.name,
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          ketua.isNotEmpty ? 'Ketua: $ketua' : s.deskripsi,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: isDark ? Colors.white70 : const Color(0xFF334155),
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right_rounded, size: 16, color: Colors.grey),
+                ],
               ),
-            ],
+            ),
           ),
         );
       },
+    );
+  }
+
+  void _showSekbidDetailDialog(SekbidItem s) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final details = _profil.sekbidDetails[s.id] ?? {};
+    final ketua = details['ketua']?.toString() ?? '';
+    final sekretaris = details['sekretaris']?.toString() ?? '';
+    final anggotaStr = details['anggota']?.toString() ?? '';
+
+    // Cari juga anggota terdaftar dari daftar AnggotaOsis
+    final anggotaListSekbid = _anggotaList.where((a) {
+      return a.bidang.toLowerCase().contains(s.name.toLowerCase()) ||
+          a.jabatan.toLowerCase().contains(s.name.toLowerCase()) ||
+          a.bidang.toLowerCase().replaceAll(' ', '') == s.id.toLowerCase();
+    }).toList();
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.blueAccent.withAlpha(isDark ? 45 : 25),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.people_alt_rounded, color: Colors.blueAccent, size: 20),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      s.name,
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      s.deskripsi,
+                      style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.black54),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          content: SizedBox(
+            width: 480,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'STRUKTUR PENGURUS SEKBID',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Ketua Sekbid
+                  _buildSekbidRoleTile(
+                    role: 'Ketua Sekbid',
+                    name: ketua.isNotEmpty ? ketua : '- Belum Ditentukan -',
+                    icon: Icons.star_rounded,
+                    color: Colors.indigo,
+                    isDark: isDark,
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Sekretaris Sekbid
+                  _buildSekbidRoleTile(
+                    role: 'Sekretaris Sekbid',
+                    name: sekretaris.isNotEmpty ? sekretaris : '- Belum Ditentukan -',
+                    icon: Icons.edit_note_rounded,
+                    color: Colors.teal,
+                    isDark: isDark,
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Anggota Sekbid
+                  _buildSekbidRoleTile(
+                    role: 'Anggota Sekbid',
+                    name: anggotaStr.isNotEmpty
+                        ? anggotaStr
+                        : (anggotaListSekbid.isNotEmpty
+                            ? anggotaListSekbid.map((a) => a.nama).join(', ')
+                            : '- Belum ada anggota terdaftar -'),
+                    icon: Icons.groups_rounded,
+                    color: Colors.blue,
+                    isDark: isDark,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            if (_canManage)
+              TextButton.icon(
+                icon: const Icon(Icons.edit_note_rounded, size: 18),
+                label: const Text('Edit Struktur Sekbid'),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _showEditSekbidDialog(s);
+                },
+              ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Tutup'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildSekbidRoleTile({
+    required String role,
+    required String name,
+    required IconData icon,
+    required Color color,
+    required bool isDark,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withAlpha(isDark ? 30 : 15),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withAlpha(80)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  role,
+                  style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: color),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  name,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditSekbidDialog(SekbidItem s) {
+    final details = _profil.sekbidDetails[s.id] ?? {};
+    final ketuaCtrl = TextEditingController(text: details['ketua']?.toString() ?? '');
+    final sekreCtrl = TextEditingController(text: details['sekretaris']?.toString() ?? '');
+    final anggotaCtrl = TextEditingController(text: details['anggota']?.toString() ?? '');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.edit_note_rounded, color: Colors.blueAccent, size: 22),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text('Edit Struktur ${s.name}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 480,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: ketuaCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Ketua Sekbid',
+                    prefixIcon: Icon(Icons.star_rounded, color: Colors.indigo),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: sekreCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Sekretaris Sekbid',
+                    prefixIcon: Icon(Icons.edit_note_rounded, color: Colors.teal),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: anggotaCtrl,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'Anggota Sekbid (pisahkan dengan koma)',
+                    prefixIcon: Icon(Icons.groups_rounded, color: Colors.blue),
+                    border: OutlineInputBorder(),
+                    hintText: 'Contoh: Ahmad, Budi, Siti',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+          ElevatedButton(
+            onPressed: () async {
+              setState(() {
+                _profil.sekbidDetails[s.id] = {
+                  'ketua': ketuaCtrl.text.trim(),
+                  'sekretaris': sekreCtrl.text.trim(),
+                  'anggota': anggotaCtrl.text.trim(),
+                };
+                _profil.updatedAt = DateTime.now();
+              });
+              await DataService.saveProfilOsis(_profil);
+              if (ctx.mounted) {
+                Navigator.pop(ctx);
+              }
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Struktur ${s.name} berhasil diperbarui')),
+                );
+              }
+            },
+            child: const Text('Simpan'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1177,11 +1542,15 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
 
   // ── DIALOG EDIT STRUKTUR ORGANISASI & PEJABAT ──────────────────────────────
   void _showEditStrukturOrganisasiDialog() {
+    final kepsekCtrl = TextEditingController(text: _profil.namaKepsek);
     final pembinaCtrl = TextEditingController(text: _profil.namaPembina);
     final ketuaCtrl = TextEditingController(text: _profil.namaKetua);
-    final wakilCtrl = TextEditingController(text: _profil.namaWakil);
-    final sekreCtrl = TextEditingController(text: _profil.namaSekretaris);
-    final bendaCtrl = TextEditingController(text: _profil.namaBendahara);
+    final wakil1Ctrl = TextEditingController(text: _profil.namaWakil);
+    final wakil2Ctrl = TextEditingController(text: _profil.namaWakil2);
+    final sekre1Ctrl = TextEditingController(text: _profil.namaSekretaris);
+    final benda1Ctrl = TextEditingController(text: _profil.namaBendahara);
+    final sekre2Ctrl = TextEditingController(text: _profil.namaSekretaris2);
+    final benda2Ctrl = TextEditingController(text: _profil.namaBendahara2);
 
     showDialog(
       context: context,
@@ -1195,17 +1564,26 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
           ],
         ),
         content: SizedBox(
-          width: 520,
+          width: 540,
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Masukkan nama pembina dan pengurus inti OSIS untuk masa bakti ini.',
+                  'Urutan Hierarki: Kepala Sekolah -> Pembina -> Ketua -> Wakil 1 & 2 -> Sekretaris 1 & Bendahara 1 -> Sekretaris 2 & Bendahara 2.',
                   style: TextStyle(fontSize: 12, color: Colors.grey),
                 ),
                 const SizedBox(height: 14),
+                TextField(
+                  controller: kepsekCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Nama Kepala Sekolah',
+                    prefixIcon: Icon(Icons.account_balance_rounded, color: Colors.deepPurple),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
                 TextField(
                   controller: pembinaCtrl,
                   decoration: const InputDecoration(
@@ -1224,31 +1602,82 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
                   ),
                 ),
                 const SizedBox(height: 12),
-                TextField(
-                  controller: wakilCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Nama Wakil Ketua OSIS',
-                    prefixIcon: Icon(Icons.star_border_rounded, color: Colors.blue),
-                    border: OutlineInputBorder(),
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: wakil1Ctrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Nama Wakil Ketua OSIS 1',
+                          prefixIcon: Icon(Icons.star_border_rounded, color: Colors.blue),
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: wakil2Ctrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Nama Wakil Ketua OSIS 2',
+                          prefixIcon: Icon(Icons.star_half_rounded, color: Colors.lightBlue),
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
-                TextField(
-                  controller: sekreCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Nama Sekretaris OSIS',
-                    prefixIcon: Icon(Icons.description_rounded, color: Colors.teal),
-                    border: OutlineInputBorder(),
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: sekre1Ctrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Nama Sekretaris 1',
+                          prefixIcon: Icon(Icons.description_rounded, color: Colors.teal),
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: benda1Ctrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Nama Bendahara 1',
+                          prefixIcon: Icon(Icons.account_balance_wallet_rounded, color: Colors.green),
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
-                TextField(
-                  controller: bendaCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Nama Bendahara OSIS',
-                    prefixIcon: Icon(Icons.account_balance_wallet_rounded, color: Colors.green),
-                    border: OutlineInputBorder(),
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: sekre2Ctrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Nama Sekretaris 2',
+                          prefixIcon: Icon(Icons.edit_note_rounded, color: Colors.teal),
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: benda2Ctrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Nama Bendahara 2',
+                          prefixIcon: Icon(Icons.payments_rounded, color: Colors.green),
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -1259,11 +1688,15 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
           ElevatedButton(
             onPressed: () async {
               setState(() {
+                _profil.namaKepsek = kepsekCtrl.text.trim();
                 _profil.namaPembina = pembinaCtrl.text.trim();
                 _profil.namaKetua = ketuaCtrl.text.trim();
-                _profil.namaWakil = wakilCtrl.text.trim();
-                _profil.namaSekretaris = sekreCtrl.text.trim();
-                _profil.namaBendahara = bendaCtrl.text.trim();
+                _profil.namaWakil = wakil1Ctrl.text.trim();
+                _profil.namaWakil2 = wakil2Ctrl.text.trim();
+                _profil.namaSekretaris = sekre1Ctrl.text.trim();
+                _profil.namaBendahara = benda1Ctrl.text.trim();
+                _profil.namaSekretaris2 = sekre2Ctrl.text.trim();
+                _profil.namaBendahara2 = benda2Ctrl.text.trim();
                 _profil.updatedAt = DateTime.now();
               });
               await DataService.saveProfilOsis(_profil);
@@ -1274,6 +1707,80 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
         ],
       ),
     );
+  }
+
+  // Helper untuk membaca file dokumen Word (.docx), PDF, atau teks
+  Future<void> _pickAndExtractDocument(TextEditingController textCtrl) async {
+    try {
+      final result = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['docx', 'doc', 'pdf', 'txt'],
+      );
+      if (result == null || result.files.isEmpty) return;
+      final file = result.files.first;
+      final bytes = await file.readAsBytes();
+      final ext = file.extension?.toLowerCase();
+
+      if (bytes.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Berkas file yang dipilih kosong')),
+          );
+        }
+        return;
+      }
+
+      if (ext == 'docx') {
+        try {
+          final archive = ZipDecoder().decodeBytes(bytes);
+          final docXml = archive.findFile('word/document.xml');
+          if (docXml != null) {
+            final xmlString = utf8.decode(docXml.content as List<int>);
+            final regex = RegExp(r'<w:t[^>]*>(.*?)</w:t>');
+            final matches = regex.allMatches(xmlString);
+            final extracted = matches.map((m) => m.group(1) ?? '').join(' ');
+            if (extracted.trim().isNotEmpty) {
+              textCtrl.text = extracted;
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Berhasil mengekstrak isi dokumen dari ${file.name}')),
+                );
+              }
+              return;
+            }
+          }
+        } catch (e) {
+          debugPrint('Error decoding docx: $e');
+        }
+      } else if (ext == 'txt') {
+        final text = utf8.decode(bytes);
+        textCtrl.text = text;
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Berhasil memuat isi file ${file.name}')),
+          );
+        }
+        return;
+      }
+
+      // Default fallback untuk PDF / DOC
+      final summary = '[Dokumen Terlampir: ${file.name}]\n'
+          'Ukuran Berkas: ${(file.size / 1024).toStringAsFixed(1)} KB\n'
+          'Tanggal Unggah: ${DateFormat('d MMMM yyyy HH:mm', 'id_ID').format(DateTime.now())}\n\n'
+          'Berkas ${file.name} telah berhasil diunggah ke sistem OSIS.';
+      textCtrl.text = summary;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Berkas ${file.name} berhasil dimuat ke dokumen')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Terjadi kesalahan saat memproses berkas: $e')),
+        );
+      }
+    }
   }
 
   // ── DIALOG EDIT DOKUMEN AD/ART & GBHO DENGAN TEMPLATE RESMI ───────────────
@@ -1346,12 +1853,22 @@ Setiap program kerja wajib melalui tahap perencanaan, pelaksanaan terkoordinasi,
                 Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ],
             ),
-            TextButton.icon(
-              icon: const Icon(Icons.auto_fix_high_rounded, size: 16),
-              label: const Text('Gunakan Template Standar', style: TextStyle(fontSize: 11)),
-              onPressed: () {
-                textCtrl.text = docType == 'AD/ART' ? adArtTemplate : gbhoTemplate;
-              },
+            Row(
+              children: [
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.upload_file_rounded, size: 16),
+                  label: const Text('Unggah Berkas (Word/PDF)', style: TextStyle(fontSize: 11)),
+                  onPressed: () => _pickAndExtractDocument(textCtrl),
+                ),
+                const SizedBox(width: 8),
+                TextButton.icon(
+                  icon: const Icon(Icons.auto_fix_high_rounded, size: 16),
+                  label: const Text('Template Standar', style: TextStyle(fontSize: 11)),
+                  onPressed: () {
+                    textCtrl.text = docType == 'AD/ART' ? adArtTemplate : gbhoTemplate;
+                  },
+                ),
+              ],
             ),
           ],
         ),
@@ -1363,8 +1880,8 @@ Setiap program kerja wajib melalui tahap perencanaan, pelaksanaan terkoordinasi,
             children: [
               Text(
                 docType == 'AD/ART'
-                    ? 'Susun Anggaran Dasar & Anggaran Rumah Tangga (AD/ART) OSIS secara terperinci per Bab dan Pasal.'
-                    : 'Susun Garis-Garis Besar Haluan Organisasi (GBHO) sebagai panduan arah kebijakan kepengurusan OSIS.',
+                    ? 'Susun Anggaran Dasar & Anggaran Rumah Tangga (AD/ART) OSIS melalui ketikan langsung atau unggah berkas Word/PDF.'
+                    : 'Susun Garis-Garis Besar Haluan Organisasi (GBHO) sebagai panduan arah kebijakan melalui ketikan langsung atau unggah berkas Word/PDF.',
                 style: const TextStyle(fontSize: 12, color: Colors.grey),
               ),
               const SizedBox(height: 10),
@@ -1394,6 +1911,105 @@ Setiap program kerja wajib melalui tahap perencanaan, pelaksanaan terkoordinasi,
         ],
       ),
     );
+  }
+
+  // Helper untuk impor data pengurus OSIS dari berkas CSV / Excel
+  Future<void> _importPengurusFromFile() async {
+    try {
+      final result = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['csv', 'txt', 'xlsx', 'xls'],
+      );
+      if (result == null || result.files.isEmpty) return;
+      final file = result.files.first;
+      final bytes = await file.readAsBytes();
+      if (bytes.isEmpty) return;
+
+      final content = utf8.decode(bytes, allowMalformed: true);
+      final lines = content.split(RegExp(r'\r?\n')).where((l) => l.trim().isNotEmpty).toList();
+
+      if (lines.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('File kosong atau tidak berisi data')),
+          );
+        }
+        return;
+      }
+
+      int importedCount = 0;
+      final newMembers = <AnggotaOsis>[];
+
+      for (int i = 0; i < lines.length; i++) {
+        final line = lines[i].trim();
+        // Skip header jika baris pertama berisi kata nama/jabatan
+        if (i == 0 && (line.toLowerCase().contains('nama') || line.toLowerCase().contains('jabatan'))) {
+          continue;
+        }
+
+        // Split by delimiter: comma, semicolon, or tab
+        List<String> cols;
+        if (line.contains(';')) {
+          cols = line.split(';');
+        } else if (line.contains('\t')) {
+          cols = line.split('\t');
+        } else {
+          cols = line.split(',');
+        }
+
+        cols = cols.map((c) => c.trim().replaceAll('"', '')).toList();
+        if (cols.isEmpty || cols[0].isEmpty) continue;
+
+        final nama = cols[0];
+        final jabatan = cols.length > 1 && cols[1].isNotEmpty ? cols[1] : 'Anggota';
+        final kelas = cols.length > 2 ? cols[2] : '';
+        final nis = cols.length > 3 ? cols[3] : '';
+        final nisn = cols.length > 4 ? cols[4] : '';
+        final jurusan = cols.length > 5 ? cols[5] : '';
+        final noHp = cols.length > 6 ? cols[6] : '';
+        final alamat = cols.length > 7 ? cols[7] : '';
+        final bidang = cols.length > 8 && cols[8].isNotEmpty ? cols[8] : (jabatan.startsWith('Sekbid') ? jabatan : 'Anggota');
+
+        final member = AnggotaOsis(
+          id: 'ang_${DateTime.now().millisecondsSinceEpoch}_$i',
+          nama: nama,
+          jabatan: jabatan,
+          kelas: kelas,
+          nis: nis,
+          nisn: nisn,
+          jurusan: jurusan,
+          noHp: noHp,
+          alamat: alamat,
+          bidang: bidang,
+          statusKeaktifan: 'Aktif',
+          aktif: true,
+        );
+        newMembers.add(member);
+        importedCount++;
+      }
+
+      if (newMembers.isNotEmpty) {
+        final updatedList = List<AnggotaOsis>.from(_anggotaList)..addAll(newMembers);
+        setState(() {
+          _anggotaList = updatedList;
+        });
+        await DataService.saveAnggotaOsis(updatedList);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Berhasil mengimpor $importedCount pengurus OSIS dari ${file.name}'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal mengimpor file: $e')),
+        );
+      }
+    }
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -1440,7 +2056,17 @@ Setiap program kerja wajib melalui tahap perencanaan, pelaksanaan terkoordinasi,
                     ),
                   ),
                   const SizedBox(width: 8),
-                  if (_canManage)
+                  if (_canManage) ...[
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.upload_file_rounded, size: 18),
+                      label: const Text('Impor File'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      onPressed: _importPengurusFromFile,
+                    ),
+                    const SizedBox(width: 8),
                     ElevatedButton.icon(
                       icon: const Icon(Icons.person_add_rounded, size: 18),
                       label: const Text('Tambah Pengurus'),
@@ -1450,6 +2076,7 @@ Setiap program kerja wajib melalui tahap perencanaan, pelaksanaan terkoordinasi,
                       ),
                       onPressed: () => _showAnggotaDialog(),
                     ),
+                  ],
                   const SizedBox(width: 6),
                   IconButton(
                     icon: const Icon(Icons.picture_as_pdf_rounded, color: Colors.redAccent),

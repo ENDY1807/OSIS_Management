@@ -96,7 +96,7 @@ class _EvaluasiScreenState extends State<EvaluasiScreen>
             unselectedLabelColor: isDark ? Colors.white60 : Colors.black54,
             labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
             tabs: const [
-              Tab(icon: Icon(Icons.rate_review_rounded, size: 18), text: '10. Evaluasi Proker'),
+              Tab(icon: Icon(Icons.rate_review_rounded, size: 18), text: 'Evaluasi Proker'),
               Tab(icon: Icon(Icons.analytics_rounded, size: 18), text: 'Penilaian & Rekap Tahunan'),
               Tab(icon: Icon(Icons.history_edu_rounded, size: 18), text: 'Riwayat Aktivitas'),
             ],
