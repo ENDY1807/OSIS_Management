@@ -243,6 +243,13 @@ class AppSettingsService {
       AppCustomInputField(id: 'ars_file', label: 'File Dokumen', type: InputFieldType.file, isRequired: true),
       AppCustomInputField(id: 'ars_ket', label: 'Keterangan Berkas', type: InputFieldType.text, placeholder: 'Masukkan keterangan berkas'),
     ],
+    'kebaikan': [
+      AppCustomInputField(id: 'keb_siswa', label: 'Nama Siswa', type: InputFieldType.select, placeholder: 'Pilih siswa...', isRequired: true),
+      AppCustomInputField(id: 'keb_tgl', label: 'Tanggal Pencatatan', type: InputFieldType.date, isRequired: true),
+      AppCustomInputField(id: 'keb_kategori', label: 'Kategori Kebaikan', type: InputFieldType.dropdown, options: ['Kedisiplinan & Kejujuran', 'Kepedulian Sosial & Gotong Royong', 'Prestasi & Keaktifan', 'Inisiatif Positif', 'Religius & Akhlak Terpuji', 'Lainnya']),
+      AppCustomInputField(id: 'keb_ket', label: 'Uraian Catatan Kebaikan', type: InputFieldType.text, placeholder: 'Tuliskan tindakan kebaikan atau keteladanan yang dilakukan...', isRequired: true),
+      AppCustomInputField(id: 'keb_poin', label: 'Poin Apresiasi', type: InputFieldType.number, placeholder: 'Contoh: 10'),
+    ],
   });
 
   /// Widget pembangun Logo yang mendukung Base64 File, Network URL, dan Asset bawaan

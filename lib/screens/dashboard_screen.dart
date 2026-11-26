@@ -32,7 +32,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   StreamSubscription<String>? _dataSub;
 
   DateTime _calendarMonth = DateTime(DateTime.now().year, DateTime.now().month);
-  int _touchedChartIndex = -1;
 
   final _currencyFmt = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
@@ -91,8 +90,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   int get _prokerSelesai => _prokerList.where((p) => p.status.toLowerCase().contains('selesai')).length;
   int get _prokerBerjalan => _prokerList.where((p) => p.status.toLowerCase().contains('jalan') || p.status.toLowerCase().contains('proses')).length;
-  int get _prokerBelum => _prokerList.length - _prokerSelesai - _prokerBerjalan;
-  double get _prokerPercent => _prokerList.isEmpty ? 0.0 : (_prokerSelesai / _prokerList.length);
 
   @override
   Widget build(BuildContext context) {
@@ -293,12 +290,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // Modern Diagram Chart for Proker Progress
+  // Modern Area Chart for Proker Progress (Matching reference style)
   Widget _buildProkerChartCard(ThemeData theme, bool isDark, Color primary) {
     final total = _prokerList.length;
     final selesai = _prokerSelesai;
     final proses = _prokerBerjalan;
-    final belum = _prokerBelum < 0 ? 0 : _prokerBelum;
+
+    // Hitung data per bulan (Jan - Des: 1..12)
+    final rencanaPerBulan = List<double>.filled(12, 0);
+    final realisasiPerBulan = List<double>.filled(12, 0);
+
+    for (final p in _prokerList) {
+      final rBulan = (p.tanggalRencana.month - 1).clamp(0, 11);
+      rencanaPerBulan[rBulan] += 1;
+
+      if (p.status.toLowerCase().contains('selesai')) {
+        final realBulan = ((p.tanggalRealisasi ?? p.tanggalRencana).month - 1).clamp(0, 11);
+        realisasiPerBulan[realBulan] += 1;
+      }
+    }
+
+    // Jika data kosong, tampilkan garis 0 yang rapi
+    double maxVal = 0;
+    for (int i = 0; i < 12; i++) {
+      if (rencanaPerBulan[i] > maxVal) maxVal = rencanaPerBulan[i];
+      if (realisasiPerBulan[i] > maxVal) maxVal = realisasiPerBulan[i];
+    }
+    final double maxY = maxVal <= 4 ? 5 : (maxVal * 1.25).ceilToDouble();
+    final double intervalY = maxY <= 6 ? 1 : (maxY / 4).ceilToDouble();
+
+    final rencanaSpots = List.generate(12, (i) => FlSpot(i + 1.0, rencanaPerBulan[i]));
+    final realisasiSpots = List.generate(12, (i) => FlSpot(i + 1.0, realisasiPerBulan[i]));
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -319,188 +341,225 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header Card
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(7),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF8B5CF6).withAlpha(isDark ? 40 : 25),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(Icons.donut_large_rounded, color: Color(0xFF8B5CF6), size: 20),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    'Perkembangan Proker',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : const Color(0xFF0F172A),
-                    ),
-                  ),
-                ],
+              Text(
+                'Tren Program Kerja OSIS - Area Chart',
+                style: TextStyle(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                ),
               ),
               InkWell(
                 onTap: () => widget.onNavigateTab?.call(2),
-                child: const Text('Detail >', style: TextStyle(fontSize: 12, color: Color(0xFF8B5CF6), fontWeight: FontWeight.bold)),
+                child: const Text('Detail >', style: TextStyle(fontSize: 12, color: Color(0xFF3B82F6), fontWeight: FontWeight.bold)),
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          if (total == 0)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 40),
-              child: Center(
-                child: Column(
-                  children: [
-                    Icon(Icons.assignment_outlined, size: 48, color: isDark ? Colors.white30 : Colors.black26),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Belum ada data program kerja',
-                      style: TextStyle(fontSize: 13, color: isDark ? Colors.white60 : Colors.black54),
-                    ),
-                  ],
-                ),
-              ),
-            )
-          else ...[
-            SizedBox(
-              height: 190,
-              child: Stack(
-                alignment: Alignment.center,
+          const SizedBox(height: 12),
+
+          // Legend (Matching reference image)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Row(
                 children: [
-                  PieChart(
-                    PieChartData(
-                      pieTouchData: PieTouchData(
-                        touchCallback: (FlTouchEvent event, pieTouchResponse) {
-                          setState(() {
-                            if (!event.isInterestedForInteractions ||
-                                pieTouchResponse == null ||
-                                pieTouchResponse.touchedSection == null) {
-                              _touchedChartIndex = -1;
-                              return;
-                            }
-                            _touchedChartIndex = pieTouchResponse.touchedSection!.touchedSectionIndex;
-                          });
-                        },
-                      ),
-                      borderData: FlBorderData(show: false),
-                      sectionsSpace: 3,
-                      centerSpaceRadius: 52,
-                      sections: [
-                        if (selesai > 0)
-                          PieChartSectionData(
-                            color: const Color(0xFF10B981),
-                            value: selesai.toDouble(),
-                            title: '${((selesai / total) * 100).toStringAsFixed(0)}%',
-                            radius: _touchedChartIndex == 0 ? 30.0 : 24.0,
-                            titleStyle: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        if (proses > 0)
-                          PieChartSectionData(
-                            color: const Color(0xFF3B82F6),
-                            value: proses.toDouble(),
-                            title: '${((proses / total) * 100).toStringAsFixed(0)}%',
-                            radius: _touchedChartIndex == 1 ? 30.0 : 24.0,
-                            titleStyle: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        if (belum > 0)
-                          PieChartSectionData(
-                            color: const Color(0xFFF59E0B),
-                            value: belum.toDouble(),
-                            title: '${((belum / total) * 100).toStringAsFixed(0)}%',
-                            radius: _touchedChartIndex == 2 ? 30.0 : 24.0,
-                            titleStyle: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                      ],
+                  Container(width: 14, height: 2.5, color: const Color(0xFF3B82F6)),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Target Rencana ($total)',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? const Color(0xFF93C5FD) : const Color(0xFF2563EB),
                     ),
                   ),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '${(_prokerPercent * 100).toStringAsFixed(0)}%',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
-                          color: isDark ? Colors.white : const Color(0xFF0F172A),
-                        ),
-                      ),
-                      Text(
-                        'Selesai',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: isDark ? Colors.white60 : Colors.black54,
-                        ),
-                      ),
-                    ],
+                ],
+              ),
+              const SizedBox(width: 18),
+              Row(
+                children: [
+                  Container(width: 14, height: 2.5, color: const Color(0xFF10B981)),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Realisasi Selesai ($selesai)',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF059669),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Area Chart Widget
+          SizedBox(
+            height: 200,
+            child: LineChart(
+              LineChartData(
+                lineTouchData: LineTouchData(
+                  handleBuiltInTouches: true,
+                  touchTooltipData: LineTouchTooltipData(
+                    getTooltipItems: (touchedSpots) {
+                      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+                      return touchedSpots.map((spot) {
+                        final monthName = months[(spot.x.toInt() - 1).clamp(0, 11)];
+                        final isRencana = spot.barIndex == 0;
+                        return LineTooltipItem(
+                          '$monthName: ${spot.y.toInt()} ${isRencana ? 'Rencana' : 'Selesai'}',
+                          TextStyle(
+                            color: isRencana ? const Color(0xFF60A5FA) : const Color(0xFF34D399),
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        );
+                      }).toList();
+                    },
+                  ),
+                ),
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: intervalY,
+                  getDrawingHorizontalLine: (value) => FlLine(
+                    color: isDark ? const Color(0xFF334155).withAlpha(120) : const Color(0xFFE2E8F0),
+                    strokeWidth: 0.9,
+                  ),
+                ),
+                titlesData: FlTitlesData(
+                  show: true,
+                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 26,
+                      interval: intervalY,
+                      getTitlesWidget: (value, meta) {
+                        if (value < 0 || value > maxY) return const SizedBox.shrink();
+                        return Text(
+                          value.toInt().toString(),
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 26,
+                      interval: 1,
+                      getTitlesWidget: (value, meta) {
+                        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+                        final idx = value.toInt() - 1;
+                        if (idx >= 0 && idx < months.length) {
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 6.0),
+                            child: Text(
+                              months[idx],
+                              style: TextStyle(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                              ),
+                            ),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
+                  ),
+                ),
+                borderData: FlBorderData(
+                  show: true,
+                  border: Border(
+                    bottom: BorderSide(
+                      color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                      width: 1.2,
+                    ),
+                  ),
+                ),
+                minX: 1,
+                maxX: 12,
+                minY: 0,
+                maxY: maxY,
+                lineBarsData: [
+                  // Blue Area (Target Rencana)
+                  LineChartBarData(
+                    spots: rencanaSpots,
+                    isCurved: true,
+                    curveSmoothness: 0.35,
+                    color: const Color(0xFF3B82F6),
+                    barWidth: 2.2,
+                    isStrokeCapRound: true,
+                    dotData: const FlDotData(show: false),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      color: const Color(0xFF3B82F6).withAlpha(isDark ? 45 : 30),
+                    ),
+                  ),
+                  // Green Area (Realisasi Selesai)
+                  LineChartBarData(
+                    spots: realisasiSpots,
+                    isCurved: true,
+                    curveSmoothness: 0.35,
+                    color: const Color(0xFF10B981),
+                    barWidth: 2.2,
+                    isStrokeCapRound: true,
+                    dotData: const FlDotData(show: false),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      color: const Color(0xFF10B981).withAlpha(isDark ? 45 : 30),
+                    ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
-            // Legends
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildChartLegend('Selesai', '$selesai', const Color(0xFF10B981), isDark),
-                _buildChartLegend('Berjalan', '$proses', const Color(0xFF3B82F6), isDark),
-                _buildChartLegend('Belum', '$belum', const Color(0xFFF59E0B), isDark),
-              ],
-            ),
-          ],
+          ),
+          const SizedBox(height: 14),
+
+          // Metric Badges Footer
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildProgressMetric('Total Target', '$total Proker', const Color(0xFF3B82F6), isDark),
+              _buildProgressMetric('Terlaksana', '$selesai Selesai', const Color(0xFF10B981), isDark),
+              _buildProgressMetric('Sedang Berjalan', '$proses Proses', const Color(0xFF8B5CF6), isDark),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildChartLegend(String label, String value, Color color, bool isDark) {
-    return Row(
+  Widget _buildProgressMetric(String label, String value, Color color, bool isDark) {
+    return Column(
       children: [
-        Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.bold,
             color: color,
-            borderRadius: BorderRadius.circular(3),
           ),
         ),
-        const SizedBox(width: 6),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                color: isDark ? Colors.white60 : Colors.black54,
-              ),
-            ),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : const Color(0xFF0F172A),
-              ),
-            ),
-          ],
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10.5,
+            color: isDark ? Colors.white60 : Colors.black54,
+          ),
         ),
       ],
     );

@@ -130,6 +130,17 @@ class AdministrasiScreenState extends State<AdministrasiScreen>
           _buildInventarisTab(theme, isDark, primary),
         ],
       ),
+      floatingActionButton: (_canManage && _tabCtrl.index == 1)
+          ? FloatingActionButton(
+              onPressed: () => _showInventarisDialog(),
+              backgroundColor: primary,
+              foregroundColor: Colors.white,
+              elevation: 4,
+              shape: const CircleBorder(),
+              tooltip: 'Catat Barang Baru',
+              child: const Icon(Icons.add_rounded, size: 28),
+            )
+          : null,
     );
   }
 
@@ -177,17 +188,6 @@ class AdministrasiScreenState extends State<AdministrasiScreen>
                     ),
                   ),
                   const SizedBox(width: 8),
-                  if (_canManage)
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.add_box_rounded, size: 18),
-                      label: const Text('Catat Barang'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      onPressed: () => _showInventarisDialog(),
-                    ),
-                  const SizedBox(width: 6),
                   IconButton(
                     icon: const Icon(Icons.picture_as_pdf_rounded, color: Colors.redAccent),
                     tooltip: 'Cetak Inventaris (PDF)',
@@ -206,8 +206,26 @@ class AdministrasiScreenState extends State<AdministrasiScreen>
                       return Padding(
                         padding: const EdgeInsets.only(right: 6),
                         child: FilterChip(
-                          label: Text(k, style: TextStyle(fontSize: 11, color: isSelected ? Colors.white : null)),
+                          label: Text(
+                            k,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                              color: isSelected
+                                  ? Colors.white
+                                  : (isDark ? const Color(0xFFE2E8F0) : const Color(0xFF1E293B)),
+                            ),
+                          ),
                           selected: isSelected,
+                          selectedColor: primary,
+                          backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                          checkmarkColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          side: BorderSide(
+                            color: isSelected
+                                ? primary
+                                : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                          ),
                           onSelected: (_) => setState(() => _filterKondisi = k),
                         ),
                       );
@@ -219,8 +237,26 @@ class AdministrasiScreenState extends State<AdministrasiScreen>
                       return Padding(
                         padding: const EdgeInsets.only(right: 6),
                         child: FilterChip(
-                          label: Text(cat, style: TextStyle(fontSize: 11, color: isSelected ? Colors.white : null)),
+                          label: Text(
+                            cat,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                              color: isSelected
+                                  ? Colors.white
+                                  : (isDark ? const Color(0xFFE2E8F0) : const Color(0xFF1E293B)),
+                            ),
+                          ),
                           selected: isSelected,
+                          selectedColor: primary,
+                          backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                          checkmarkColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          side: BorderSide(
+                            color: isSelected
+                                ? primary
+                                : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                          ),
                           onSelected: (_) => setState(() => _filterKategori = cat),
                         ),
                       );

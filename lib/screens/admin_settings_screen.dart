@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:uuid/uuid.dart';
 import '../models/models.dart';
@@ -121,6 +120,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
       'pelanggaran': List<AppCustomInputField>.from(AppSettingsService.customFieldsNotifier.value['pelanggaran'] ?? []),
       'rekap': List<AppCustomInputField>.from(AppSettingsService.customFieldsNotifier.value['rekap'] ?? []),
       'arsip': List<AppCustomInputField>.from(AppSettingsService.customFieldsNotifier.value['arsip'] ?? []),
+      'kebaikan': List<AppCustomInputField>.from(AppSettingsService.customFieldsNotifier.value['kebaikan'] ?? []),
     };
 
     _sp1Ctrl.text = AppSettingsService.sp1ThresholdNotifier.value.toString();
@@ -1014,6 +1014,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
       {'id': 'pelanggaran', 'title': 'Catat Pelanggaran', 'icon': Icons.warning_amber_rounded},
       {'id': 'rekap', 'title': 'Rekap Disiplin', 'icon': Icons.bar_chart_rounded},
       {'id': 'arsip', 'title': 'Arsip Berkas', 'icon': Icons.folder_outlined},
+      {'id': 'kebaikan', 'title': 'Catat Kebaikan', 'icon': Icons.volunteer_activism_rounded},
     ];
 
     final currentFields = _customFieldsMap[_selectedConfigModule] ?? [];
@@ -1908,7 +1909,6 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
   }
 
   Widget _buildKasConfigTab(ThemeData theme, bool isDark, Color primary) {
-    final currencyFmt = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(16),
@@ -1986,20 +1986,6 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
                     hintText: '5000',
                   ),
                 ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 6,
-                  children: [2000, 3000, 5000, 10000, 15000, 20000].map((nom) {
-                    return ActionChip(
-                      label: Text(currencyFmt.format(nom), style: const TextStyle(fontSize: 11)),
-                      onPressed: () {
-                        setState(() {
-                          _kasIuranCtrl.text = nom.toString();
-                        });
-                      },
-                    );
-                  }).toList(),
-                ),
               ],
             ),
           ),
@@ -2038,20 +2024,6 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
                     border: OutlineInputBorder(),
                     hintText: '1000000',
                   ),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 6,
-                  children: [500000, 1000000, 2000000, 5000000].map((nom) {
-                    return ActionChip(
-                      label: Text(currencyFmt.format(nom), style: const TextStyle(fontSize: 11)),
-                      onPressed: () {
-                        setState(() {
-                          _kasTargetSaldoCtrl.text = nom.toString();
-                        });
-                      },
-                    );
-                  }).toList(),
                 ),
               ],
             ),

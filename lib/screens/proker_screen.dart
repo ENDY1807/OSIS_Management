@@ -938,7 +938,9 @@ class _ProkerScreenState extends State<ProkerScreen>
                         checkmarkColor: Colors.black,
                         labelStyle: TextStyle(
                           color: selected
-                              ? (isDark ? Colors.black : Colors.white)
+                              ? (ThemeData.estimateBrightnessForColor(primary) == Brightness.dark
+                                  ? Colors.white
+                                  : Colors.black87)
                               : (isDark ? const Color(0xFF94A3B8) : kTextDark),
                           fontWeight: FontWeight.w600,
                           fontSize: 12,

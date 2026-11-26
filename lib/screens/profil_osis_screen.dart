@@ -139,6 +139,18 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
                 _buildDataPengurusTab(theme, isDark, primary),
               ],
             ),
+      floatingActionButton: _tabCtrl.index == 1 && _canManage
+          ? FloatingActionButton(
+              tooltip: 'Tambah Pengurus OSIS',
+              backgroundColor: primary,
+              foregroundColor: ThemeData.estimateBrightnessForColor(primary) == Brightness.dark
+                  ? Colors.white
+                  : Colors.black,
+              shape: const CircleBorder(),
+              onPressed: () => _showAnggotaDialog(),
+              child: const Icon(Icons.person_add_rounded, size: 26),
+            )
+          : null,
     );
   }
 
@@ -1792,49 +1804,6 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
   }) {
     final textCtrl = TextEditingController(text: initialContent);
 
-    final adArtTemplate = '''ANGGARAN DASAR & ANGGARAN RUMAH TANGGA
-ORGANISASI SISWA INTRA SEKOLAH (OSIS)
-SMK BAKTI NUSANTARA 666
-
-BAB I: NAMA, WAKTU, DAN KEDUDUKAN
-Pasal 1: Organisasi ini bernama Organisasi Siswa Intra Sekolah (OSIS) SMK Bakti Nusantara 666.
-Pasal 2: OSIS didirikan untuk waktu yang tidak ditentukan dan berkedudukan di SMK Bakti Nusantara 666.
-
-BAB II: ASAS, DASAR, DAN SIFAT
-Pasal 3: OSIS berasaskan Pancasila dan Undang-Undang Dasar Negara Republik Indonesia 1945.
-Pasal 4: OSIS berlandaskan nilai PADI (Prediction, Action, Development, Impact) dan Integritas.
-Pasal 5: OSIS bersifat intra sekolah dan menjadi wadah penampung aspirasi seluruh siswa/i.
-
-BAB III: TUJUAN DAN TUGAS POKOK
-Pasal 6: Membentuk kepemimpinan siswa/i yang berlandaskan integritas dan tanggung jawab.
-Pasal 7: Mengembangkan kegiatan siswa/i yang terencana, aktif berkarya, dan bermanfaat bagi sesama.
-
-BAB IV: KEANGGOTAAN DAN KEPENGURUSAN
-Pasal 8: Anggota OSIS adalah seluruh siswa/i resmi SMK Bakti Nusantara 666.
-Pasal 9: Pengurus OSIS terdiri dari Pengurus Inti dan Koordinator Seksi Bidang (Sekbid 1 - 10).''';
-
-    final gbhoTemplate = '''GARIS-GARIS BESAR HALUAN ORGANISASI (GBHO)
-OSIS SMK BAKTI NUSANTARA 666
-MASA BAKTI ${_profil.masaBakti}
-
-I. PENDAHULUAN
-GBHO merupakan pedoman umum dan arahan strategis pelaksanaan program kerja OSIS SMK Bakti Nusantara 666 selama satu periode kepengurusan.
-
-II. ARAH KEBIJAKAN UMUM
-1. Mewujudkan OSIS sebagai organisasi berbasis PADI (Prediction, Action, Development, Impact).
-2. Membangun mekanisme partisipasi yang terbuka dan menyenangkan bagi seluruh siswa/i.
-3. Meningkatkan keteraturan dan keefektifan kerja organisasi.
-4. Menjadi teladan kepemimpinan yang berakhlak mulia dan berintegritas.
-
-III. SASARAN STRATEGIS SEKSI BIDANG
-- Pembinaan keimanan, ketakwaan, dan budi pekerti luhur.
-- Peningkatan kedisiplinan dan kepemimpinan siswa.
-- Pengembangan kreativitas, teknologi, vokasi, dan kewirausahaan.
-- Peningkatan kepedulian sosial, lingkungan hidup, dan kehumasan digital.
-
-IV. EVALUASI DAN PERTANGGUNGJAWABAN
-Setiap program kerja wajib melalui tahap perencanaan, pelaksanaan terkoordinasi, dan evaluasi hasil secara berkala.''';
-
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -1853,22 +1822,10 @@ Setiap program kerja wajib melalui tahap perencanaan, pelaksanaan terkoordinasi,
                 Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ],
             ),
-            Row(
-              children: [
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.upload_file_rounded, size: 16),
-                  label: const Text('Unggah Berkas (Word/PDF)', style: TextStyle(fontSize: 11)),
-                  onPressed: () => _pickAndExtractDocument(textCtrl),
-                ),
-                const SizedBox(width: 8),
-                TextButton.icon(
-                  icon: const Icon(Icons.auto_fix_high_rounded, size: 16),
-                  label: const Text('Template Standar', style: TextStyle(fontSize: 11)),
-                  onPressed: () {
-                    textCtrl.text = docType == 'AD/ART' ? adArtTemplate : gbhoTemplate;
-                  },
-                ),
-              ],
+            OutlinedButton.icon(
+              icon: const Icon(Icons.upload_file_rounded, size: 16),
+              label: const Text('Unggah Berkas (Word/PDF)', style: TextStyle(fontSize: 11)),
+              onPressed: () => _pickAndExtractDocument(textCtrl),
             ),
           ],
         ),
@@ -2056,7 +2013,7 @@ Setiap program kerja wajib melalui tahap perencanaan, pelaksanaan terkoordinasi,
                     ),
                   ),
                   const SizedBox(width: 8),
-                  if (_canManage) ...[
+                  if (_canManage)
                     OutlinedButton.icon(
                       icon: const Icon(Icons.upload_file_rounded, size: 18),
                       label: const Text('Impor File'),
@@ -2066,17 +2023,6 @@ Setiap program kerja wajib melalui tahap perencanaan, pelaksanaan terkoordinasi,
                       ),
                       onPressed: _importPengurusFromFile,
                     ),
-                    const SizedBox(width: 8),
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.person_add_rounded, size: 18),
-                      label: const Text('Tambah Pengurus'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      onPressed: () => _showAnggotaDialog(),
-                    ),
-                  ],
                   const SizedBox(width: 6),
                   IconButton(
                     icon: const Icon(Icons.picture_as_pdf_rounded, color: Colors.redAccent),
@@ -2097,8 +2043,26 @@ Setiap program kerja wajib melalui tahap perencanaan, pelaksanaan terkoordinasi,
                       return Padding(
                         padding: const EdgeInsets.only(right: 6),
                         child: FilterChip(
-                          label: Text(b, style: TextStyle(fontSize: 11, color: isSelected ? Colors.white : null)),
+                          label: Text(
+                            b,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                              color: isSelected
+                                  ? (ThemeData.estimateBrightnessForColor(primary) == Brightness.dark
+                                      ? Colors.white
+                                      : Colors.black87)
+                                  : (isDark ? Colors.white70 : const Color(0xFF334155)),
+                            ),
+                          ),
                           selected: isSelected,
+                          selectedColor: primary,
+                          backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                          side: BorderSide(
+                            color: isSelected ? primary : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                            width: 1,
+                          ),
+                          showCheckmark: false,
                           onSelected: (_) => setState(() => _filterBidang = b),
                         ),
                       );
@@ -2110,8 +2074,26 @@ Setiap program kerja wajib melalui tahap perencanaan, pelaksanaan terkoordinasi,
                       return Padding(
                         padding: const EdgeInsets.only(right: 6),
                         child: FilterChip(
-                          label: Text(st, style: TextStyle(fontSize: 11, color: isSelected ? Colors.white : null)),
+                          label: Text(
+                            st,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                              color: isSelected
+                                  ? (ThemeData.estimateBrightnessForColor(primary) == Brightness.dark
+                                      ? Colors.white
+                                      : Colors.black87)
+                                  : (isDark ? Colors.white70 : const Color(0xFF334155)),
+                            ),
+                          ),
                           selected: isSelected,
+                          selectedColor: primary,
+                          backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                          side: BorderSide(
+                            color: isSelected ? primary : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                            width: 1,
+                          ),
+                          showCheckmark: false,
                           onSelected: (_) => setState(() => _filterStatus = st),
                         ),
                       );

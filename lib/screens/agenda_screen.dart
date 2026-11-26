@@ -85,14 +85,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Kalender & Agenda OSIS', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        actions: [
-          if (_canManage)
-            IconButton(
-              icon: const Icon(Icons.add_task_rounded),
-              tooltip: 'Tambah Agenda Kegiatan',
-              onPressed: () => _showAgendaDialog(),
-            ),
-        ],
+        actions: const [],
       ),
       body: Column(
         children: [
@@ -137,8 +130,26 @@ class _AgendaScreenState extends State<AgendaScreen> {
                         return Padding(
                           padding: const EdgeInsets.only(right: 6),
                           child: FilterChip(
-                            label: Text(cat, style: TextStyle(fontSize: 11, color: isSelected ? Colors.white : null)),
+                            label: Text(
+                              cat,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                color: isSelected
+                                    ? Colors.white
+                                    : (isDark ? const Color(0xFFE2E8F0) : const Color(0xFF1E293B)),
+                              ),
+                            ),
                             selected: isSelected,
+                            selectedColor: primary,
+                            backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                            checkmarkColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            side: BorderSide(
+                              color: isSelected
+                                  ? primary
+                                  : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                            ),
                             onSelected: (_) => setState(() => _filterKategori = cat),
                           ),
                         );
@@ -201,6 +212,17 @@ class _AgendaScreenState extends State<AgendaScreen> {
           ),
         ],
       ),
+      floatingActionButton: _canManage
+          ? FloatingActionButton(
+              onPressed: () => _showAgendaDialog(),
+              backgroundColor: primary,
+              foregroundColor: Colors.white,
+              elevation: 4,
+              shape: const CircleBorder(),
+              tooltip: 'Tambah Agenda Kegiatan',
+              child: const Icon(Icons.add_rounded, size: 28),
+            )
+          : null,
     );
   }
 
@@ -320,7 +342,11 @@ class _AgendaScreenState extends State<AgendaScreen> {
                     const SizedBox(height: 4),
                     Text(
                       '${a.kategori} • Bidang: ${a.bidang}',
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.blueAccent),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF1D4ED8),
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Row(

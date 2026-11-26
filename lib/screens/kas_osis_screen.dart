@@ -592,39 +592,6 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                           : 'Masukkan nominal pembayaran',
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  const Text('Pilihan Cepat:', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                  const SizedBox(height: 6),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _buildPresetChip('2.000', () {
-                        setModalState(() => nominalCtrl.text = '2000');
-                      }),
-                      _buildPresetChip('5.000', () {
-                        setModalState(() => nominalCtrl.text = '5000');
-                      }),
-                      _buildPresetChip('10.000', () {
-                        setModalState(() => nominalCtrl.text = '10000');
-                      }),
-                      _buildPresetChip('20.000', () {
-                        setModalState(() => nominalCtrl.text = '20000');
-                      }),
-                      _buildPresetChip('Target Penuh (${_selectedKasSession?.nominalWajib ?? 5000})', () {
-                        setModalState(() {
-                          nominalCtrl.text = (_selectedKasSession?.nominalWajib ?? 5000).toString();
-                          tandaiLunas = true;
-                        });
-                      }, isPrimary: true),
-                      _buildPresetChip('Reset (Rp 0)', () {
-                        setModalState(() {
-                          nominalCtrl.text = '0';
-                          tandaiLunas = false;
-                        });
-                      }),
-                    ],
-                  ),
                   const SizedBox(height: 14),
                   CheckboxListTile(
                     value: tandaiLunas,
@@ -667,32 +634,6 @@ class _KasOsisScreenState extends State<KasOsisScreen>
           },
         );
       },
-    );
-  }
-
-  Widget _buildPresetChip(String label, VoidCallback onTap, {bool isPrimary = false}) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: isPrimary ? NusantaraColors.gold.withAlpha(40) : Colors.grey.withAlpha(25),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isPrimary ? NusantaraColors.gold : Colors.grey.withAlpha(60),
-            width: 1,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 11.5,
-            fontWeight: FontWeight.bold,
-            color: isPrimary ? NusantaraColors.goldDark : null,
-          ),
-        ),
-      ),
     );
   }
 
@@ -1561,6 +1502,39 @@ class _KasOsisScreenState extends State<KasOsisScreen>
           ),
         ],
       ),
+      floatingActionButton: _canEdit
+          ? FloatingActionButton(
+              tooltip: _tabCtrl.index == 0
+                  ? 'Tambah Sesi Kas'
+                  : _tabCtrl.index == 1
+                      ? 'Tambah Sesi Absensi'
+                      : _tabCtrl.index == 2
+                          ? 'Catat Transaksi Kas'
+                          : 'Tambah Anggota Manual',
+              backgroundColor: primary,
+              foregroundColor: ThemeData.estimateBrightnessForColor(primary) == Brightness.dark
+                  ? Colors.white
+                  : Colors.black,
+              shape: const CircleBorder(),
+              onPressed: () {
+                switch (_tabCtrl.index) {
+                  case 0:
+                    _tambahSesiKasBaru();
+                    break;
+                  case 1:
+                    _tambahSesiAbsensiBaru();
+                    break;
+                  case 2:
+                    _tambahTransaksiBaru('MASUK');
+                    break;
+                  case 3:
+                    _tambahAnggotaManual();
+                    break;
+                }
+              },
+              child: const Icon(Icons.add_rounded, size: 28),
+            )
+          : null,
     );
   }
 
@@ -1949,7 +1923,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
   }
 
   Widget _buildFilterChip(String label, bool isSelected, VoidCallback onTap, bool isDark, {Color? activeCol}) {
-    final col = activeCol ?? NusantaraColors.gold;
+    final col = activeCol ?? (isDark ? const Color(0xFF2563EB) : const Color(0xFF1D4ED8));
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),

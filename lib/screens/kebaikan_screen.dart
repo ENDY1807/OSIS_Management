@@ -7,6 +7,8 @@ import '../services/data_service.dart';
 import '../services/sync_service.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
+import '../services/app_settings_service.dart';
+import '../widgets/dynamic_form_field_builder.dart';
 import '../app_theme.dart';
 
 class KebaikanScreen extends StatefulWidget {
@@ -123,12 +125,28 @@ class _KebaikanScreenState extends State<KebaikanScreen> {
       }
     }
 
-    final ketCtrl = TextEditingController(
+    final configuredFields = AppSettingsService.customFieldsNotifier.value['kebaikan'] ?? [
+      AppCustomInputField(id: 'keb_siswa', label: 'Nama Siswa', type: InputFieldType.select, isRequired: true),
+      AppCustomInputField(id: 'keb_tgl', label: 'Tanggal Pencatatan', type: InputFieldType.date, isRequired: true),
+      AppCustomInputField(id: 'keb_kategori', label: 'Kategori Kebaikan', type: InputFieldType.dropdown, options: ['Kedisiplinan & Kejujuran', 'Kepedulian Sosial & Gotong Royong', 'Prestasi & Keaktifan', 'Inisiatif Positif', 'Religius & Akhlak Terpuji', 'Lainnya']),
+      AppCustomInputField(id: 'keb_ket', label: 'Uraian Catatan Kebaikan', type: InputFieldType.text, placeholder: 'Masukkan catatan kebaikan siswa...', isRequired: true),
+      AppCustomInputField(id: 'keb_poin', label: 'Poin Apresiasi', type: InputFieldType.number, placeholder: 'Contoh: 10'),
+    ];
+
+    final Map<String, TextEditingController> controllers = {};
+    final Map<String, dynamic> dynamicValues = {};
+
+    controllers['keb_ket'] = TextEditingController(
       text: existing != null
           ? (existing.keterangan.isNotEmpty ? existing.keterangan : existing.judul)
           : '',
     );
-    final autoDate = existing?.tanggal ?? DateTime.now();
+    controllers['keb_poin'] = TextEditingController(
+      text: existing != null && existing.poin > 0 ? existing.poin.toString() : '',
+    );
+    dynamicValues['keb_tgl'] = existing?.tanggal ?? DateTime.now();
+    dynamicValues['keb_kategori'] = existing?.kategori ?? 'Kedisiplinan & Kejujuran';
+
     bool isSaving = false;
 
     await showModalBottomSheet(
@@ -204,203 +222,253 @@ class _KebaikanScreenState extends State<KebaikanScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // 1. PILIH SISWA (Searchable Autocomplete yang bisa diketik juga)
-                Text(
-                  'Pilih Siswa *',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white70 : Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Autocomplete<Siswa>(
-                  initialValue: TextEditingValue(
-                    text: selectedSiswa != null
-                        ? '${selectedSiswa!.nama} (${selectedSiswa!.kelas})'
-                        : '',
-                  ),
-                  displayStringForOption: (s) => '${s.nama} (${s.kelas})',
-                  optionsBuilder: (TextEditingValue textEditingValue) {
-                    if (textEditingValue.text.isEmpty) {
-                      return _siswa.take(25);
-                    }
-                    final q = textEditingValue.text.toLowerCase();
-                    return _siswa.where((s) {
-                      return s.nama.toLowerCase().contains(q) ||
-                          s.kelas.toLowerCase().contains(q) ||
-                          s.nis.toLowerCase().contains(q);
-                    });
-                  },
-                  onSelected: (Siswa selection) {
-                    setModal(() {
-                      selectedSiswa = selection;
-                    });
-                  },
-                  fieldViewBuilder: (context, fieldTextCtrl, focusNode, onFieldSubmitted) {
-                    return TextField(
-                      controller: fieldTextCtrl,
-                      focusNode: focusNode,
-                      decoration: InputDecoration(
-                        hintText: 'Masukkan nama siswa atau kelas...',
-                        prefixIcon: const Icon(Icons.person_search_rounded, color: Color(0xFF10B981)),
-                        suffixIcon: selectedSiswa != null
-                            ? const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 20)
-                            : null,
-                        border: const OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                      onChanged: (text) {
-                        if (selectedSiswa != null &&
-                            '${selectedSiswa!.nama} (${selectedSiswa!.kelas})' != text) {
-                          setModal(() {
-                            selectedSiswa = null;
-                          });
-                        }
-                      },
-                    );
-                  },
-                  optionsViewBuilder: (context, onSelected, options) {
-                    return Align(
-                      alignment: Alignment.topLeft,
-                      child: Material(
-                        elevation: 6,
-                        borderRadius: BorderRadius.circular(12),
-                        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxHeight: 220, maxWidth: 360),
-                          child: ListView.separated(
-                            padding: const EdgeInsets.symmetric(vertical: 4),
-                            shrinkWrap: true,
-                            itemCount: options.length,
-                            separatorBuilder: (_, __) => Divider(
-                              height: 1,
-                              color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-                            ),
-                            itemBuilder: (BuildContext context, int index) {
-                              final Siswa option = options.elementAt(index);
-                              return InkWell(
-                                onTap: () => onSelected(option),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.person_outline_rounded, size: 18, color: Color(0xFF10B981)),
-                                      const SizedBox(width: 10),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(
-                                              option.nama,
-                                              style: TextStyle(
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.bold,
-                                                color: isDark ? Colors.white : Colors.black87,
-                                              ),
-                                            ),
-                                            Text(
-                                              'Kelas ${option.kelas}',
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                color: isDark ? Colors.white60 : Colors.black54,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
+                // Dynamic Form Fields sesuai Konfigurasi Admin Settings
+                ...configuredFields.map((field) {
+                  if (field.id == 'keb_siswa') {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${field.label}${field.isRequired ? ' *' : ''}',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white70 : Colors.black87,
                           ),
                         ),
-                      ),
+                        const SizedBox(height: 6),
+                        Autocomplete<Siswa>(
+                          initialValue: TextEditingValue(
+                            text: selectedSiswa != null
+                                ? '${selectedSiswa!.nama} (${selectedSiswa!.kelas})'
+                                : '',
+                          ),
+                          displayStringForOption: (s) => '${s.nama} (${s.kelas})',
+                          optionsBuilder: (TextEditingValue textEditingValue) {
+                            if (textEditingValue.text.isEmpty) {
+                              return _siswa.take(25);
+                            }
+                            final q = textEditingValue.text.toLowerCase();
+                            return _siswa.where((s) {
+                              return s.nama.toLowerCase().contains(q) ||
+                                  s.kelas.toLowerCase().contains(q) ||
+                                  s.nis.toLowerCase().contains(q);
+                            });
+                          },
+                          onSelected: (Siswa selection) {
+                            setModal(() {
+                              selectedSiswa = selection;
+                            });
+                          },
+                          fieldViewBuilder: (context, fieldTextCtrl, focusNode, onFieldSubmitted) {
+                            return TextField(
+                              controller: fieldTextCtrl,
+                              focusNode: focusNode,
+                              decoration: InputDecoration(
+                                hintText: 'Masukkan nama siswa atau kelas...',
+                                prefixIcon: const Icon(Icons.person_search_rounded, color: Color(0xFF10B981)),
+                                suffixIcon: selectedSiswa != null
+                                    ? const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 20)
+                                    : null,
+                                border: const OutlineInputBorder(),
+                                isDense: true,
+                              ),
+                              onChanged: (text) {
+                                if (selectedSiswa != null &&
+                                    '${selectedSiswa!.nama} (${selectedSiswa!.kelas})' != text) {
+                                  setModal(() {
+                                    selectedSiswa = null;
+                                  });
+                                }
+                              },
+                            );
+                          },
+                          optionsViewBuilder: (context, onSelected, options) {
+                            return Align(
+                              alignment: Alignment.topLeft,
+                              child: Material(
+                                elevation: 6,
+                                borderRadius: BorderRadius.circular(12),
+                                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(maxHeight: 220, maxWidth: 360),
+                                  child: ListView.separated(
+                                    padding: const EdgeInsets.symmetric(vertical: 4),
+                                    shrinkWrap: true,
+                                    itemCount: options.length,
+                                    separatorBuilder: (_, __) => Divider(
+                                      height: 1,
+                                      color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                                    ),
+                                    itemBuilder: (BuildContext context, int index) {
+                                      final Siswa option = options.elementAt(index);
+                                      return InkWell(
+                                        onTap: () => onSelected(option),
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                          child: Row(
+                                            children: [
+                                              const Icon(Icons.person_outline_rounded, size: 18, color: Color(0xFF10B981)),
+                                              const SizedBox(width: 10),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Text(
+                                                      option.nama,
+                                                      style: TextStyle(
+                                                        fontSize: 13,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: isDark ? Colors.white : Colors.black87,
+                                                      ),
+                                                    ),
+                                                    Text(
+                                                      'Kelas ${option.kelas}',
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        color: isDark ? Colors.white60 : Colors.black54,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                      ],
                     );
-                  },
-                ),
-                const SizedBox(height: 16),
+                  }
 
-                // 2. KETERANGAN
-                Text(
-                  'Keterangan *',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white70 : Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: ketCtrl,
-                  maxLines: 3,
-                  decoration: const InputDecoration(
-                    hintText: 'Masukkan tindakan atau kebaikan yang dilakukan siswa...',
-                    prefixIcon: Padding(
-                      padding: EdgeInsets.only(bottom: 40),
-                      child: Icon(Icons.edit_note_rounded, color: Color(0xFF10B981)),
-                    ),
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // 3. TANGGAL OTOMATIS SESUAI HARI INI
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.calendar_today_rounded, size: 18, color: Color(0xFF10B981)),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Tanggal Pencatatan',
-                              style: TextStyle(fontSize: 11, color: Colors.grey),
+                  if (field.id == 'keb_ket') {
+                    controllers.putIfAbsent(field.id, () => TextEditingController());
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${field.label}${field.isRequired ? ' *' : ''}',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white70 : Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: controllers['keb_ket'],
+                          maxLines: 3,
+                          decoration: InputDecoration(
+                            hintText: field.placeholder.isNotEmpty
+                                ? field.placeholder
+                                : 'Masukkan tindakan atau kebaikan yang dilakukan siswa...',
+                            prefixIcon: const Padding(
+                              padding: EdgeInsets.only(bottom: 40),
+                              child: Icon(Icons.edit_note_rounded, color: Color(0xFF10B981)),
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(autoDate),
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: isDark ? Colors.white : Colors.black87,
+                            border: const OutlineInputBorder(),
+                            isDense: true,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    );
+                  }
+
+                  if (field.id == 'keb_tgl') {
+                    final curDate = dynamicValues['keb_tgl'] is DateTime
+                        ? dynamicValues['keb_tgl'] as DateTime
+                        : DateTime.now();
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.calendar_today_rounded, size: 18, color: Color(0xFF10B981)),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    field.label,
+                                    style: const TextStyle(fontSize: 11, color: Colors.grey),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(curDate),
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark ? Colors.white : Colors.black87,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            InkWell(
+                              onTap: () async {
+                                final picked = await showDatePicker(
+                                  context: context,
+                                  initialDate: curDate,
+                                  firstDate: DateTime(2020),
+                                  lastDate: DateTime(2100),
+                                );
+                                if (picked != null) {
+                                  setModal(() {
+                                    dynamicValues['keb_tgl'] = picked;
+                                  });
+                                }
+                              },
+                              borderRadius: BorderRadius.circular(8),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF10B981).withAlpha(30),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Text(
+                                  'Ubah Tanggal',
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF059669),
+                                  ),
+                                ),
                               ),
                             ),
                           ],
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF10B981).withAlpha(30),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text(
-                          'Otomatis Hari Ini',
-                          style: TextStyle(
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF059669),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 22),
+                    );
+                  }
+
+                  return DynamicFormFieldBuilder.buildField(
+                    context: context,
+                    field: field,
+                    isDark: isDark,
+                    controllers: controllers,
+                    dynamicValues: dynamicValues,
+                    setModalState: setModal,
+                  );
+                }),
+                const SizedBox(height: 8),
 
                 // TOMBOL SIMPAN
                 ElevatedButton(
@@ -414,7 +482,7 @@ class _KebaikanScreenState extends State<KebaikanScreen> {
                             ));
                             return;
                           }
-                          final ket = ketCtrl.text.trim();
+                          final ket = (controllers['keb_ket']?.text ?? '').trim();
                           if (ket.isEmpty) {
                             ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
                               content: Text('Keterangan kebaikan tidak boleh kosong!'),
@@ -425,13 +493,19 @@ class _KebaikanScreenState extends State<KebaikanScreen> {
 
                           setModal(() => isSaving = true);
 
+                          final tanggal = dynamicValues['keb_tgl'] is DateTime
+                              ? dynamicValues['keb_tgl'] as DateTime
+                              : DateTime.now();
+                          final kategori = dynamicValues['keb_kategori']?.toString() ?? 'Kebaikan';
+                          final poin = int.tryParse(controllers['keb_poin']?.text.trim() ?? '0') ?? 0;
+
                           final catatan = CatatanKebaikan(
                             id: existing?.id ?? const Uuid().v4(),
                             siswaId: selectedSiswa!.id,
                             judul: ket,
-                            kategori: 'Kebaikan',
-                            poin: 0,
-                            tanggal: autoDate,
+                            kategori: kategori,
+                            poin: poin,
+                            tanggal: tanggal,
                             keterangan: ket,
                             namaSiswa: selectedSiswa!.nama,
                             kelasSiswa: selectedSiswa!.kelas,
@@ -822,37 +896,22 @@ class _KebaikanScreenState extends State<KebaikanScreen> {
                                         ),
                                         const SizedBox(height: 16),
                                         Text(
-                                          'Belum Ada Catatan Kebaikan',
+                                          'Catatan Sedang Kosong',
                                           style: TextStyle(
-                                            fontSize: 15,
+                                            fontSize: 16,
                                             fontWeight: FontWeight.bold,
                                             color: isDark ? Colors.white : kTextDark,
                                           ),
                                         ),
                                         const SizedBox(height: 6),
                                         Text(
-                                          'Catat aksi terpuji siswa hari ini untuk apresiasi karakter positif.',
+                                          'Belum ada data catatan kebaikan siswa yang tercatat saat ini.',
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
-                                            fontSize: 12,
+                                            fontSize: 12.5,
                                             color: isDark ? const Color(0xFF94A3B8) : Colors.black54,
                                           ),
                                         ),
-                                        if (_canEdit) ...[
-                                          const SizedBox(height: 16),
-                                          ElevatedButton.icon(
-                                            onPressed: () => _showForm(),
-                                            icon: const Icon(Icons.add_rounded, size: 18),
-                                            label: const Text('Catat Kebaikan Sekarang'),
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: const Color(0xFF059669),
-                                              foregroundColor: Colors.white,
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(10),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
                                       ],
                                     ),
                                   ),

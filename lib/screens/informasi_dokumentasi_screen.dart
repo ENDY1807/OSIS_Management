@@ -122,6 +122,29 @@ class _InformasiDokumentasiScreenState extends State<InformasiDokumentasiScreen>
                 _buildDokumentasiTab(theme, isDark, primary),
               ],
             ),
+      floatingActionButton: Builder(
+        builder: (context) {
+          final isTab0 = _tabCtrl.index == 0;
+          final canAdd = isTab0 ? _canPostPengumuman : _canManageDokumentasi;
+          if (!canAdd) return const SizedBox.shrink();
+
+          return FloatingActionButton(
+            onPressed: () {
+              if (isTab0) {
+                _showPengumumanDialog();
+              } else {
+                _showDokumentasiDialog();
+              }
+            },
+            backgroundColor: primary,
+            foregroundColor: Colors.white,
+            elevation: 4,
+            shape: const CircleBorder(),
+            tooltip: isTab0 ? 'Buat Pengumuman' : 'Unggah Dokumentasi',
+            child: const Icon(Icons.add_rounded, size: 28),
+          );
+        },
+      ),
     );
   }
 
@@ -154,8 +177,26 @@ class _InformasiDokumentasiScreenState extends State<InformasiDokumentasiScreen>
                         return Padding(
                           padding: const EdgeInsets.only(right: 6),
                           child: FilterChip(
-                            label: Text(cat, style: TextStyle(fontSize: 11, color: isSelected ? Colors.white : null)),
+                            label: Text(
+                              cat,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                color: isSelected
+                                    ? Colors.white
+                                    : (isDark ? const Color(0xFFE2E8F0) : const Color(0xFF1E293B)),
+                              ),
+                            ),
                             selected: isSelected,
+                            selectedColor: primary,
+                            backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                            checkmarkColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            side: BorderSide(
+                              color: isSelected
+                                  ? primary
+                                  : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                            ),
                             onSelected: (_) => setState(() => _filterPengumuman = cat),
                           ),
                         );
@@ -164,16 +205,6 @@ class _InformasiDokumentasiScreenState extends State<InformasiDokumentasiScreen>
                   ),
                 ),
               ),
-              if (_canPostPengumuman)
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.add_comment_rounded, size: 18),
-                  label: const Text('Buat Pengumuman'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  onPressed: () => _showPengumumanDialog(),
-                ),
             ],
           ),
         ),
@@ -503,8 +534,26 @@ class _InformasiDokumentasiScreenState extends State<InformasiDokumentasiScreen>
                         return Padding(
                           padding: const EdgeInsets.only(right: 6),
                           child: FilterChip(
-                            label: Text(cat, style: TextStyle(fontSize: 11, color: isSelected ? Colors.white : null)),
+                            label: Text(
+                              cat,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                color: isSelected
+                                    ? Colors.white
+                                    : (isDark ? const Color(0xFFE2E8F0) : const Color(0xFF1E293B)),
+                              ),
+                            ),
                             selected: isSelected,
+                            selectedColor: primary,
+                            backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                            checkmarkColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            side: BorderSide(
+                              color: isSelected
+                                  ? primary
+                                  : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                            ),
                             onSelected: (_) => setState(() => _filterDokumentasi = cat),
                           ),
                         );
@@ -513,16 +562,6 @@ class _InformasiDokumentasiScreenState extends State<InformasiDokumentasiScreen>
                   ),
                 ),
               ),
-              if (_canManageDokumentasi)
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.add_photo_alternate_rounded, size: 18),
-                  label: const Text('Tambah Dokumentasi'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  onPressed: () => _showDokumentasiDialog(),
-                ),
             ],
           ),
         ),
