@@ -198,7 +198,7 @@ class AppSettingsService {
 
   static const _keyCustomFields = 'cfg_dynamic_custom_fields';
 
-  static final ValueNotifier<Map<String, List<AppCustomInputField>>> customFieldsNotifier = ValueNotifier({
+  static Map<String, List<AppCustomInputField>> _defaultCustomFields() => {
     'laporan': [
       AppCustomInputField(id: 'lap_nama', label: 'Nama Kegiatan', type: InputFieldType.text, placeholder: 'Masukkan nama kegiatan', isRequired: true),
       AppCustomInputField(id: 'lap_kategori', label: 'Kategori Kegiatan', type: InputFieldType.dropdown, options: ['Kegiatan Rutin', 'Program Unggulan', 'Peringatan Hari Besar', 'Lomba & Kompetisi', 'Bakti Sosial', 'Rapat Kerja & Pleno', 'Lainnya']),
@@ -305,7 +305,25 @@ class AppSettingsService {
       AppCustomInputField(id: 'ang_hp', label: 'Nomor WhatsApp', type: InputFieldType.text, placeholder: 'Contoh: 08123456789'),
       AppCustomInputField(id: 'ang_status', label: 'Status Keaktifan', type: InputFieldType.dropdown, options: ['Aktif', 'Non-aktif', 'Alumni']),
     ],
-  });
+  };
+
+  static final ValueNotifier<Map<String, List<AppCustomInputField>>> customFieldsNotifier =
+      ValueNotifier(_defaultCustomFields());
+
+  static Map<String, List<AppCustomInputField>> _mergeWithDefaultCustomFields(
+    Map<String, List<AppCustomInputField>> loaded,
+  ) {
+    final defaults = _defaultCustomFields();
+    final merged = <String, List<AppCustomInputField>>{};
+    defaults.forEach((key, defList) {
+      final existing = loaded[key];
+      merged[key] = (existing != null && existing.isNotEmpty) ? existing : List<AppCustomInputField>.from(defList);
+    });
+    loaded.forEach((key, val) {
+      if (!merged.containsKey(key)) merged[key] = val;
+    });
+    return merged;
+  }
 
   /// Widget pembangun Logo yang mendukung Base64 File, Network URL, dan Asset bawaan
   static Widget buildLogoWidget({
@@ -481,7 +499,7 @@ class AppSettingsService {
           }
         });
         if (map.isNotEmpty) {
-          customFieldsNotifier.value = map;
+          customFieldsNotifier.value = _mergeWithDefaultCustomFields(map);
         }
       } catch (_) {}
     }
@@ -889,7 +907,8 @@ class AppSettingsService {
                 }
               });
               if (map.isNotEmpty) {
-                customFieldsNotifier.value = map;
+                final merged = _mergeWithDefaultCustomFields(map);
+                customFieldsNotifier.value = merged;
                 await prefs.setString(_keyCustomFields, jsonEncode(raw));
               }
             }

@@ -8,6 +8,7 @@ import '../services/sync_service.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
 import '../services/app_settings_service.dart';
+import '../services/localization_service.dart';
 import '../widgets/dynamic_form_field_builder.dart';
 import '../app_theme.dart';
 
@@ -23,11 +24,19 @@ class _KebaikanScreenState extends State<KebaikanScreen> {
   List<Siswa> _siswa = [];
   List<CatatanKebaikan> _kebaikan = [];
   String _currentUser = '';
-  String _searchQuery = '';
-  final _searchCtrl = TextEditingController();
+  String? _filterSiswaId;
+  DateTime _selectedDate = _today();
+  final _filterCtrl = TextEditingController();
+  final _filterFocus = FocusNode();
   bool _loading = true;
   StreamSubscription<String>? _dataSub;
 
+  static DateTime _today() {
+    final n = DateTime.now();
+    return DateTime(n.year, n.month, n.day);
+  }
+
+  bool get _isToday => _selectedDate == _today();
   bool get _isReadOnly => AuthService.isReadOnly(_currentUser);
   bool get _canEdit => !_isReadOnly;
 
@@ -67,8 +76,26 @@ class _KebaikanScreenState extends State<KebaikanScreen> {
   @override
   void dispose() {
     _dataSub?.cancel();
-    _searchCtrl.dispose();
+    _filterCtrl.dispose();
+    _filterFocus.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: _today(),
+      locale: const Locale('id', 'ID'),
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedDate = DateTime(picked.year, picked.month, picked.day);
+        _filterSiswaId = null;
+        _filterCtrl.clear();
+      });
+    }
   }
 
   Future<void> _load({bool showLoading = true}) async {
@@ -88,16 +115,24 @@ class _KebaikanScreenState extends State<KebaikanScreen> {
     }
   }
 
-  List<CatatanKebaikan> get _filteredList {
-    if (_searchQuery.isEmpty) return _kebaikan;
-    final q = _searchQuery.toLowerCase();
-    return _kebaikan.where((k) {
-      final nama = (k.namaSiswa ?? '').toLowerCase();
-      final kelas = (k.kelasSiswa ?? '').toLowerCase();
-      final ket = k.keterangan.toLowerCase();
-      final judul = k.judul.toLowerCase();
-      return nama.contains(q) || kelas.contains(q) || ket.contains(q) || judul.contains(q);
-    }).toList();
+  List<CatatanKebaikan> get _filteredByDate => _kebaikan.where((k) =>
+      k.tanggal.year == _selectedDate.year &&
+      k.tanggal.month == _selectedDate.month &&
+      k.tanggal.day == _selectedDate.day).toList();
+
+  List<CatatanKebaikan> get _filtered =>
+      _filterSiswaId == null ? _filteredByDate : _filteredByDate.where((k) => k.siswaId == _filterSiswaId).toList();
+
+  String _namaSiswa(String id, [CatatanKebaikan? fallback]) {
+    final found = _siswa.where((s) => s.id == id);
+    if (found.isNotEmpty) return found.first.nama;
+    return fallback?.namaSiswa ?? '(Siswa dihapus)';
+  }
+
+  String _kelasSiswa(String id, [CatatanKebaikan? fallback]) {
+    final found = _siswa.where((s) => s.id == id);
+    if (found.isNotEmpty) return found.first.kelas;
+    return fallback?.kelasSiswa ?? '-';
   }
 
   void _showForm([CatatanKebaikan? existing]) async {
@@ -144,7 +179,7 @@ class _KebaikanScreenState extends State<KebaikanScreen> {
     controllers['keb_poin'] = TextEditingController(
       text: existing != null && existing.poin > 0 ? existing.poin.toString() : '',
     );
-    dynamicValues['keb_tgl'] = existing?.tanggal ?? DateTime.now();
+    dynamicValues['keb_tgl'] = existing?.tanggal ?? _selectedDate;
     dynamicValues['keb_kategori'] = existing?.kategori ?? 'Kedisiplinan & Kejujuran';
 
     bool isSaving = false;
@@ -563,185 +598,14 @@ class _KebaikanScreenState extends State<KebaikanScreen> {
                           width: 20,
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
-                      : Text(
-                          existing == null ? 'Simpan Catatan Kebaikan' : 'Perbarui Catatan',
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                      : const Text(
+                          'Simpan',
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                         ),
                 ),
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCard(CatatanKebaikan k) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final textTitle = isDark ? Colors.white : kTextDark;
-    final textSub = isDark ? const Color(0xFF94A3B8) : Colors.black54;
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF141D2E) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: isDark
-            ? null
-            : [
-                BoxShadow(
-                  color: Colors.black.withAlpha(8),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                )
-              ],
-        border: Border.all(
-          color: isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF10B981).withAlpha(isDark ? 35 : 20),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.volunteer_activism_rounded,
-                    color: Color(0xFF059669),
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        k.namaSiswa ?? 'Siswa',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: textTitle,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              'Kelas ${k.kelasSiswa ?? '-'}',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: isDark ? Colors.white70 : Colors.black87,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Icon(Icons.calendar_today_rounded, size: 12, color: textSub),
-                          const SizedBox(width: 4),
-                          Text(
-                            DateFormat('d MMM yyyy', 'id_ID').format(k.tanggal),
-                            style: TextStyle(fontSize: 11.5, color: textSub),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF0D1424) : const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
-                ),
-              ),
-              child: Text(
-                k.keterangan.isNotEmpty ? k.keterangan : k.judul,
-                style: TextStyle(
-                  fontSize: 13.5,
-                  height: 1.45,
-                  color: isDark ? const Color(0xFFF1F5F9) : const Color(0xFF1E293B),
-                ),
-              ),
-            ),
-            if (k.petugas.isNotEmpty || _canEdit) ...[
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  if (k.petugas.isNotEmpty)
-                    Expanded(
-                      child: Text(
-                        'Dicatat oleh: ${k.petugas}',
-                        style: TextStyle(fontSize: 11, color: textSub),
-                      ),
-                    ),
-                  if (_canEdit) ...[
-                    IconButton(
-                      icon: const Icon(Icons.edit_outlined, size: 18),
-                      tooltip: 'Edit',
-                      color: theme.colorScheme.primary,
-                      visualDensity: VisualDensity.compact,
-                      onPressed: () => _showForm(k),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline, size: 18),
-                      tooltip: 'Hapus',
-                      color: Colors.redAccent,
-                      visualDensity: VisualDensity.compact,
-                      onPressed: () async {
-                        final ok = await showDialog<bool>(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            title: const Text('Hapus Catatan Kebaikan'),
-                            content: Text('Hapus catatan kebaikan untuk ${k.namaSiswa}?'),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(ctx, false),
-                                child: const Text('Batal'),
-                              ),
-                              ElevatedButton(
-                                onPressed: () => Navigator.pop(ctx, true),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.redAccent,
-                                  foregroundColor: Colors.white,
-                                ),
-                                child: const Text('Hapus'),
-                              ),
-                            ],
-                          ),
-                        );
-                        if (ok == true) {
-                          await DataService.deleteKebaikan(k.id);
-                          _load();
-                        }
-                      },
-                    ),
-                  ],
-                ],
-              ),
-            ],
-          ],
         ),
       ),
     );
@@ -752,194 +616,368 @@ class _KebaikanScreenState extends State<KebaikanScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final primary = theme.colorScheme.primary;
-
-    final totalCatatan = _kebaikan.length;
-    final totalSiswa = _kebaikan.map((e) => e.siswaId).toSet().length;
-    final filtered = _filteredList;
+    final cardBg = isDark ? const Color(0xFF141D2E) : Colors.white;
+    final cardBorder = isDark ? const Color(0xFF243452) : const Color(0xFFE2E8F0);
+    final textTitle = isDark ? Colors.white : kTextDark;
+    final textSub = isDark ? const Color(0xFF94A3B8) : kTextMid;
+    final textMuted = isDark ? const Color(0xFF64748B) : kTextLight;
+    const kebaikanGreen = Color(0xFF059669);
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      body: Column(
-        children: [
-          // Header Metrik Bersih & Modern (Tanpa Bintang)
-          Container(
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF0D1424) : primary,
-              border: isDark
-                  ? const Border(bottom: BorderSide(color: Color(0xFF243452)))
-                  : null,
-            ),
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withAlpha(22),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white.withAlpha(50)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '$totalCatatan',
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        const Text(
-                          'Total Catatan Kebaikan',
-                          style: TextStyle(fontSize: 11, color: Colors.white70),
-                        ),
-                      ],
+      body: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Column(
+          children: [
+            // ── Date picker header (sama dengan Pencatatan Pelanggaran) ──
+            GestureDetector(
+              onTap: _pickDate,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF0D1424) : kPrimaryDark,
+                  border: isDark ? const Border(bottom: BorderSide(color: Color(0xFF243452))) : null,
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                child: Row(children: [
+                  const Icon(Icons.calendar_today, color: Colors.white, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      DateFormat('EEEE, dd MMMM yyyy', LocalizationService.currentLocale.value.languageCode).format(_selectedDate),
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                     ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withAlpha(22),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white.withAlpha(50)),
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    GestureDetector(
+                      onTap: () => setState(() {
+                        _selectedDate = _selectedDate.subtract(const Duration(days: 1));
+                        _filterSiswaId = null;
+                        _filterCtrl.clear();
+                      }),
+                      child: const Icon(Icons.chevron_left, color: Colors.white),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '$totalSiswa',
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF6EE7B7),
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        const Text(
-                          'Siswa Terpuji',
-                          style: TextStyle(fontSize: 11, color: Colors.white70),
-                        ),
-                      ],
+                    GestureDetector(
+                      onTap: _isToday ? null : () => setState(() {
+                        _selectedDate = _selectedDate.add(const Duration(days: 1));
+                        _filterSiswaId = null;
+                        _filterCtrl.clear();
+                      }),
+                      child: Icon(Icons.chevron_right,
+                          color: _isToday ? Colors.white38 : Colors.white),
                     ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Search Bar
-          Container(
-            color: isDark ? const Color(0xFF141D2E) : Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            child: TextField(
-              controller: _searchCtrl,
-              decoration: InputDecoration(
-                hintText: 'Masukkan nama siswa, kelas, atau isi kebaikan...',
-                prefixIcon: const Icon(Icons.search, size: 20),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, size: 18),
-                        onPressed: () {
-                          _searchCtrl.clear();
-                          setState(() => _searchQuery = '');
-                        },
-                      )
-                    : null,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                isDense: true,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    const SizedBox(width: 4),
+                    GestureDetector(
+                      onTap: _load,
+                      child: const Icon(Icons.refresh, color: Colors.white, size: 20),
+                    ),
+                  ]),
+                ]),
               ),
-              onChanged: (val) => setState(() => _searchQuery = val.trim()),
             ),
-          ),
 
-          // List Catatan Kebaikan
-          Expanded(
-            child: _loading
-                ? Center(child: CircularProgressIndicator(color: primary))
-                : RefreshIndicator(
-                    onRefresh: () async {
-                      await SyncService.checkAndSync();
-                      await _load();
-                    },
-                    color: const Color(0xFF059669),
-                    child: filtered.isEmpty
-                        ? LayoutBuilder(
-                            builder: (context, constraints) => SingleChildScrollView(
-                              physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-                              child: ConstrainedBox(
-                                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                                child: Center(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(24),
+            // ── Search filter siswa ──
+            if (_filteredByDate.isNotEmpty)
+              Container(
+                color: isDark ? const Color(0xFF141D2E) : Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: _siswa.isEmpty
+                    ? const SizedBox.shrink()
+                    : RawAutocomplete<Siswa>(
+                        textEditingController: _filterCtrl,
+                        focusNode: _filterFocus,
+                        displayStringForOption: (s) => '${s.nama} - ${s.kelas}',
+                        optionsBuilder: (v) {
+                          final idsWithRecords = _filteredByDate.map((k) => k.siswaId).toSet();
+                          final available = _siswa.where((s) => idsWithRecords.contains(s.id)).toList();
+                          if (v.text.isEmpty) return available;
+                          final q = v.text.toLowerCase();
+                          return available.where((s) =>
+                            s.nama.toLowerCase().contains(q) ||
+                            s.nis.toLowerCase().contains(q) ||
+                            s.kelas.toLowerCase().contains(q));
+                        },
+                        onSelected: (v) => setState(() => _filterSiswaId = v.id),
+                        fieldViewBuilder: (_, ctrl, fn, onSubmit) => TextField(
+                          controller: ctrl,
+                          focusNode: fn,
+                          onTapOutside: (_) => fn.unfocus(),
+                          style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                          decoration: InputDecoration(
+                            hintText: 'Cari siswa yang tercatat kebaikan...',
+                            hintStyle: TextStyle(color: isDark ? const Color(0xFF94A3B8) : Colors.black38),
+                            prefixIcon: const Icon(Icons.search, size: 20, color: kebaikanGreen),
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            suffixIcon: _filterSiswaId != null
+                                ? IconButton(
+                                    icon: const Icon(Icons.close, size: 18),
+                                    onPressed: () => setState(() {
+                                      _filterSiswaId = null;
+                                      _filterCtrl.clear();
+                                    }),
+                                  )
+                                : null,
+                          ),
+                        ),
+                        optionsViewBuilder: (_, onSel, options) => Align(
+                          alignment: Alignment.topLeft,
+                          child: Material(
+                            elevation: 4,
+                            borderRadius: BorderRadius.circular(12),
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxHeight: 200, maxWidth: 380),
+                              child: ListView(
+                                padding: EdgeInsets.zero,
+                                shrinkWrap: true,
+                                children: options.map((s) => ListTile(
+                                  dense: true,
+                                  title: Text(s.nama, style: const TextStyle(fontSize: 13)),
+                                  subtitle: Text('${s.kelas} • NIS: ${s.nis}',
+                                      style: const TextStyle(fontSize: 11)),
+                                  onTap: () => onSel(s),
+                                )).toList(),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+              ),
+
+            // ── Summary bar ──
+            if (_filtered.isNotEmpty)
+              Container(
+                color: isDark ? const Color(0xFF1A263D) : kebaikanGreen,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(children: [
+                  const Icon(Icons.volunteer_activism_rounded, color: Colors.white, size: 16),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      _filterSiswaId == null
+                          ? '${_filtered.map((k) => k.siswaId).toSet().length} ${LocalizationService.tr('students')} • ${_filtered.length} ${LocalizationService.tr('records')}'
+                          : '${_filtered.length} ${LocalizationService.tr('records')}',
+                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ]),
+              ),
+
+            Expanded(
+              child: _loading
+                  ? Center(child: CircularProgressIndicator(color: primary))
+                  : RefreshIndicator(
+                      onRefresh: () async {
+                        await SyncService.checkAndSync();
+                        await _load();
+                      },
+                      color: primary,
+                      child: _filtered.isEmpty
+                          ? LayoutBuilder(
+                              builder: (context, constraints) => SingleChildScrollView(
+                                physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                                  child: Center(
                                     child: Column(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Container(
-                                          width: 68,
-                                          height: 68,
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFF10B981).withAlpha(isDark ? 35 : 20),
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: const Icon(
-                                            Icons.volunteer_activism_rounded,
-                                            size: 34,
-                                            color: Color(0xFF059669),
-                                          ),
-                                        ),
+                                        Icon(Icons.check_circle_outline, size: 72, color: textMuted),
                                         const SizedBox(height: 16),
                                         Text(
-                                          'Catatan Sedang Kosong',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                            color: isDark ? Colors.white : kTextDark,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 6),
-                                        Text(
-                                          'Belum ada data catatan kebaikan siswa yang tercatat saat ini.',
+                                          'Catatan sedang kosong',
+                                          style: TextStyle(fontSize: 16, color: textSub),
                                           textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                            fontSize: 12.5,
-                                            color: isDark ? const Color(0xFF94A3B8) : Colors.black54,
-                                          ),
                                         ),
                                       ],
                                     ),
                                   ),
                                 ),
                               ),
+                            )
+                          : ListView.builder(
+                              physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                              padding: const EdgeInsets.fromLTRB(16, 12, 16, 88),
+                              itemCount: _filtered.map((k) => k.siswaId).toSet().length,
+                              itemBuilder: (_, i) {
+                                final ids = _filtered.map((k) => k.siswaId).toSet().toList();
+                                final siswaId = ids[i];
+                                final kebSiswa = _filtered.where((k) => k.siswaId == siswaId).toList()
+                                  ..sort((a, b) => b.tanggal.compareTo(a.tanggal));
+                                final firstRecord = kebSiswa.first;
+                                final nama = _namaSiswa(siswaId, firstRecord);
+                                final kelas = _kelasSiswa(siswaId, firstRecord);
+
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 10),
+                                  decoration: BoxDecoration(
+                                    color: cardBg,
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(color: cardBorder),
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(14),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(children: [
+                                          Container(
+                                            width: 44,
+                                            height: 44,
+                                            decoration: BoxDecoration(
+                                              color: kebaikanGreen.withAlpha(isDark ? 45 : 30),
+                                              shape: BoxShape.circle,
+                                              border: Border.all(color: kebaikanGreen.withAlpha(100)),
+                                            ),
+                                            child: Center(
+                                              child: Text(
+                                                '${kebSiswa.length}',
+                                                style: const TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: kebaikanGreen,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  nama,
+                                                  style: TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: textTitle,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  'Kelas $kelas • ${kebSiswa.length} kebaikan',
+                                                  style: TextStyle(fontSize: 11, color: textMuted),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                                            padding: EdgeInsets.zero,
+                                            constraints: const BoxConstraints(),
+                                            tooltip: LocalizationService.tr('btn_delete'),
+                                            onPressed: !_canEdit
+                                                ? null
+                                                : () async {
+                                                    final ok = await showDialog<bool>(
+                                                      context: context,
+                                                      builder: (d) => AlertDialog(
+                                                        title: const Text('Hapus Catatan Kebaikan?'),
+                                                        content: Text('Hapus semua ${kebSiswa.length} catatan kebaikan $nama?'),
+                                                        actions: [
+                                                          TextButton(
+                                                            onPressed: () => Navigator.pop(d, false),
+                                                            child: Text(LocalizationService.tr('btn_cancel')),
+                                                          ),
+                                                          ElevatedButton(
+                                                            onPressed: () => Navigator.pop(d, true),
+                                                            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                                                            child: Text(LocalizationService.tr('btn_delete')),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    );
+                                                    if (ok != true) return;
+                                                    for (final k in kebSiswa) {
+                                                      await DataService.deleteKebaikan(k.id);
+                                                    }
+                                                    final actorName = _currentUser.isNotEmpty ? _currentUser : 'Sistem';
+                                                    await NotificationService.notifyUpdate(
+                                                      title: 'Catatan Kebaikan Dihapus',
+                                                      message: 'Semua catatan kebaikan $nama telah dihapus oleh $actorName',
+                                                      category: 'system',
+                                                      actor: actorName,
+                                                    );
+                                                    _load();
+                                                  },
+                                          ),
+                                        ]),
+                                        const SizedBox(height: 10),
+                                        const Divider(height: 1),
+                                        const SizedBox(height: 8),
+                                        // ── List item kebaikan ──
+                                        ...kebSiswa.map((k) => Padding(
+                                              padding: const EdgeInsets.only(bottom: 6),
+                                              child: Row(children: [
+                                                Container(
+                                                  width: 6,
+                                                  height: 6,
+                                                  margin: const EdgeInsets.only(right: 8, top: 2),
+                                                  decoration: const BoxDecoration(
+                                                    shape: BoxShape.circle,
+                                                    color: kebaikanGreen,
+                                                  ),
+                                                ),
+                                                Expanded(
+                                                  child: GestureDetector(
+                                                    onTap: _canEdit ? () => _showForm(k) : null,
+                                                    child: Text(
+                                                      k.keterangan.isNotEmpty ? k.keterangan : k.judul,
+                                                      style: TextStyle(fontSize: 12, color: textSub),
+                                                      maxLines: 2,
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 6),
+                                                Text(
+                                                  DateFormat('dd/MM/yy').format(k.tanggal),
+                                                  style: TextStyle(fontSize: 10, color: textMuted),
+                                                ),
+                                                const SizedBox(width: 4),
+                                                GestureDetector(
+                                                  onTap: !_canEdit
+                                                      ? null
+                                                      : () async {
+                                                          await DataService.deleteKebaikan(k.id);
+                                                          final actorName = _currentUser.isNotEmpty ? _currentUser : 'Sistem';
+                                                          await NotificationService.notifyUpdate(
+                                                            title: 'Catatan Kebaikan Dihapus',
+                                                            message: 'Catatan kebaikan untuk $nama dihapus oleh $actorName',
+                                                            category: 'system',
+                                                            actor: actorName,
+                                                          );
+                                                          _load();
+                                                        },
+                                                  child: Icon(
+                                                    Icons.close,
+                                                    size: 14,
+                                                    color: _canEdit ? textMuted : Colors.transparent,
+                                                  ),
+                                                ),
+                                              ]),
+                                            )),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
-                          )
-                        : ListView.builder(
-                            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-                            padding: const EdgeInsets.fromLTRB(0, 8, 0, 88),
-                            itemCount: filtered.length,
-                            itemBuilder: (_, i) => _buildCard(filtered[i]),
-                          ),
-                  ),
-          ),
-        ],
+                    ),
+            ),
+          ],
+        ),
       ),
-      floatingActionButton: _canEdit
-          ? FloatingActionButton(
+      floatingActionButton: !_canEdit
+          ? null
+          : FloatingActionButton(
               onPressed: () => _showForm(),
-              backgroundColor: const Color(0xFF059669),
-              foregroundColor: Colors.white,
+              backgroundColor: primary,
+              foregroundColor: theme.colorScheme.onPrimary,
               elevation: 4,
               shape: const CircleBorder(),
               tooltip: 'Catat Kebaikan',
               child: const Icon(Icons.add_rounded, size: 28),
-            )
-          : null,
+            ),
     );
   }
 }

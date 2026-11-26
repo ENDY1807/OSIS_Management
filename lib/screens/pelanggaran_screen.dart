@@ -519,7 +519,7 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
                   ),
                   child: Text(
                     checkedJenis.isEmpty
-                        ? 'Simpan Catatan'
+                        ? 'Simpan'
                         : 'Simpan ${checkedJenis.length} Pelanggaran',
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
@@ -757,8 +757,6 @@ class _PelanggaranScreenState extends State<PelanggaranScreen> {
                                 color: cardBg,
                                 borderRadius: BorderRadius.circular(14),
                                 border: Border.all(color: cardBorder),
-                                boxShadow: isDark ? null : [BoxShadow(
-                                    color: kPrimary.withAlpha(80), blurRadius: 6, offset: const Offset(0, 2))],
                               ),
                               child: Padding(
                                 padding: const EdgeInsets.all(14),

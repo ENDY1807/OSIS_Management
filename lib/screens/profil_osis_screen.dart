@@ -194,14 +194,7 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(isDark ? 30 : 6),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        border: Border.all(color: isDark ? const Color(0xFF263348) : const Color(0xFFE2E8F0)),
       ),
       child: Column(
         children: [
@@ -425,14 +418,7 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
           decoration: BoxDecoration(
             color: isDark ? const Color(0xFF0F172A) : Colors.white,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withAlpha(isDark ? 30 : 6),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
-              ),
-            ],
+            border: Border.all(color: isDark ? const Color(0xFF263348) : const Color(0xFFE2E8F0)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1043,14 +1029,7 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(isDark ? 30 : 6),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        border: Border.all(color: isDark ? const Color(0xFF263348) : const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1185,14 +1164,7 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(isDark ? 30 : 6),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        border: Border.all(color: isDark ? const Color(0xFF263348) : const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1717,7 +1689,7 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
               await DataService.saveProfilOsis(_profil);
               if (ctx.mounted) Navigator.pop(ctx);
             },
-            child: const Text('Simpan Pejabat'),
+            child: const Text('Simpan'),
           ),
         ],
       ),
@@ -1866,7 +1838,7 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
               await onSave(textCtrl.text.trim());
               if (ctx.mounted) Navigator.pop(ctx);
             },
-            child: const Text('Simpan Dokumen'),
+            child: const Text('Simpan'),
           ),
         ],
       ),

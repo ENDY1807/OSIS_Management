@@ -361,7 +361,7 @@ class _EvaluasiScreenState extends State<EvaluasiScreen>
               await DataService.saveEvaluasi(item);
               if (ctx.mounted) Navigator.pop(ctx);
             },
-            child: const Text('Simpan Evaluasi'),
+            child: const Text('Simpan'),
           ),
         ],
       ),
@@ -402,45 +402,58 @@ class _EvaluasiScreenState extends State<EvaluasiScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Annual Summary Card
+          // Annual Summary Card (Clean colored surface, high contrast)
           Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isDark
-                    ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
-                    : [primary, primary.withAlpha(210)],
-              ),
-              borderRadius: BorderRadius.circular(18),
+              color: isDark
+                  ? Color.alphaBlend(primary.withAlpha(28), const Color(0xFF131A26))
+                  : Color.alphaBlend(primary.withAlpha(16), Colors.white),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: primary.withAlpha(isDark ? 90 : 75)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'REKAPITULASI PROGRAM KERJA TAHUNAN',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                Text(
+                  'Rekapitulasi Program Kerja Tahunan',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Tingkat Keberhasilan Proker: ${(pct * 100).toStringAsFixed(1)}%',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                  'Tingkat Keberhasilan: ${(pct * 100).toStringAsFixed(1)}%',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                  ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(6),
                   child: LinearProgressIndicator(
                     value: pct,
-                    minHeight: 12,
-                    backgroundColor: Colors.white24,
-                    valueColor: const AlwaysStoppedAnimation(Colors.amberAccent),
+                    minHeight: 10,
+                    backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+                    valueColor: AlwaysStoppedAnimation(primary),
                   ),
                 ),
                 const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Total Proker: $totalProker Program', style: const TextStyle(color: Colors.white70, fontSize: 11)),
-                    Text('Terlaksana Selesai: $prokerSelesai', style: const TextStyle(color: Colors.amberAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                    Text(
+                      'Total Proker: $totalProker Program',
+                      style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569), fontSize: 12),
+                    ),
+                    Text(
+                      'Selesai: $prokerSelesai',
+                      style: const TextStyle(color: Color(0xFF059669), fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
                   ],
                 ),
               ],

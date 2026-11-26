@@ -365,7 +365,7 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
                           barGroups: displayed.asMap().entries.map((e) {
                             return BarChartGroupData(x: e.key, barRods: [BarChartRodData(
                               toY: e.value.value.toDouble(),
-                              gradient: const LinearGradient(colors: [kAccent, kPrimaryDark], begin: Alignment.bottomCenter, end: Alignment.topCenter),
+                              color: kPrimaryDark,
                               width: 16, borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
                             )]);
                           }).toList(),
@@ -557,7 +557,7 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
                           barGroups: displayed.asMap().entries.map((e) {
                             return BarChartGroupData(x: e.key, barRods: [BarChartRodData(
                               toY: e.value.value.toDouble(),
-                              gradient: const LinearGradient(colors: [kPrimaryDark, kAccent], begin: Alignment.bottomCenter, end: Alignment.topCenter),
+                              color: kPrimaryDark,
                               width: 16, borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
                             )]);
                           }).toList(),
@@ -962,7 +962,7 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
                                             final count = rekapJenis[e.value.id] ?? 0;
                                             return BarChartGroupData(x: e.key, barRods: [BarChartRodData(
                                               toY: count.toDouble(),
-                                              gradient: LinearGradient(colors: isDark ? [primary.withAlpha(160), primary] : [kPrimaryDark, kAccent], begin: Alignment.bottomCenter, end: Alignment.topCenter),
+                                              color: isDark ? primary : kPrimaryDark,
                                               width: 18, borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
                                               backDrawRodData: BackgroundBarChartRodData(show: true, toY: maxY, color: chartBg),
                                             )]);
@@ -1172,7 +1172,7 @@ class _RekapScreenState extends State<RekapScreen> with SingleTickerProviderStat
                                             barGroups: displayed.asMap().entries.map((e) {
                                               return BarChartGroupData(x: e.key, barRods: [BarChartRodData(
                                                 toY: e.value.value.toDouble(),
-                                                gradient: LinearGradient(colors: isDark ? [primary.withAlpha(160), primary] : [kAccent, kPrimaryDark], begin: Alignment.bottomCenter, end: Alignment.topCenter),
+                                                color: isDark ? primary : kPrimaryDark,
                                                 width: 18, borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
                                                 backDrawRodData: BackgroundBarChartRodData(show: true, toY: maxKelasY, color: chartBg),
                                               )]);

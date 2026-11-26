@@ -609,18 +609,8 @@ class _ProkerScreenState extends State<ProkerScreen>
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: BoxDecoration(
         color: cardBg,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: isDark
-            ? null
-            : [
-                BoxShadow(
-                    color: kPrimary.withAlpha(100),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2))
-              ],
-        border: isDark
-            ? Border.all(color: cardBorder)
-            : Border(left: BorderSide(color: color, width: 4)),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cardBorder),
       ),
       child: Padding(
         padding: const EdgeInsets.all(14),

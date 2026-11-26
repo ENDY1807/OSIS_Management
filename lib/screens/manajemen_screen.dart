@@ -840,39 +840,60 @@ class _CloudStatusTabState extends State<_CloudStatusTab> {
       padding: const EdgeInsets.all(20),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: _isLoading
-                  ? [const Color(0xFF90A4AE), const Color(0xFFB0BEC5)]
+            color: _isLoading
+                ? (isDark ? const Color(0xFF131A26) : Colors.white)
+                : Color.alphaBlend(
+                    (_isConnected ? const Color(0xFF059669) : const Color(0xFFD97706)).withAlpha(isDark ? 28 : 16),
+                    isDark ? const Color(0xFF131A26) : Colors.white,
+                  ),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: _isLoading
+                  ? (isDark ? const Color(0xFF263348) : const Color(0xFFE2E8F0))
                   : _isConnected
-                      ? [const Color(0xFF00B09B), const Color(0xFF96C93D)]
-                      : [const Color(0xFFF7971E), const Color(0xFFFFD200)],
-              begin: Alignment.topLeft, end: Alignment.bottomRight,
+                      ? const Color(0xFF059669).withAlpha(140)
+                      : const Color(0xFFD97706).withAlpha(140),
             ),
-            borderRadius: BorderRadius.circular(16),
           ),
           child: Row(children: [
             if (_isLoading)
-              const SizedBox(width: 40, height: 40,
-                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
+              const SizedBox(width: 32, height: 32, child: CircularProgressIndicator(strokeWidth: 2.5))
             else
-              Icon(_isConnected ? Icons.cloud_done_rounded : Icons.cloud_off_rounded,
-                  color: Colors.white, size: 40),
-            const SizedBox(width: 16),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: (_isConnected ? const Color(0xFF059669) : const Color(0xFFD97706)).withAlpha(25),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  _isConnected ? Icons.cloud_done_rounded : Icons.cloud_off_rounded,
+                  color: _isConnected ? const Color(0xFF059669) : const Color(0xFFD97706),
+                  size: 26,
+                ),
+              ),
+            const SizedBox(width: 14),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(
-                _isLoading ? 'MENGHUBUNGKAN...' : _isConnected ? 'TERHUBUNG KE SUPABASE' : 'KONEKSI BERMASALAH',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                _isLoading ? 'Menghubungkan...' : _isConnected ? 'Terhubung ke Supabase' : 'Koneksi Bermasalah',
+                style: TextStyle(
+                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               Text(
                 _isLoading
                     ? 'Sedang memeriksa koneksi...'
                     : _isConnected
                         ? 'Semua data otomatis tersimpan ke cloud'
                         : 'Periksa koneksi internet Anda',
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
+                style: TextStyle(
+                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+                  fontSize: 12.5,
+                ),
               ),
             ])),
           ]),

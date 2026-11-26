@@ -185,6 +185,11 @@ class SyncService {
   }
 
   /// Hapus aksi tertunda untuk target tertentu jika sudah berhasil disinkronkan langsung
+  static Future<bool> hasPendingForTable(String table) async {
+    final q = await getQueue();
+    return q.any((a) => a.table == table);
+  }
+
   static Future<void> removeAction(String table, String targetId) async {
     final queue = await getQueue();
     final initialLen = queue.length;

@@ -581,7 +581,6 @@ class _LaporanScreenState extends State<LaporanScreen> {
                             color: cardBg,
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(color: cardBorder),
-                            boxShadow: isDark ? null : [BoxShadow(color: kPrimary.withAlpha(80), blurRadius: 6, offset: const Offset(0, 2))],
                           ),
                           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                             Row(children: [

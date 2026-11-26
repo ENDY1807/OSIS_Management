@@ -941,7 +941,8 @@ class DataService {
 
   // ── Kebaikan (Catatan Kebaikan & Prestasi Siswa) ─────────────────────────
   static Future<List<CatatanKebaikan>> getKebaikan() async {
-    try {
+    if (!await SyncService.hasPendingForTable('kebaikan')) {
+      try {
       final rows = await _db
           .from('kebaikan')
           .select()
@@ -954,9 +955,10 @@ class DataService {
       await _saveCache(_keyKebaikan, cacheData);
       return list;
     } catch (_) {
-      final cache = await _readCache(_keyKebaikan);
-      return cache.map(CatatanKebaikan.fromJson).toList();
     }
+    }
+    final cache = await _readCache(_keyKebaikan);
+    return cache.map(CatatanKebaikan.fromJson).toList();
   }
 
   static Future<void> addKebaikan(CatatanKebaikan k) async {
@@ -1058,7 +1060,8 @@ class DataService {
 
   // ── Proker ───────────────────────────────────────────────────────────────
   static Future<List<Proker>> getProker() async {
-    try {
+    if (!await SyncService.hasPendingForTable('proker')) {
+      try {
       final rows = await _db
           .from('proker')
           .select()
@@ -1084,10 +1087,10 @@ class DataService {
       final cacheData = list.map((p) => p.toJson()).toList();
       await _saveCache(_keyProker, cacheData);
       return list;
-    } catch (_) {
-      final cache = await _readCache(_keyProker);
-      return cache.map(Proker.fromJson).toList();
+    } catch (_) {}
     }
+    final cache = await _readCache(_keyProker);
+    return cache.map(Proker.fromJson).toList();
   }
 
   static Future<void> saveProker(List<Proker> list) async {
@@ -1854,7 +1857,8 @@ class DataService {
 
   // 1. Anggota OSIS
   static Future<List<AnggotaOsis>> getAnggotaOsis() async {
-    try {
+    if (!await SyncService.hasPendingForTable('anggota_osis')) {
+      try {
       final rows = await _db
           .from('anggota_osis')
           .select()
@@ -1868,6 +1872,7 @@ class DataService {
       return list;
     } catch (e) {
       debugPrint('Error fetching anggota_osis from Supabase, fallback to cache: $e');
+    }
     }
 
     final cache = await _readCache(_keyAnggotaOsis);
@@ -1965,7 +1970,8 @@ class DataService {
 
   // 2. Sesi Kas OSIS
   static Future<List<KasOsisSession>> getKasOsisSessions() async {
-    try {
+    if (!await SyncService.hasPendingForTable('kas_osis')) {
+      try {
       final rows = await _db
           .from('kas_osis')
           .select()
@@ -1980,6 +1986,7 @@ class DataService {
       return list;
     } catch (e) {
       debugPrint('Error fetching kas_osis from Supabase, fallback to cache: $e');
+    }
     }
 
     final cache = await _readCache(_keyKasOsis);
@@ -2098,7 +2105,8 @@ class DataService {
 
   // 4. Sesi Absensi OSIS
   static Future<List<AbsensiOsisSession>> getAbsensiOsisSessions() async {
-    try {
+    if (!await SyncService.hasPendingForTable('absensi_osis')) {
+      try {
       final rows = await _db
           .from('absensi_osis')
           .select()
@@ -2113,6 +2121,7 @@ class DataService {
       return list;
     } catch (e) {
       debugPrint('Error fetching absensi_osis from Supabase, fallback to cache: $e');
+    }
     }
 
     final cache = await _readCache(_keyAbsensiOsis);
@@ -2824,18 +2833,20 @@ class DataService {
 
   // ── 1. PROFIL OSIS ─────────────────────────────────────────────────────────
   static Future<ProfilOsis> getProfilOsis() async {
-    try {
-      final rows = await _db
-          .from('profil_osis')
-          .select()
-          .limit(1)
-          .timeout(const Duration(seconds: 4));
-      if ((rows as List).isNotEmpty) {
-        final item = ProfilOsis.fromJson(Map<String, dynamic>.from(rows.first as Map));
-        await _saveCache(_keyProfilOsis, [item.toJson()]);
-        return item;
-      }
-    } catch (_) {}
+    if (!await SyncService.hasPendingForTable('profil_osis')) {
+      try {
+        final rows = await _db
+            .from('profil_osis')
+            .select()
+            .limit(1)
+            .timeout(const Duration(seconds: 4));
+        if ((rows as List).isNotEmpty) {
+          final item = ProfilOsis.fromJson(Map<String, dynamic>.from(rows.first as Map));
+          await _saveCache(_keyProfilOsis, [item.toJson()]);
+          return item;
+        }
+      } catch (_) {}
+    }
 
     final cache = await _readCache(_keyProfilOsis);
     if (cache.isNotEmpty) {
@@ -2852,6 +2863,7 @@ class DataService {
     try {
       await _db.from('profil_osis').upsert(p.toJson());
       SyncService.setOnlineManually();
+      unawaited(SyncService.removeAction('profil_osis', 'single'));
     } catch (e) {
       await SyncService.enqueueAction(
         actionType: SyncActionType.upsert,
@@ -2913,19 +2925,21 @@ class DataService {
   ];
 
   static Future<List<InventarisOsis>> getInventaris() async {
-    try {
-      final rows = await _db
-          .from('inventaris_osis')
-          .select()
-          .order('nama_barang')
-          .timeout(const Duration(seconds: 4));
-      final list = (rows as List)
-          .map((e) => InventarisOsis.fromJson(Map<String, dynamic>.from(e as Map)))
-          .toList();
-      await _saveCache(_keyInventarisOsis, list.map((e) => e.toJson()).toList());
-      SyncService.setOnlineManually();
-      return list;
-    } catch (_) {}
+    if (!await SyncService.hasPendingForTable('inventaris_osis')) {
+      try {
+        final rows = await _db
+            .from('inventaris_osis')
+            .select()
+            .order('nama_barang')
+            .timeout(const Duration(seconds: 4));
+        final list = (rows as List)
+            .map((e) => InventarisOsis.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
+        await _saveCache(_keyInventarisOsis, list.map((e) => e.toJson()).toList());
+        SyncService.setOnlineManually();
+        return list;
+      } catch (_) {}
+    }
 
     final cache = await _readCache(_keyInventarisOsis);
     return cache.map(InventarisOsis.fromJson).toList();
@@ -3022,19 +3036,21 @@ class DataService {
   }
 
   static Future<List<AgendaOsis>> getAgenda() async {
-    try {
-      final rows = await _db
-          .from('agenda_osis')
-          .select()
-          .order('waktu_mulai', ascending: true)
-          .timeout(const Duration(seconds: 4));
-      final list = (rows as List)
-          .map((e) => AgendaOsis.fromJson(Map<String, dynamic>.from(e as Map)))
-          .toList();
-      await _saveCache(_keyAgendaOsis, list.map((e) => e.toJson()).toList());
-      SyncService.setOnlineManually();
-      return list;
-    } catch (_) {}
+    if (!await SyncService.hasPendingForTable('agenda_osis')) {
+      try {
+        final rows = await _db
+            .from('agenda_osis')
+            .select()
+            .order('waktu_mulai', ascending: true)
+            .timeout(const Duration(seconds: 4));
+        final list = (rows as List)
+            .map((e) => AgendaOsis.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
+        await _saveCache(_keyAgendaOsis, list.map((e) => e.toJson()).toList());
+        SyncService.setOnlineManually();
+        return list;
+      } catch (_) {}
+    }
 
     final cache = await _readCache(_keyAgendaOsis);
     final list = cache.map(AgendaOsis.fromJson).toList();
@@ -3120,19 +3136,21 @@ class DataService {
   }
 
   static Future<List<PengumumanOsis>> getPengumuman() async {
-    try {
-      final rows = await _db
-          .from('pengumuman_osis')
-          .select()
-          .order('tanggal', ascending: false)
-          .timeout(const Duration(seconds: 4));
-      final list = (rows as List)
-          .map((e) => PengumumanOsis.fromJson(Map<String, dynamic>.from(e as Map)))
-          .toList();
-      await _saveCache(_keyPengumumanOsis, list.map((e) => e.toJson()).toList());
-      SyncService.setOnlineManually();
-      return list;
-    } catch (_) {}
+    if (!await SyncService.hasPendingForTable('pengumuman_osis')) {
+      try {
+        final rows = await _db
+            .from('pengumuman_osis')
+            .select()
+            .order('tanggal', ascending: false)
+            .timeout(const Duration(seconds: 4));
+        final list = (rows as List)
+            .map((e) => PengumumanOsis.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
+        await _saveCache(_keyPengumumanOsis, list.map((e) => e.toJson()).toList());
+        SyncService.setOnlineManually();
+        return list;
+      } catch (_) {}
+    }
 
     final cache = await _readCache(_keyPengumumanOsis);
     final list = cache.map(PengumumanOsis.fromJson).toList();
@@ -3223,19 +3241,21 @@ class DataService {
   }
 
   static Future<List<DokumentasiKegiatan>> getDokumentasi() async {
-    try {
-      final rows = await _db
-          .from('dokumentasi_kegiatan')
-          .select()
-          .order('tanggal', ascending: false)
-          .timeout(const Duration(seconds: 4));
-      final list = (rows as List)
-          .map((e) => DokumentasiKegiatan.fromJson(Map<String, dynamic>.from(e as Map)))
-          .toList();
-      await _saveCache(_keyDokumentasiKegiatan, list.map((e) => e.toJson()).toList());
-      SyncService.setOnlineManually();
-      return list;
-    } catch (_) {}
+    if (!await SyncService.hasPendingForTable('dokumentasi_kegiatan')) {
+      try {
+        final rows = await _db
+            .from('dokumentasi_kegiatan')
+            .select()
+            .order('tanggal', ascending: false)
+            .timeout(const Duration(seconds: 4));
+        final list = (rows as List)
+            .map((e) => DokumentasiKegiatan.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
+        await _saveCache(_keyDokumentasiKegiatan, list.map((e) => e.toJson()).toList());
+        SyncService.setOnlineManually();
+        return list;
+      } catch (_) {}
+    }
 
     final cache = await _readCache(_keyDokumentasiKegiatan);
     return cache.map(DokumentasiKegiatan.fromJson).toList();
@@ -3307,19 +3327,21 @@ class DataService {
   }
 
   static Future<List<EvaluasiProker>> getEvaluasi() async {
-    try {
-      final rows = await _db
-          .from('evaluasi_proker')
-          .select()
-          .order('tanggal_evaluasi', ascending: false)
-          .timeout(const Duration(seconds: 4));
-      final list = (rows as List)
-          .map((e) => EvaluasiProker.fromJson(Map<String, dynamic>.from(e as Map)))
-          .toList();
-      await _saveCache(_keyEvaluasiProker, list.map((e) => e.toJson()).toList());
-      SyncService.setOnlineManually();
-      return list;
-    } catch (_) {}
+    if (!await SyncService.hasPendingForTable('evaluasi_proker')) {
+      try {
+        final rows = await _db
+            .from('evaluasi_proker')
+            .select()
+            .order('tanggal_evaluasi', ascending: false)
+            .timeout(const Duration(seconds: 4));
+        final list = (rows as List)
+            .map((e) => EvaluasiProker.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
+        await _saveCache(_keyEvaluasiProker, list.map((e) => e.toJson()).toList());
+        SyncService.setOnlineManually();
+        return list;
+      } catch (_) {}
+    }
 
     final cache = await _readCache(_keyEvaluasiProker);
     return cache.map(EvaluasiProker.fromJson).toList();

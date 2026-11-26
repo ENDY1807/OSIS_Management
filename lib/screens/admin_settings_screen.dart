@@ -462,9 +462,9 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
               icon: _saving ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: isDark ? Colors.white : theme.colorScheme.primary, strokeWidth: 2)) : const Icon(Icons.cloud_upload_rounded, size: 18),
               label: Text(_saving ? '...' : LocalizationService.tr('btn_save_changes'), style: const TextStyle(fontWeight: FontWeight.bold)),
               style: ElevatedButton.styleFrom(
-                backgroundColor: isDark ? theme.colorScheme.primary : Colors.white,
-                foregroundColor: isDark ? Colors.white : theme.colorScheme.primary,
-                elevation: 2,
+                backgroundColor: theme.colorScheme.primary,
+                foregroundColor: theme.colorScheme.onPrimary,
+                elevation: 0,
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
@@ -477,6 +477,9 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
           tabAlignment: TabAlignment.start,
           padding: EdgeInsets.zero,
           labelPadding: const EdgeInsets.symmetric(horizontal: 14),
+          labelColor: isDark ? Colors.white : primary,
+          unselectedLabelColor: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+          indicatorColor: isDark ? Colors.white : primary,
           tabs: const [
             Tab(text: 'Branding & Warna', icon: Icon(Icons.palette_outlined, size: 18)),
             Tab(text: 'Konfigurasi Input', icon: Icon(Icons.tune_rounded, size: 18)),
@@ -855,9 +858,9 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
           Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [_selectedAccent.withAlpha(50), _selectedAccent.withAlpha(10)]),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: _selectedAccent.withAlpha(120), width: 1.5),
+              color: isDark ? const Color(0xFF131A26) : Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: _selectedAccent, width: 1.5),
             ),
             child: Row(
               children: [
@@ -2084,7 +2087,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
           ElevatedButton.icon(
             onPressed: _saving ? null : _saveAllConfigs,
             icon: const Icon(Icons.check_circle_outline_rounded),
-            label: const Text('Simpan Pengaturan Kas OSIS', style: TextStyle(fontWeight: FontWeight.bold)),
+            label: const Text('Simpan', style: TextStyle(fontWeight: FontWeight.bold)),
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

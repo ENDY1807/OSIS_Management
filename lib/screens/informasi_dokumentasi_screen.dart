@@ -253,13 +253,6 @@ class _InformasiDokumentasiScreenState extends State<InformasiDokumentasiScreen>
               : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
           width: p.isPinned ? 1.5 : 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(isDark ? 25 : 5),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -615,15 +608,8 @@ class _InformasiDokumentasiScreenState extends State<InformasiDokumentasiScreen>
     return Container(
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(isDark ? 25 : 6),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: isDark ? const Color(0xFF263348) : const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

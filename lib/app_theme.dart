@@ -19,8 +19,11 @@ ThemeData buildAppTheme({
   Color? darkAccentColor,
 }) {
   final accent = primaryColor ?? AppSettingsService.accentColorNotifier.value;
+  final onAccent = ThemeData.estimateBrightnessForColor(accent) == Brightness.dark
+      ? Colors.white
+      : const Color(0xFF0F172A);
 
-  // Modern Discord / Linear / Spotify style dark mode palette
+  // Neutral Slate palette (R-29: neutral base + 1 brand accent)
   final darkBg = const Color(0xFF0B0F17);
   final darkSurface = const Color(0xFF131A26);
   final darkElevated = const Color(0xFF1B2433);
@@ -32,6 +35,7 @@ ThemeData buildAppTheme({
   final lightBg = const Color(0xFFF8FAFC);
   final lightSurface = Colors.white;
   final lightBorder = const Color(0xFFE2E8F0);
+  final lightTextSecondary = const Color(0xFF64748B); // 4.76:1 on white (WCAG AA)
 
   if (isDark) {
     return ThemeData(
@@ -41,11 +45,11 @@ ThemeData buildAppTheme({
       colorScheme: ColorScheme(
         brightness: Brightness.dark,
         primary: accent,
-        onPrimary: Colors.black,
+        onPrimary: onAccent,
         secondary: accent,
-        onSecondary: Colors.white,
+        onSecondary: onAccent,
         primaryContainer: accent.withAlpha(45),
-        onPrimaryContainer: const Color(0xFFE0F7FA),
+        onPrimaryContainer: darkTextPrimary,
         secondaryContainer: darkElevated,
         onSecondaryContainer: darkTextPrimary,
         surface: darkSurface,
@@ -101,13 +105,14 @@ ThemeData buildAppTheme({
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: accent,
-          foregroundColor: Colors.white,
+          foregroundColor: onAccent,
           disabledBackgroundColor: const Color(0xFF1E293B),
-          disabledForegroundColor: const Color(0xFF64748B),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          elevation: 2,
-          padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
-          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, letterSpacing: 0.3),
+          disabledForegroundColor: const Color(0xFF94A3B8),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          elevation: 0,
+          minimumSize: const Size(44, 44),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 18),
+          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -191,9 +196,9 @@ ThemeData buildAppTheme({
     colorScheme: ColorScheme(
       brightness: Brightness.light,
       primary: accent,
-      onPrimary: Colors.white,
-      secondary: accent.withAlpha(200),
-      onSecondary: Colors.white,
+      onPrimary: onAccent,
+      secondary: accent,
+      onSecondary: onAccent,
       primaryContainer: accent.withAlpha(35),
       onPrimaryContainer: const Color(0xFF0F172A),
       secondaryContainer: const Color(0xFFF1F5F9),
@@ -205,17 +210,17 @@ ThemeData buildAppTheme({
     ),
     scaffoldBackgroundColor: lightBg,
     appBarTheme: AppBarTheme(
-      backgroundColor: accent,
-      foregroundColor: Colors.white,
+      backgroundColor: lightSurface,
+      foregroundColor: const Color(0xFF0F172A),
       elevation: 0,
       centerTitle: false,
-      systemOverlayStyle: SystemUiOverlayStyle.light,
+      surfaceTintColor: Colors.transparent,
+      systemOverlayStyle: SystemUiOverlayStyle.dark,
       titleTextStyle: const TextStyle(
         fontFamily: 'Roboto',
         fontSize: 17,
         fontWeight: FontWeight.w600,
-        color: Colors.white,
-        letterSpacing: 0.3,
+        color: Color(0xFF0F172A),
       ),
     ),
     cardTheme: CardThemeData(
@@ -242,19 +247,20 @@ ThemeData buildAppTheme({
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         backgroundColor: accent,
-        foregroundColor: Colors.white,
+        foregroundColor: onAccent,
         disabledBackgroundColor: const Color(0xFFE2E8F0),
-        disabledForegroundColor: const Color(0xFF94A3B8),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        elevation: 2,
-        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
-        textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, letterSpacing: 0.3),
+        disabledForegroundColor: lightTextSecondary,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        elevation: 0,
+        minimumSize: const Size(44, 44),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 18),
+        textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: lightSurface,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
         borderSide: BorderSide(color: lightBorder),
@@ -267,13 +273,14 @@ ThemeData buildAppTheme({
         borderRadius: BorderRadius.circular(10),
         borderSide: BorderSide(color: accent, width: 1.5),
       ),
-      labelStyle: TextStyle(color: accent, fontSize: 14),
-      hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14, fontWeight: FontWeight.normal),
+      labelStyle: const TextStyle(color: Color(0xFF334155), fontSize: 14),
+      hintStyle: TextStyle(color: lightTextSecondary, fontSize: 14, fontWeight: FontWeight.normal),
     ),
     floatingActionButtonTheme: FloatingActionButtonThemeData(
       backgroundColor: accent,
-      foregroundColor: Colors.white,
+      foregroundColor: onAccent,
       elevation: 2,
+      shape: const CircleBorder(),
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: lightSurface,
@@ -291,13 +298,13 @@ ThemeData buildAppTheme({
       }),
       height: 64,
     ),
-    tabBarTheme: const TabBarThemeData(
-      labelColor: Colors.white,
-      unselectedLabelColor: Color(0x99FFFFFF),
-      indicatorColor: Colors.white,
-      labelStyle: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-      unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w400, fontSize: 13),
-      indicatorSize: TabBarIndicatorSize.label,
+    tabBarTheme: TabBarThemeData(
+      labelColor: accent,
+      unselectedLabelColor: const Color(0xFF475569),
+      indicatorColor: accent,
+      labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+      unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+      indicatorSize: TabBarIndicatorSize.tab,
     ),
     dividerTheme: DividerThemeData(color: lightBorder, thickness: 1, space: 1),
     chipTheme: ChipThemeData(

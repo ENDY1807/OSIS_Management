@@ -449,27 +449,26 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ),
         ),
         appBar: AppBar(
-          flexibleSpace: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isDark
-                    ? [const Color(0xFF0B0F17), const Color(0xFF131A26)]
-                    : [primary, primary.withAlpha(215)],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
+          backgroundColor: isDark ? const Color(0xFF0F172A) : primary,
+          foregroundColor: isDark ? Colors.white : theme.colorScheme.onPrimary,
+          elevation: 0,
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(1),
+            child: Container(
+              height: 1,
+              color: isDark ? const Color(0xFF1E293B) : primary.withAlpha(180),
             ),
           ),
           leading: Builder(
             builder: (scaffoldCtx) => IconButton(
-              icon: const Icon(Icons.menu_rounded, color: Colors.white, size: 24),
+              icon: Icon(Icons.menu_rounded, color: isDark ? Colors.white : theme.colorScheme.onPrimary, size: 24),
               tooltip: 'Buka Menu Navigasi',
               onPressed: () => Scaffold.of(scaffoldCtx).openDrawer(),
             ),
           ),
           title: Row(
             children: [
-              AppSettingsService.buildLogoWidget(width: 30, height: 30, fit: BoxFit.contain),
+              AppSettingsService.buildLogoWidget(width: 28, height: 28, fit: BoxFit.contain),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -478,7 +477,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   children: [
                     Text(
                       navItems[_idx].title,
-                      style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.2),
+                      style: TextStyle(
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? Colors.white : theme.colorScheme.onPrimary,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -487,7 +490,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       builder: (context, appName, _) {
                         return Text(
                           appName,
-                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: Colors.white70),
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: (isDark ? Colors.white : theme.colorScheme.onPrimary).withAlpha(200),
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         );
@@ -504,13 +511,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ValueListenableBuilder<int>(
                 valueListenable: NotificationService.unreadCountNotifier,
                 builder: (context, unread, _) {
+                  final iconCol = isDark ? Colors.white70 : theme.colorScheme.onPrimary;
                   return Stack(
                     alignment: Alignment.center,
                     children: [
                       IconButton(
                         icon: Icon(
                           unread > 0 ? Icons.notifications_active_rounded : Icons.notifications_outlined,
-                          color: unread > 0 ? Colors.amberAccent : Colors.white70,
+                          color: unread > 0 ? Colors.amberAccent : iconCol,
                           size: 22,
                         ),
                         tooltip: LocalizationService.tr('notifications'),
@@ -539,18 +547,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 },
               ),
 
-
-            // 3. Tombol Manajemen (Akses Super Admin ada di pojok kanan atas layar Manajemen)
+            // 3. Tombol Manajemen
             if (_canAccessManajemen)
               IconButton(
-                icon: const Icon(Icons.tune_rounded, color: Colors.white70, size: 21),
+                icon: Icon(Icons.tune_rounded, color: isDark ? Colors.white70 : theme.colorScheme.onPrimary, size: 21),
                 onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ManajemenScreen())),
                 tooltip: LocalizationService.tr('nav_manajemen'),
               ),
 
-            // 4. Settings Sheet Toggle untuk semua user (berisi Tema, Bahasa, Info Akun & Log Out)
+            // 4. Settings Sheet Toggle
             IconButton(
-              icon: const Icon(Icons.settings_outlined, color: Colors.white70, size: 21),
+              icon: Icon(Icons.settings_outlined, color: isDark ? Colors.white70 : theme.colorScheme.onPrimary, size: 21),
               tooltip: LocalizationService.tr('nav_settings'),
               onPressed: () => UserSettingsSheet.show(context, username: _username),
             ),
@@ -687,10 +694,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       child: Text(
                         group.title,
                         style: TextStyle(
-                          fontSize: 10,
+                          fontSize: 11,
                           fontWeight: FontWeight.w700,
-                          color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
-                          letterSpacing: 1.1,
+                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                         ),
                       ),
                     ),

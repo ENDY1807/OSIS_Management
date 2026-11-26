@@ -248,13 +248,6 @@ class _AgendaScreenState extends State<AgendaScreen> {
               : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
           width: isToday ? 1.5 : 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(isDark ? 25 : 5),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

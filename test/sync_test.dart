@@ -45,8 +45,11 @@ void main() {
     expect(queue.length, 1);
     expect(queue.first.table, 'pelanggaran');
     expect(SyncService.pendingCountNotifier.value, 1);
+    expect(await SyncService.hasPendingForTable('pelanggaran'), isTrue);
+    expect(await SyncService.hasPendingForTable('proker'), isFalse);
 
     await SyncService.clearQueue();
+    expect(await SyncService.hasPendingForTable('pelanggaran'), isFalse);
     final clearedQueue = await SyncService.getQueue();
     expect(clearedQueue.isEmpty, isTrue);
     expect(SyncService.pendingCountNotifier.value, 0);

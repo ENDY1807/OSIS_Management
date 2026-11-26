@@ -21,7 +21,6 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  ProfilOsis _profil = ProfilOsis();
   List<AnggotaOsis> _anggotaList = [];
   List<Proker> _prokerList = [];
   List<AgendaOsis> _agendaList = [];
@@ -53,7 +52,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _loadDashboardData({bool silent = false}) async {
     if (!silent) setState(() => _loading = true);
     try {
-      final p = await DataService.getProfilOsis();
       final ang = await DataService.getAnggotaOsis();
       final prk = await DataService.getProker();
       final agd = await DataService.getAgenda();
@@ -62,7 +60,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       if (!mounted) return;
       setState(() {
-        _profil = p;
         _anggotaList = ang;
         _prokerList = prk;
         _agendaList = agd;
@@ -162,16 +159,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
             title: 'Saldo Kas OSIS',
             value: _currencyFmt.format(_saldoKas),
             icon: Icons.account_balance_wallet_rounded,
-            color: const Color(0xFF10B981),
+            color: const Color(0xFF059669),
             subtitle: 'Transparansi Keuangan',
             isDark: isDark,
-            onTap: () => widget.onNavigateTab?.call(4),
+            onTap: () => widget.onNavigateTab?.call(5),
           ),
           _buildMetricTile(
             title: 'Total Pengurus',
             value: '${_anggotaList.length} Anggota',
             icon: Icons.groups_rounded,
-            color: const Color(0xFF3B82F6),
+            color: const Color(0xFF2563EB),
             subtitle: '${_anggotaList.where((a) => a.aktif).length} Pengurus Aktif',
             isDark: isDark,
             onTap: () => widget.onNavigateTab?.call(1),
@@ -180,7 +177,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             title: 'Program Kerja',
             value: '$_prokerSelesai / ${_prokerList.length}',
             icon: Icons.task_alt_rounded,
-            color: const Color(0xFF8B5CF6),
+            color: const Color(0xFF7C3AED),
             subtitle: '$_prokerBerjalan Sedang Berjalan',
             isDark: isDark,
             onTap: () => widget.onNavigateTab?.call(2),
@@ -189,10 +186,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             title: 'Agenda Terdekat',
             value: '${_agendaList.where((a) => a.status != 'Selesai').length} Kegiatan',
             icon: Icons.event_available_rounded,
-            color: const Color(0xFFF59E0B),
+            color: const Color(0xFFD97706),
             subtitle: 'Kalender & Rapat OSIS',
             isDark: isDark,
-            onTap: () => widget.onNavigateTab?.call(2),
+            onTap: () => widget.onNavigateTab?.call(3),
           ),
         ];
 
@@ -222,44 +219,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            color: isDark
+                ? Color.alphaBlend(color.withAlpha(22), const Color(0xFF131A26))
+                : Color.alphaBlend(color.withAlpha(14), Colors.white),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+              color: color.withAlpha(isDark ? 75 : 55),
               width: 1,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withAlpha(isDark ? 30 : 6),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
-              ),
-            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: color.withAlpha(isDark ? 45 : 30),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(icon, color: color, size: 20),
-                  ),
-                  const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Colors.grey),
-                ],
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withAlpha(isDark ? 35 : 22),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: color, size: 20),
               ),
               const SizedBox(height: 12),
               Text(
                 title,
                 style: TextStyle(
-                  fontSize: 11.5,
+                  fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white70 : const Color(0xFF64748B),
+                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
                 ),
               ),
               const SizedBox(height: 2),
@@ -277,8 +263,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Text(
                 subtitle,
                 style: TextStyle(
-                  fontSize: 10,
-                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF94A3B8),
+                  fontSize: 11,
+                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -325,18 +311,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+          color: isDark ? const Color(0xFF263348) : const Color(0xFFE2E8F0),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(isDark ? 25 : 6),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -623,18 +602,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        color: isDark ? const Color(0xFF131A26) : Colors.white,
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+          color: isDark ? const Color(0xFF263348) : const Color(0xFFE2E8F0),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(isDark ? 25 : 6),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -658,7 +630,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        _profil.namaOrganisasi.isNotEmpty ? _profil.namaOrganisasi : 'Kalender Agenda',
+                        'Kalender Agenda',
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
@@ -1029,30 +1001,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isDark
-              ? [const Color(0xFF1E293B), const Color(0xFF172554)]
-              : [const Color(0xFFEFF6FF), Colors.white],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.blue.withAlpha(isDark ? 70 : 50)),
+        color: isDark
+            ? Color.alphaBlend(primary.withAlpha(22), const Color(0xFF131A26))
+            : Color.alphaBlend(primary.withAlpha(14), Colors.white),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: primary.withAlpha(isDark ? 75 : 55)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.campaign_rounded, color: Colors.blueAccent, size: 22),
+              Icon(Icons.campaign_rounded, color: primary, size: 20),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   latest.isPinned ? 'Pengumuman Penting OSIS' : 'Pengumuman Terbaru',
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A)),
                 ),
               ),
               Text(
                 DateFormat('d MMM yyyy').format(latest.tanggal),
-                style: const TextStyle(fontSize: 11, color: Colors.grey),
+                style: TextStyle(fontSize: 11.5, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
               ),
             ],
           ),
@@ -1060,29 +1030,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Text(
             latest.judul,
             style: TextStyle(
-              fontSize: 13.5,
-              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
               color: isDark ? Colors.white : const Color(0xFF0F172A),
             ),
           ),
           const SizedBox(height: 4),
           Text(
             latest.isi,
-            style: TextStyle(fontSize: 12, color: isDark ? Colors.white70 : const Color(0xFF334155)),
+            style: TextStyle(fontSize: 12.5, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155)),
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Dari: ${latest.pengirim} (${latest.rolePengirim})',
-                style: const TextStyle(fontSize: 10.5, fontStyle: FontStyle.italic, color: Colors.grey),
+              Expanded(
+                child: Text(
+                  'Dari: ${latest.pengirim} (${latest.rolePengirim})',
+                  style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
+              const SizedBox(width: 8),
               InkWell(
-                onTap: () => widget.onNavigateTab?.call(5),
-                child: const Text('Buka Semua >', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blueAccent)),
+                onTap: () => widget.onNavigateTab?.call(6),
+                child: Text('Buka Semua', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: primary)),
               ),
             ],
           ),

@@ -620,7 +620,7 @@ class AdministrasiScreenState extends State<AdministrasiScreen>
               await DataService.saveInventaris(item);
               if (ctx.mounted) Navigator.pop(ctx);
             },
-            child: Text(isDipinjam ? 'Sudah Kembali' : 'Simpan Peminjaman'),
+            child: Text(isDipinjam ? 'Sudah Kembali' : 'Simpan'),
           ),
         ],
       ),

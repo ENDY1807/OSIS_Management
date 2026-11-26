@@ -621,7 +621,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                       _simpanKasSession(showToast: true);
                     },
                     icon: const Icon(Icons.check_circle_outline_rounded, color: Colors.white),
-                    label: const Text('Simpan Nominal Kas', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                    label: const Text('Simpan', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primary,
                       padding: const EdgeInsets.symmetric(vertical: 13),
@@ -1228,7 +1228,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                   backgroundColor: jenisCtrl.value == 'MASUK' ? const Color(0xFF059669) : const Color(0xFFDC2626),
                   foregroundColor: Colors.white,
                 ),
-                child: const Text('Simpan Transaksi'),
+                child: const Text('Simpan'),
               ),
             ],
           );
@@ -1602,13 +1602,6 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                     color: isDark ? const Color(0xFF223048) : const Color(0xFFE2E8F0),
                     width: 1.1,
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha(isDark ? 30 : 6),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1985,13 +1978,6 @@ class _KasOsisScreenState extends State<KasOsisScreen>
               : (isDark ? const Color(0xFF223048) : const Color(0xFFE2E8F0)),
           width: isLunas ? 1.5 : 1.1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(isDark ? 25 : 6),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: Material(
         color: Colors.transparent,
@@ -2246,13 +2232,6 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                     color: isDark ? const Color(0xFF223048) : const Color(0xFFE2E8F0),
                     width: 1.1,
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha(isDark ? 30 : 6),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2655,13 +2634,6 @@ class _KasOsisScreenState extends State<KasOsisScreen>
           color: activeColor.withAlpha(120),
           width: 1.2,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(isDark ? 25 : 6),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -3168,13 +3140,6 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                     color: isDark ? const Color(0xFF223048) : const Color(0xFFE2E8F0),
                     width: 1.1,
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha(isDark ? 30 : 6),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
