@@ -541,19 +541,19 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
               'Kepala Sekolah',
               _profil.namaKepsek.isEmpty ? '- Belum Diisi -' : _profil.namaKepsek,
               Colors.deepPurple,
-              Icons.account_balance_rounded,
+              Icons.admin_panel_settings_rounded,
               isDark,
             ),
           ),
           const Center(child: Icon(Icons.arrow_downward_rounded, size: 18, color: Colors.grey)),
 
-          // 2. Pembina OSIS
+          // 2. Pembina
           Center(
             child: _buildOrgCard(
-              'Pembina OSIS',
+              'Pembina',
               _profil.namaPembina.isEmpty ? '- Belum Diisi -' : _profil.namaPembina,
               Colors.purple,
-              Icons.school_rounded,
+              Icons.supervisor_account_rounded,
               isDark,
             ),
           ),
@@ -565,7 +565,7 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
               'Ketua OSIS',
               _profil.namaKetua.isEmpty ? '- Belum Diisi -' : _profil.namaKetua,
               Colors.indigo,
-              Icons.stars_rounded,
+              Icons.workspace_premium_rounded,
               isDark,
             ),
           ),
@@ -579,17 +579,17 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
                   'Wakil Ketua OSIS 1',
                   _profil.namaWakil.isEmpty ? '- Belum Diisi -' : _profil.namaWakil,
                   Colors.blue,
-                  Icons.star_border_rounded,
+                  Icons.military_tech_rounded,
                   isDark,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: _buildOrgCard(
                   'Wakil Ketua OSIS 2',
                   _profil.namaWakil2.isEmpty ? '- Belum Diisi -' : _profil.namaWakil2,
                   Colors.lightBlue,
-                  Icons.star_half_rounded,
+                  Icons.shield_rounded,
                   isDark,
                 ),
               ),
@@ -605,11 +605,11 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
                   'Sekretaris 1',
                   _profil.namaSekretaris.isEmpty ? '- Belum Diisi -' : _profil.namaSekretaris,
                   Colors.teal,
-                  Icons.description_rounded,
+                  Icons.history_edu_rounded,
                   isDark,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: _buildOrgCard(
                   'Bendahara 1',
@@ -631,17 +631,17 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
                   'Sekretaris 2',
                   _profil.namaSekretaris2.isEmpty ? '- Belum Diisi -' : _profil.namaSekretaris2,
                   Colors.teal.shade700,
-                  Icons.edit_note_rounded,
+                  Icons.rate_review_rounded,
                   isDark,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: _buildOrgCard(
                   'Bendahara 2',
                   _profil.namaBendahara2.isEmpty ? '- Belum Diisi -' : _profil.namaBendahara2,
                   Colors.green.shade700,
-                  Icons.payments_rounded,
+                  Icons.monetization_on_rounded,
                   isDark,
                 ),
               ),
@@ -673,7 +673,7 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
   Widget _buildOrgCard(String title, String name, Color color, IconData icon, bool isDark) {
     return Container(
       constraints: const BoxConstraints(maxWidth: 340),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
       decoration: BoxDecoration(
         color: color.withAlpha(isDark ? 30 : 15),
         borderRadius: BorderRadius.circular(12),
@@ -687,8 +687,8 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
             decoration: BoxDecoration(color: color.withAlpha(40), shape: BoxShape.circle),
             child: Icon(icon, color: color, size: 18),
           ),
-          const SizedBox(width: 10),
-          Flexible(
+          const SizedBox(width: 8),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -696,11 +696,14 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
                 Text(
                   title,
                   style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: color),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
+                const SizedBox(height: 1),
                 Text(
                   name,
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 12.5,
                     fontWeight: FontWeight.bold,
                     color: isDark ? Colors.white : const Color(0xFF0F172A),
                   ),
@@ -726,7 +729,7 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
         crossAxisCount: 2,
         mainAxisSpacing: 8,
         crossAxisSpacing: 8,
-        mainAxisExtent: 74,
+        mainAxisExtent: 82,
       ),
       itemBuilder: (context, i) {
         final s = sekbids[i];
@@ -1590,8 +1593,8 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
                 TextField(
                   controller: kepsekCtrl,
                   decoration: const InputDecoration(
-                    labelText: 'Nama Kepala Sekolah',
-                    prefixIcon: Icon(Icons.account_balance_rounded, color: Colors.deepPurple),
+                    labelText: 'Kepala Sekolah',
+                    prefixIcon: Icon(Icons.admin_panel_settings_rounded, color: Colors.deepPurple),
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -1599,8 +1602,8 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
                 TextField(
                   controller: pembinaCtrl,
                   decoration: const InputDecoration(
-                    labelText: 'Nama Pembina OSIS',
-                    prefixIcon: Icon(Icons.school_rounded, color: Colors.purple),
+                    labelText: 'Pembina',
+                    prefixIcon: Icon(Icons.supervisor_account_rounded, color: Colors.purple),
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -1608,8 +1611,8 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
                 TextField(
                   controller: ketuaCtrl,
                   decoration: const InputDecoration(
-                    labelText: 'Nama Ketua OSIS',
-                    prefixIcon: Icon(Icons.stars_rounded, color: Colors.indigo),
+                    labelText: 'Ketua OSIS',
+                    prefixIcon: Icon(Icons.workspace_premium_rounded, color: Colors.indigo),
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -1620,8 +1623,8 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
                       child: TextField(
                         controller: wakil1Ctrl,
                         decoration: const InputDecoration(
-                          labelText: 'Nama Wakil Ketua OSIS 1',
-                          prefixIcon: Icon(Icons.star_border_rounded, color: Colors.blue),
+                          labelText: 'Wakil Ketua OSIS 1',
+                          prefixIcon: Icon(Icons.military_tech_rounded, color: Colors.blue),
                           border: OutlineInputBorder(),
                         ),
                       ),
@@ -1631,8 +1634,8 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
                       child: TextField(
                         controller: wakil2Ctrl,
                         decoration: const InputDecoration(
-                          labelText: 'Nama Wakil Ketua OSIS 2',
-                          prefixIcon: Icon(Icons.star_half_rounded, color: Colors.lightBlue),
+                          labelText: 'Wakil Ketua OSIS 2',
+                          prefixIcon: Icon(Icons.shield_rounded, color: Colors.lightBlue),
                           border: OutlineInputBorder(),
                         ),
                       ),
@@ -1646,8 +1649,8 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
                       child: TextField(
                         controller: sekre1Ctrl,
                         decoration: const InputDecoration(
-                          labelText: 'Nama Sekretaris 1',
-                          prefixIcon: Icon(Icons.description_rounded, color: Colors.teal),
+                          labelText: 'Sekretaris 1',
+                          prefixIcon: Icon(Icons.history_edu_rounded, color: Colors.teal),
                           border: OutlineInputBorder(),
                         ),
                       ),
@@ -1657,7 +1660,7 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
                       child: TextField(
                         controller: benda1Ctrl,
                         decoration: const InputDecoration(
-                          labelText: 'Nama Bendahara 1',
+                          labelText: 'Bendahara 1',
                           prefixIcon: Icon(Icons.account_balance_wallet_rounded, color: Colors.green),
                           border: OutlineInputBorder(),
                         ),
@@ -1672,8 +1675,8 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
                       child: TextField(
                         controller: sekre2Ctrl,
                         decoration: const InputDecoration(
-                          labelText: 'Nama Sekretaris 2',
-                          prefixIcon: Icon(Icons.edit_note_rounded, color: Colors.teal),
+                          labelText: 'Sekretaris 2',
+                          prefixIcon: Icon(Icons.rate_review_rounded, color: Colors.teal),
                           border: OutlineInputBorder(),
                         ),
                       ),
@@ -1683,8 +1686,8 @@ class _ProfilOsisScreenState extends State<ProfilOsisScreen>
                       child: TextField(
                         controller: benda2Ctrl,
                         decoration: const InputDecoration(
-                          labelText: 'Nama Bendahara 2',
-                          prefixIcon: Icon(Icons.payments_rounded, color: Colors.green),
+                          labelText: 'Bendahara 2',
+                          prefixIcon: Icon(Icons.monetization_on_rounded, color: Colors.green),
                           border: OutlineInputBorder(),
                         ),
                       ),

@@ -384,7 +384,8 @@ class AdministrasiScreenState extends State<AdministrasiScreen>
                   ],
                 ),
                 const SizedBox(height: 3),
-                Row(
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     if (item.kodeBarang.isNotEmpty) ...[
                       Text(
@@ -403,6 +404,8 @@ class AdministrasiScreenState extends State<AdministrasiScreen>
                 Text(
                   'Lokasi: ${item.lokasiSimpan}${isDipinjam ? ' (Dipinjam: ${item.peminjam})' : ''}',
                   style: TextStyle(fontSize: 11, color: isDipinjam ? Colors.orange : (isDark ? Colors.white60 : Colors.black54)),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 if (item.keterangan.isNotEmpty)
                   Padding(
@@ -410,6 +413,8 @@ class AdministrasiScreenState extends State<AdministrasiScreen>
                     child: Text(
                       item.keterangan,
                       style: const TextStyle(fontSize: 10.5, fontStyle: FontStyle.italic, color: Colors.grey),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
               ],

@@ -339,82 +339,113 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Header Card
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          // Header: Judul Tengah & Tombol Menu Sisi Kanan (Sesuai Referensi Gambar)
+          Stack(
+            alignment: Alignment.center,
             children: [
               Text(
                 'Tren Program Kerja OSIS - Area Chart',
                 style: TextStyle(
-                  fontSize: 14.5,
+                  fontSize: 15,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                  color: isDark ? Colors.white : const Color(0xFF1E293B),
                 ),
+                textAlign: TextAlign.center,
               ),
-              InkWell(
-                onTap: () => widget.onNavigateTab?.call(2),
-                child: const Text('Detail >', style: TextStyle(fontSize: 12, color: Color(0xFF3B82F6), fontWeight: FontWeight.bold)),
+              Align(
+                alignment: Alignment.centerRight,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () => widget.onNavigateTab?.call(2),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: Icon(
+                      Icons.more_horiz_rounded,
+                      size: 20,
+                      color: isDark ? Colors.white54 : Colors.grey[600],
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
 
-          // Legend (Matching reference image)
+          // Legend: Ditengah horizontal di bawah judul (Sesuai Referensi Gambar)
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(width: 14, height: 2.5, color: const Color(0xFF3B82F6)),
+                  Container(
+                    width: 18,
+                    height: 2.2,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF38BDF8),
+                      borderRadius: BorderRadius.circular(1),
+                    ),
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     'Target Rencana ($total)',
                     style: TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w600,
-                      color: isDark ? const Color(0xFF93C5FD) : const Color(0xFF2563EB),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(width: 18),
+              const SizedBox(width: 24),
               Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(width: 14, height: 2.5, color: const Color(0xFF10B981)),
+                  Container(
+                    width: 18,
+                    height: 2.2,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF34D399),
+                      borderRadius: BorderRadius.circular(1),
+                    ),
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     'Realisasi Selesai ($selesai)',
                     style: TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w600,
-                      color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF059669),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                     ),
                   ),
                 ],
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
 
           // Area Chart Widget
           SizedBox(
-            height: 200,
+            height: 230,
             child: LineChart(
               LineChartData(
                 lineTouchData: LineTouchData(
                   handleBuiltInTouches: true,
                   touchTooltipData: LineTouchTooltipData(
                     getTooltipItems: (touchedSpots) {
-                      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+                      const months = [
+                        'January', 'February', 'March', 'April', 'May', 'June',
+                        'July', 'August', 'September', 'October', 'November', 'December'
+                      ];
                       return touchedSpots.map((spot) {
                         final monthName = months[(spot.x.toInt() - 1).clamp(0, 11)];
                         final isRencana = spot.barIndex == 0;
                         return LineTooltipItem(
                           '$monthName: ${spot.y.toInt()} ${isRencana ? 'Rencana' : 'Selesai'}',
                           TextStyle(
-                            color: isRencana ? const Color(0xFF60A5FA) : const Color(0xFF34D399),
+                            color: isRencana ? const Color(0xFF38BDF8) : const Color(0xFF34D399),
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
                           ),
@@ -439,7 +470,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   leftTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      reservedSize: 26,
+                      reservedSize: 32,
                       interval: intervalY,
                       getTitlesWidget: (value, meta) {
                         if (value < 0 || value > maxY) return const SizedBox.shrink();
@@ -450,6 +481,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             fontWeight: FontWeight.w500,
                             color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                           ),
+                          textAlign: TextAlign.right,
                         );
                       },
                     ),
@@ -457,20 +489,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      reservedSize: 26,
+                      reservedSize: 52,
                       interval: 1,
                       getTitlesWidget: (value, meta) {
-                        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+                        const months = [
+                          'January', 'February', 'March', 'April', 'May', 'June',
+                          'July', 'August', 'September', 'October', 'November', 'December'
+                        ];
                         final idx = value.toInt() - 1;
                         if (idx >= 0 && idx < months.length) {
                           return Padding(
-                            padding: const EdgeInsets.only(top: 6.0),
-                            child: Text(
-                              months[idx],
-                              style: TextStyle(
-                                fontSize: 9.5,
-                                fontWeight: FontWeight.w600,
-                                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: Transform.rotate(
+                              angle: -0.75, // Miring ~43 derajat persis referensi gambar
+                              alignment: Alignment.centerRight,
+                              child: Text(
+                                months[idx],
+                                style: TextStyle(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w500,
+                                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                ),
                               ),
                             ),
                           );
@@ -484,7 +523,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   show: true,
                   border: Border(
                     bottom: BorderSide(
-                      color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                      color: isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1),
                       width: 1.2,
                     ),
                   ),
@@ -494,32 +533,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 minY: 0,
                 maxY: maxY,
                 lineBarsData: [
-                  // Blue Area (Target Rencana)
-                  LineChartBarData(
-                    spots: rencanaSpots,
-                    isCurved: true,
-                    curveSmoothness: 0.35,
-                    color: const Color(0xFF3B82F6),
-                    barWidth: 2.2,
-                    isStrokeCapRound: true,
-                    dotData: const FlDotData(show: false),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      color: const Color(0xFF3B82F6).withAlpha(isDark ? 45 : 30),
-                    ),
-                  ),
-                  // Green Area (Realisasi Selesai)
+                  // Green Area (Realisasi Selesai / Product B)
                   LineChartBarData(
                     spots: realisasiSpots,
-                    isCurved: true,
-                    curveSmoothness: 0.35,
-                    color: const Color(0xFF10B981),
-                    barWidth: 2.2,
+                    isCurved: false, // Garis lurus patah-patah persis referensi gambar
+                    color: const Color(0xFF34D399),
+                    barWidth: 2.0,
                     isStrokeCapRound: true,
                     dotData: const FlDotData(show: false),
                     belowBarData: BarAreaData(
                       show: true,
-                      color: const Color(0xFF10B981).withAlpha(isDark ? 45 : 30),
+                      color: const Color(0xFF34D399).withAlpha(isDark ? 50 : 35),
+                    ),
+                  ),
+                  // Blue Area (Target Rencana / Product A)
+                  LineChartBarData(
+                    spots: rencanaSpots,
+                    isCurved: false, // Garis lurus patah-patah persis referensi gambar
+                    color: const Color(0xFF38BDF8),
+                    barWidth: 2.0,
+                    isStrokeCapRound: true,
+                    dotData: const FlDotData(show: false),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      color: const Color(0xFF38BDF8).withAlpha(isDark ? 50 : 35),
                     ),
                   ),
                 ],
@@ -532,9 +569,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildProgressMetric('Total Target', '$total Proker', const Color(0xFF3B82F6), isDark),
-              _buildProgressMetric('Terlaksana', '$selesai Selesai', const Color(0xFF10B981), isDark),
-              _buildProgressMetric('Sedang Berjalan', '$proses Proses', const Color(0xFF8B5CF6), isDark),
+              _buildProgressMetric('Total Target', '$total Proker', const Color(0xFF38BDF8), isDark),
+              _buildProgressMetric('Sedang Jalan', '$proses Proker', const Color(0xFFF59E0B), isDark),
+              _buildProgressMetric('Telah Selesai', '$selesai Proker', const Color(0xFF34D399), isDark),
             ],
           ),
         ],

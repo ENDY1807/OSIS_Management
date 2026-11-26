@@ -266,23 +266,33 @@ class _InformasiDokumentasiScreenState extends State<InformasiDokumentasiScreen>
         children: [
           Row(
             children: [
-              if (p.isPinned) ...[
-                const Icon(Icons.push_pin_rounded, color: Colors.amber, size: 18),
-                const SizedBox(width: 4),
-              ],
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
-                decoration: BoxDecoration(
-                  color: badgeColor.withAlpha(isDark ? 40 : 25),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: badgeColor.withAlpha(120), width: 0.8),
-                ),
-                child: Text(
-                  p.kategori,
-                  style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: badgeColor),
+              Expanded(
+                child: Row(
+                  children: [
+                    if (p.isPinned) ...[
+                      const Icon(Icons.push_pin_rounded, color: Colors.amber, size: 18),
+                      const SizedBox(width: 4),
+                    ],
+                    Flexible(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                        decoration: BoxDecoration(
+                          color: badgeColor.withAlpha(isDark ? 40 : 25),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: badgeColor.withAlpha(120), width: 0.8),
+                        ),
+                        child: Text(
+                          p.kategori,
+                          style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: badgeColor),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
               Text(
                 DateFormat('dd MMM yyyy • HH:mm').format(p.tanggal),
                 style: const TextStyle(fontSize: 11, color: Colors.grey),
@@ -653,17 +663,22 @@ class _InformasiDokumentasiScreenState extends State<InformasiDokumentasiScreen>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.withAlpha(25),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        item.kategori,
-                        style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+                    Flexible(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withAlpha(25),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          item.kategori,
+                          style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 6),
                     Text(
                       DateFormat('d MMM yyyy').format(item.tanggal),
                       style: const TextStyle(fontSize: 10, color: Colors.grey),

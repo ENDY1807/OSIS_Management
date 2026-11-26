@@ -347,6 +347,8 @@ class _AgendaScreenState extends State<AgendaScreen> {
                         fontWeight: FontWeight.w600,
                         color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF1D4ED8),
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
                     Row(

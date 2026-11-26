@@ -1613,7 +1613,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Baris 1: Pemilih Sesi Kas & Tombol Aksi Cepat
+                    // Baris 1: Pemilih Sesi Kas & Pengaturan Sesi
                     Row(
                       children: [
                         Expanded(
@@ -1659,30 +1659,6 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                           padding: EdgeInsets.zero,
                           onPressed: _ubahNominalWajibSesi,
                         ),
-                        const SizedBox(width: 4),
-                        IconButton.filledTonal(
-                          icon: const Icon(Icons.upload_file_rounded, size: 18, color: NusantaraColors.gold),
-                          tooltip: 'Impor Excel',
-                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                          padding: EdgeInsets.zero,
-                          onPressed: _pickAndImportExcel,
-                        ),
-                        const SizedBox(width: 4),
-                        IconButton.filledTonal(
-                          icon: const Icon(Icons.share_rounded, size: 18),
-                          tooltip: 'Bagikan WA',
-                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                          padding: EdgeInsets.zero,
-                          onPressed: _shareRekapKasWhatsApp,
-                        ),
-                        const SizedBox(width: 4),
-                        IconButton.filledTonal(
-                          icon: const Icon(Icons.picture_as_pdf_rounded, size: 18, color: Colors.redAccent),
-                          tooltip: 'Cetak Rekap Kas PDF',
-                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                          padding: EdgeInsets.zero,
-                          onPressed: _handlePrintPdf,
-                        ),
                         if (_canEdit) ...[
                           const SizedBox(width: 4),
                           IconButton.filled(
@@ -1704,6 +1680,52 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                           ],
                         ],
                       ],
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Baris 2: Tombol Alat & Ekspor (Impor Excel, Bagikan WA, Cetak PDF) - Mencegah Overflow Layar
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      child: Row(
+                        children: [
+                          OutlinedButton.icon(
+                            icon: const Icon(Icons.upload_file_rounded, size: 15, color: NusantaraColors.gold),
+                            label: const Text('Impor Excel', style: TextStyle(fontSize: 11.5)),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                            ),
+                            onPressed: _pickAndImportExcel,
+                          ),
+                          const SizedBox(width: 8),
+                          OutlinedButton.icon(
+                            icon: const Icon(Icons.share_rounded, size: 15),
+                            label: const Text('Bagikan WA', style: TextStyle(fontSize: 11.5)),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                            ),
+                            onPressed: _shareRekapKasWhatsApp,
+                          ),
+                          const SizedBox(width: 8),
+                          OutlinedButton.icon(
+                            icon: const Icon(Icons.picture_as_pdf_rounded, size: 15, color: Colors.redAccent),
+                            label: const Text('Cetak Rekap PDF', style: TextStyle(fontSize: 11.5, color: Colors.redAccent)),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              side: BorderSide(color: Colors.redAccent.withAlpha(120)),
+                            ),
+                            onPressed: _handlePrintPdf,
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 8),
 
@@ -2235,7 +2257,7 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Baris 1: Dropdown Sesi Presensi & Tombol Aksi Cepat
+                    // Baris 1: Dropdown Sesi Presensi & Aksi Sesi
                     Row(
                       children: [
                         Expanded(
@@ -2273,32 +2295,8 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                             ),
                           ),
                         ),
-                        const SizedBox(width: 6),
-                        IconButton.filledTonal(
-                          icon: const Icon(Icons.upload_file_rounded, size: 18, color: NusantaraColors.gold),
-                          tooltip: 'Impor Excel',
-                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                          padding: EdgeInsets.zero,
-                          onPressed: _pickAndImportExcel,
-                        ),
-                        const SizedBox(width: 4),
-                        IconButton.filledTonal(
-                          icon: const Icon(Icons.share_rounded, size: 18),
-                          tooltip: 'Bagikan WA',
-                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                          padding: EdgeInsets.zero,
-                          onPressed: _shareRekapAbsensiWhatsApp,
-                        ),
-                        const SizedBox(width: 4),
-                        IconButton.filledTonal(
-                          icon: const Icon(Icons.picture_as_pdf_rounded, size: 18, color: Colors.redAccent),
-                          tooltip: 'Cetak Rekap Presensi PDF',
-                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                          padding: EdgeInsets.zero,
-                          onPressed: _handlePrintPdf,
-                        ),
                         if (_canEdit) ...[
-                          const SizedBox(width: 4),
+                          const SizedBox(width: 6),
                           IconButton.filledTonal(
                             icon: const Icon(Icons.save_rounded, size: 18, color: Color(0xFF10B981)),
                             tooltip: 'Simpan Presensi',
@@ -2326,6 +2324,52 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                           ],
                         ],
                       ],
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Baris 2: Tombol Alat & Ekspor (Impor Excel, Bagikan WA, Cetak PDF) - Mencegah Overflow Layar
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      child: Row(
+                        children: [
+                          OutlinedButton.icon(
+                            icon: const Icon(Icons.upload_file_rounded, size: 15, color: NusantaraColors.gold),
+                            label: const Text('Impor Excel', style: TextStyle(fontSize: 11.5)),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                            ),
+                            onPressed: _pickAndImportExcel,
+                          ),
+                          const SizedBox(width: 8),
+                          OutlinedButton.icon(
+                            icon: const Icon(Icons.share_rounded, size: 15),
+                            label: const Text('Bagikan WA', style: TextStyle(fontSize: 11.5)),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                            ),
+                            onPressed: _shareRekapAbsensiWhatsApp,
+                          ),
+                          const SizedBox(width: 8),
+                          OutlinedButton.icon(
+                            icon: const Icon(Icons.picture_as_pdf_rounded, size: 15, color: Colors.redAccent),
+                            label: const Text('Cetak Rekap Presensi PDF', style: TextStyle(fontSize: 11.5, color: Colors.redAccent)),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              side: BorderSide(color: Colors.redAccent.withAlpha(120)),
+                            ),
+                            onPressed: _handlePrintPdf,
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 8),
 
@@ -3132,60 +3176,88 @@ class _KasOsisScreenState extends State<KasOsisScreen>
                     ),
                   ],
                 ),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: NusantaraColors.batikNavy.withAlpha(isDark ? 50 : 25),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Center(
-                        child: Icon(Icons.groups_rounded, color: NusantaraColors.batikNavy, size: 22),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Daftar Anggota & Pengurus OSIS',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                    Row(
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: NusantaraColors.batikNavy.withAlpha(isDark ? 50 : 25),
+                            borderRadius: BorderRadius.circular(10),
                           ),
-                          Text(
-                            'Total ${_anggotaList.length} siswa resmi terdaftar',
-                            style: const TextStyle(fontSize: 11.5, color: Colors.grey),
+                          child: const Center(
+                            child: Icon(Icons.groups_rounded, color: NusantaraColors.batikNavy, size: 22),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Daftar Anggota & Pengurus OSIS',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                'Total ${_anggotaList.length} siswa resmi terdaftar',
+                                style: const TextStyle(fontSize: 11.5, color: Colors.grey),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (_canEdit) ...[
+                          const SizedBox(width: 4),
+                          IconButton.filled(
+                            icon: const Icon(Icons.person_add_rounded, size: 18),
+                            tooltip: 'Tambah Anggota',
+                            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                            padding: EdgeInsets.zero,
+                            onPressed: _tambahAnggotaManual,
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Tombol Aksi Impor & Cetak PDF Scrollable (Mencegah Overflow)
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      child: Row(
+                        children: [
+                          OutlinedButton.icon(
+                            icon: const Icon(Icons.upload_file_rounded, size: 15, color: NusantaraColors.gold),
+                            label: const Text('Impor Excel', style: TextStyle(fontSize: 11.5)),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                            ),
+                            onPressed: _pickAndImportExcel,
+                          ),
+                          const SizedBox(width: 8),
+                          OutlinedButton.icon(
+                            icon: const Icon(Icons.picture_as_pdf_rounded, size: 15, color: Colors.redAccent),
+                            label: const Text('Cetak Anggota PDF', style: TextStyle(fontSize: 11.5, color: Colors.redAccent)),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              side: BorderSide(color: Colors.redAccent.withAlpha(120)),
+                            ),
+                            onPressed: _handlePrintPdf,
                           ),
                         ],
                       ),
                     ),
-                    IconButton.filledTonal(
-                      icon: const Icon(Icons.upload_file_rounded, size: 18, color: NusantaraColors.gold),
-                      tooltip: 'Impor Excel',
-                      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                      padding: EdgeInsets.zero,
-                      onPressed: _pickAndImportExcel,
-                    ),
-                    const SizedBox(width: 4),
-                    IconButton.filledTonal(
-                      icon: const Icon(Icons.picture_as_pdf_rounded, size: 18, color: Colors.redAccent),
-                      tooltip: 'Cetak Data Anggota PDF',
-                      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                      padding: EdgeInsets.zero,
-                      onPressed: _handlePrintPdf,
-                    ),
-                    if (_canEdit) ...[
-                      const SizedBox(width: 4),
-                      IconButton.filled(
-                        icon: const Icon(Icons.person_add_rounded, size: 18),
-                        tooltip: 'Tambah Anggota',
-                        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                        padding: EdgeInsets.zero,
-                        onPressed: _tambahAnggotaManual,
-                      ),
-                    ],
                   ],
                 ),
               ),

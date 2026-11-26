@@ -121,6 +121,12 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
       'rekap': List<AppCustomInputField>.from(AppSettingsService.customFieldsNotifier.value['rekap'] ?? []),
       'arsip': List<AppCustomInputField>.from(AppSettingsService.customFieldsNotifier.value['arsip'] ?? []),
       'kebaikan': List<AppCustomInputField>.from(AppSettingsService.customFieldsNotifier.value['kebaikan'] ?? []),
+      'agenda': List<AppCustomInputField>.from(AppSettingsService.customFieldsNotifier.value['agenda'] ?? []),
+      'inventaris': List<AppCustomInputField>.from(AppSettingsService.customFieldsNotifier.value['inventaris'] ?? []),
+      'pengumuman': List<AppCustomInputField>.from(AppSettingsService.customFieldsNotifier.value['pengumuman'] ?? []),
+      'dokumentasi': List<AppCustomInputField>.from(AppSettingsService.customFieldsNotifier.value['dokumentasi'] ?? []),
+      'kas': List<AppCustomInputField>.from(AppSettingsService.customFieldsNotifier.value['kas'] ?? []),
+      'pengurus': List<AppCustomInputField>.from(AppSettingsService.customFieldsNotifier.value['pengurus'] ?? []),
     };
 
     _sp1Ctrl.text = AppSettingsService.sp1ThresholdNotifier.value.toString();
@@ -1015,6 +1021,12 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> with SingleTi
       {'id': 'rekap', 'title': 'Rekap Disiplin', 'icon': Icons.bar_chart_rounded},
       {'id': 'arsip', 'title': 'Arsip Berkas', 'icon': Icons.folder_outlined},
       {'id': 'kebaikan', 'title': 'Catat Kebaikan', 'icon': Icons.volunteer_activism_rounded},
+      {'id': 'agenda', 'title': 'Agenda Kegiatan', 'icon': Icons.event_note_rounded},
+      {'id': 'inventaris', 'title': 'Inventaris Barang', 'icon': Icons.inventory_2_outlined},
+      {'id': 'pengumuman', 'title': 'Pengumuman', 'icon': Icons.campaign_outlined},
+      {'id': 'dokumentasi', 'title': 'Dokumentasi', 'icon': Icons.photo_library_outlined},
+      {'id': 'kas', 'title': 'Kas & Keuangan', 'icon': Icons.account_balance_wallet_outlined},
+      {'id': 'pengurus', 'title': 'Data Pengurus', 'icon': Icons.people_alt_outlined},
     ];
 
     final currentFields = _customFieldsMap[_selectedConfigModule] ?? [];
